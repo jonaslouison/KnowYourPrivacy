@@ -6,6 +6,9 @@
                 <div class="progress-fill" :style="{ width: progressPercentage + '%' }"></div>
             </div>
             <p class="progress-text">Question {{ currentQuestionIndex + 1 }} of {{ questions.length }}</p>
+            <button class="btn btn-danger btn-small" @click="showDeleteConfirm = true" title="Delete All Data">
+                🗑️ Delete All Data
+            </button>
         </div>
 
         <div v-if="!quizCompleted" class="quiz-content">
@@ -30,6 +33,19 @@
                 </div>
             </div>
         </div>
+
+        <!-- Delete Confirmation Dialog -->
+        <div v-if="showDeleteConfirm" class="modal-overlay" @click="cancelDelete">
+            <div class="modal-content" @click.stop>
+                <h3>⚠️ Delete All Data?</h3>
+                <p>This will permanently delete all your quiz answers and results. This action cannot be undone.</p>
+                <p><strong>Make sure you've exported your data if you want to keep it!</strong></p>
+                <div class="modal-buttons">
+                    <button class="btn btn-outline" @click="cancelDelete">Cancel</button>
+                    <button class="btn btn-danger" @click="confirmDelete">Delete Everything</button>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
@@ -37,6 +53,7 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuizStore } from '../stores/quiz'
+import { showToast } from '../utils/toast'
 
 const router = useRouter()
 const quizStore = useQuizStore()
@@ -44,6 +61,7 @@ const quizStore = useQuizStore()
 const currentQuestionIndex = ref(0)
 const selectedAnswer = ref<string | null>(null)
 const quizCompleted = ref(false)
+const showDeleteConfirm = ref(false)
 
 const questions = quizStore.questions
 
@@ -86,6 +104,17 @@ const previousQuestion = () => {
         loadExistingAnswer()
     }
 }
+
+const confirmDelete = () => {
+    quizStore.resetQuiz()
+    showDeleteConfirm.value = false
+    showToast('All data deleted successfully', 'success')
+    router.push('/')
+}
+
+const cancelDelete = () => {
+    showDeleteConfirm.value = false
+}
 </script>
 
 <style scoped>
@@ -98,11 +127,20 @@ const previousQuestion = () => {
 .quiz-header {
     text-align: center;
     margin-bottom: 2rem;
+    position: relative;
 }
 
 .quiz-header h1 {
     color: var(--primary-color);
     margin-bottom: 1.5rem;
+}
+
+.btn-small {
+    position: absolute;
+    top: 0;
+    right: 0;
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
 }
 
 .progress-bar {
@@ -181,5 +219,50 @@ const previousQuestion = () => {
 .quiz-actions button:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    max-width: 500px;
+    margin: 1rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.modal-content h3 {
+    color: var(--danger-color);
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+}
+
+.modal-content p {
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+    line-height: 1.6;
+}
+
+.modal-content p strong {
+    color: var(--text-primary);
+}
+
+.modal-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    margin-top: 1.5rem;
 }
 </style>

@@ -3,10 +3,27 @@
         <div v-if="!hasAnswers" class="empty-state card">
             <h2>No Quiz Data</h2>
             <p>You haven't completed the quiz yet. Take the quiz to see your privacy dashboard.</p>
-            <button class="btn btn-primary" @click="router.push('/quiz')">Start Quiz</button>
+            <div class="action-buttons">
+                <button class="btn btn-primary" @click="router.push('/quiz')">Start Quiz</button>
+                <button class="btn btn-secondary" @click="loadDashboard">📥 Load Saved Data</button>
+            </div>
         </div>
 
         <div v-else>
+            <!-- Unsaved Data Warning Banner -->
+            <div v-if="hasUnsavedChanges" class="warning-banner">
+                <div class="warning-content">
+                    <span class="warning-icon">⚠️</span>
+                    <div class="warning-text">
+                        <strong>Unsaved Data</strong>
+                        <p>Your quiz results haven't been exported yet. Export them to save your progress!</p>
+                    </div>
+                    <button class="btn btn-primary btn-small" @click="exportData">
+                        💾 Export Now
+                    </button>
+                </div>
+            </div>
+
             <section class="score-section">
                 <div class="score-card card">
                     <h1>Your Privacy Score</h1>
@@ -66,25 +83,45 @@
                         <button class="btn btn-outline" @click="resetData">
                             🔄 Retake Quiz
                         </button>
+                        <button class="btn btn-danger" @click="showDeleteConfirm = true">
+                            🗑️ Delete All Data
+                        </button>
                     </div>
                 </div>
             </section>
+        </div>
+
+        <!-- Delete Confirmation Dialog -->
+        <div v-if="showDeleteConfirm" class="modal-overlay" @click="cancelDelete">
+            <div class="modal-content" @click.stop>
+                <h3>⚠️ Delete All Data?</h3>
+                <p>This will permanently delete all your quiz answers and results. This action cannot be undone.</p>
+                <p><strong>Make sure you've exported your data if you want to keep it!</strong></p>
+                <div class="modal-buttons">
+                    <button class="btn btn-outline" @click="cancelDelete">Cancel</button>
+                    <button class="btn btn-danger" @click="confirmDelete">Delete Everything</button>
+                </div>
+            </div>
         </div>
     </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuizStore } from '../stores/quiz'
+import { showToast } from '../utils/toast'
 
 const router = useRouter()
 const quizStore = useQuizStore()
+const showDeleteConfirm = ref(false)
+const lastExportTime = ref<number | null>(null)
 
 const hasAnswers = computed(() => quizStore.answers.length > 0)
 const privacyScore = computed(() => quizStore.calculatePrivacyScore())
 const threatModel = computed(() => quizStore.getThreatModel())
 const appCategories = computed(() => quizStore.getAppCategories())
+const hasUnsavedChanges = computed(() => hasAnswers.value && lastExportTime.value === null)
 
 const scoreDescription = computed(() => {
     const score = privacyScore.value
@@ -94,16 +131,42 @@ const scoreDescription = computed(() => {
     return 'Needs attention. Many improvements can be made.'
 })
 
+const loadDashboard = async () => {
+    const fileInput = document.createElement('input')
+    fileInput.type = 'file'
+    fileInput.accept = '.json'
+
+    fileInput.onchange = async (e: Event) => {
+        const target = e.target as HTMLInputElement
+        const file = target.files?.[0]
+        if (!file) return
+
+        const password = prompt('Enter your password to decrypt:')
+        if (!password) return
+
+        try {
+            await quizStore.importEncryptedData(file, password)
+            showToast('Data loaded successfully!', 'success')
+        } catch (error) {
+            const err = error as Error
+            showToast('Error loading data: ' + err.message, 'error')
+        }
+    }
+
+    fileInput.click()
+}
+
 const exportData = async () => {
     const password = prompt('Enter a password to encrypt your data:')
     if (!password) return
 
     try {
         await quizStore.exportEncryptedData(password)
-        alert('Data exported successfully!')
+        lastExportTime.value = Date.now()
+        showToast('Data exported successfully!', 'success')
     } catch (error) {
         const err = error as Error
-        alert('Error exporting data: ' + err.message)
+        showToast('Error exporting data: ' + err.message, 'error')
     }
 }
 
@@ -122,10 +185,10 @@ const importData = async () => {
 
         try {
             await quizStore.importEncryptedData(file, password)
-            alert('Data imported successfully!')
+            showToast('Data imported successfully!', 'success')
         } catch (error) {
             const err = error as Error
-            alert('Error importing data: ' + err.message)
+            showToast('Error importing data: ' + err.message, 'error')
         }
     }
 
@@ -133,10 +196,18 @@ const importData = async () => {
 }
 
 const resetData = () => {
-    if (confirm('This will delete all your quiz data. Are you sure?')) {
-        quizStore.resetQuiz()
-        router.push('/quiz')
-    }
+    showDeleteConfirm.value = true
+}
+
+const confirmDelete = () => {
+    quizStore.resetQuiz()
+    showDeleteConfirm.value = false
+    showToast('All data deleted successfully', 'success')
+    router.push('/quiz')
+}
+
+const cancelDelete = () => {
+    showDeleteConfirm.value = false
 }
 </script>
 
@@ -158,6 +229,43 @@ const resetData = () => {
 .empty-state p {
     color: var(--text-secondary);
     margin-bottom: 2rem;
+}
+
+.warning-banner {
+    background: linear-gradient(135deg, #fff3cd 0%, #fff8e1 100%);
+    border: 2px solid #ffc107;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 8px rgba(255, 193, 7, 0.15);
+}
+
+.warning-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.warning-icon {
+    font-size: 2rem;
+    flex-shrink: 0;
+}
+
+.warning-text {
+    flex: 1;
+}
+
+.warning-text strong {
+    display: block;
+    color: #856404;
+    font-size: 1.1rem;
+    margin-bottom: 0.25rem;
+}
+
+.warning-text p {
+    color: #856404;
+    margin: 0;
+    font-size: 0.95rem;
 }
 
 .score-section {
@@ -316,5 +424,50 @@ const resetData = () => {
     display: flex;
     gap: 1rem;
     flex-wrap: wrap;
+}
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    max-width: 500px;
+    margin: 1rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.modal-content h3 {
+    color: var(--danger-color);
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+}
+
+.modal-content p {
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+    line-height: 1.6;
+}
+
+.modal-content p strong {
+    color: var(--text-primary);
+}
+
+.modal-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    margin-top: 1.5rem;
 }
 </style>

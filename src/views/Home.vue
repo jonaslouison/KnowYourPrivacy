@@ -10,6 +10,9 @@
             <button class="btn btn-primary btn-large" @click="startQuiz">
                 Start Privacy Quiz
             </button>
+            <button class="btn btn-secondary btn-large" @click="loadDashboard">
+                📥 Load Saved Data
+            </button>
         </section>
 
         <section class="features">
@@ -73,11 +76,40 @@
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
+import { useQuizStore } from '../stores/quiz'
+import { showToast } from '../utils/toast'
 
 const router = useRouter()
+const quizStore = useQuizStore()
 
 const startQuiz = () => {
     router.push('/quiz')
+}
+
+const loadDashboard = async () => {
+    const fileInput = document.createElement('input')
+    fileInput.type = 'file'
+    fileInput.accept = '.json'
+
+    fileInput.onchange = async (e: Event) => {
+        const target = e.target as HTMLInputElement
+        const file = target.files?.[0]
+        if (!file) return
+
+        const password = prompt('Enter your password to decrypt:')
+        if (!password) return
+
+        try {
+            await quizStore.importEncryptedData(file, password)
+            showToast('Data loaded successfully!', 'success')
+            router.push('/dashboard')
+        } catch (error) {
+            const err = error as Error
+            showToast('Error loading data: ' + err.message, 'error')
+        }
+    }
+
+    fileInput.click()
 }
 </script>
 

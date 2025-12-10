@@ -37,10 +37,10 @@ export async function encryptData(data: any, password: string): Promise<string> 
   const encoder = new TextEncoder()
   const salt = crypto.getRandomValues(new Uint8Array(16))
   const iv = crypto.getRandomValues(new Uint8Array(12))
-  
+
   const key = await deriveKey(password, salt)
   const encodedData = encoder.encode(JSON.stringify(data))
-  
+
   const encryptedData = await crypto.subtle.encrypt(
     { name: 'AES-GCM', iv: iv },
     key,
@@ -62,17 +62,17 @@ export async function encryptData(data: any, password: string): Promise<string> 
  */
 export async function decryptData(encryptedString: string, password: string): Promise<any> {
   const decoder = new TextDecoder()
-  
+
   // Convert from base64
   const combined = Uint8Array.from(atob(encryptedString), c => c.charCodeAt(0))
-  
+
   // Extract salt, iv, and encrypted data
   const salt = combined.slice(0, 16)
   const iv = combined.slice(16, 28)
   const encryptedData = combined.slice(28)
-  
+
   const key = await deriveKey(password, salt)
-  
+
   const decryptedData = await crypto.subtle.decrypt(
     { name: 'AES-GCM', iv: iv },
     key,
@@ -102,7 +102,7 @@ export function downloadEncryptedFile(encryptedData: string, filename: string = 
 export async function readEncryptedFile(file: File, password: string): Promise<any> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
-    
+
     reader.onload = async (e) => {
       try {
         const encryptedString = e.target?.result as string
@@ -112,7 +112,7 @@ export async function readEncryptedFile(file: File, password: string): Promise<a
         reject(new Error('Failed to decrypt file. Wrong password?'))
       }
     }
-    
+
     reader.onerror = () => reject(new Error('Failed to read file'))
     reader.readAsText(file)
   })
