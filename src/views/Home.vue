@@ -71,45 +71,88 @@
                 </div>
             </div>
         </section>
+
+        <!-- Password Input Modal -->
+        <div v-if="showPasswordModal" class="modal-overlay" @click="cancelPasswordInput">
+            <div class="modal-content" @click.stop>
+                <h3>🔐 Enter Password</h3>
+                <p>Enter your password to decrypt the file:</p>
+                <input
+                    v-model="passwordInput"
+                    type="password"
+                    class="password-input"
+                    placeholder="Enter password"
+                    @keyup.enter="submitPassword"
+                    ref="passwordInputRef"
+                />
+                <div class="modal-buttons">
+                    <button class="btn btn-outline" @click="cancelPasswordInput">Cancel</button>
+                    <button class="btn btn-primary" @click="submitPassword" :disabled="!passwordInput">Decrypt</button>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
 <script setup lang="ts">
+import { ref, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuizStore } from '../stores/quiz'
 import { showToast } from '../utils/toast'
 
 const router = useRouter()
 const quizStore = useQuizStore()
+const showPasswordModal = ref(false)
+const passwordInput = ref('')
+const passwordInputRef = ref<HTMLInputElement | null>(null)
+let pendingFile: File | null = null
 
 const startQuiz = () => {
     router.push('/quiz')
 }
 
-const loadDashboard = async () => {
+const loadDashboard = () => {
     const fileInput = document.createElement('input')
     fileInput.type = 'file'
     fileInput.accept = '.json'
 
-    fileInput.onchange = async (e: Event) => {
+    fileInput.onchange = (e: Event) => {
         const target = e.target as HTMLInputElement
         const file = target.files?.[0]
         if (!file) return
 
-        const password = prompt('Enter your password to decrypt:')
-        if (!password) return
-
-        try {
-            await quizStore.importEncryptedData(file, password)
-            showToast('Data loaded successfully!', 'success')
-            router.push('/dashboard')
-        } catch (error) {
-            const err = error as Error
-            showToast('Error loading data: ' + err.message, 'error')
-        }
+        pendingFile = file
+        passwordInput.value = ''
+        showPasswordModal.value = true
+        nextTick(() => {
+            passwordInputRef.value?.focus()
+        })
     }
 
     fileInput.click()
+}
+
+const submitPassword = async () => {
+    if (!passwordInput.value || !pendingFile) return
+
+    try {
+        await quizStore.importEncryptedData(pendingFile, passwordInput.value)
+        showPasswordModal.value = false
+        showToast('Data loaded successfully!', 'success')
+        router.push('/dashboard')
+    } catch (error) {
+        const err = error as Error
+        showToast('Error loading data: ' + err.message, 'error')
+    } finally {
+        pendingFile = null
+        passwordInput.value = ''
+    }
+}
+
+const cancelPasswordInput = () => {
+    showPasswordModal.value = false
+    pendingFile = null
+    passwordInput.value = ''
 }
 </script>
 
@@ -221,5 +264,60 @@ const loadDashboard = async () => {
 
 .step p {
     color: var(--text-secondary);
+}
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    max-width: 500px;
+    width: 90%;
+    margin: 1rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.modal-content h3 {
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+}
+
+.modal-content p {
+    color: var(--text-secondary);
+    margin-bottom: 1.5rem;
+}
+
+.password-input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
+    transition: border-color 0.2s;
+}
+
+.password-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.modal-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
 }
 </style>
