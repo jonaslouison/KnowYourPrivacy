@@ -103,11 +103,52 @@
                 </div>
             </div>
         </div>
+
+        <!-- Password Input Modal -->
+        <div v-if="showPasswordModal" class="modal-overlay" @click="cancelPasswordInput">
+            <div class="modal-content" @click.stop>
+                <h3>🔐 Enter Password</h3>
+                <p>Enter your password to decrypt the file:</p>
+                <input
+                    v-model="passwordInput"
+                    type="password"
+                    class="password-input"
+                    placeholder="Enter password"
+                    @keyup.enter="submitPassword"
+                    ref="passwordInputRef"
+                />
+                <div class="modal-buttons">
+                    <button class="btn btn-outline" @click="cancelPasswordInput">Cancel</button>
+                    <button class="btn btn-primary" @click="submitPassword" :disabled="!passwordInput">Decrypt</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Export Password Modal -->
+        <div v-if="showExportModal" class="modal-overlay" @click="cancelExport">
+            <div class="modal-content" @click.stop>
+                <h3>🔐 Set Password</h3>
+                <p>Choose a strong password to encrypt your data:</p>
+                <input
+                    v-model="passwordInput"
+                    type="password"
+                    class="password-input"
+                    placeholder="Enter password"
+                    @keyup.enter="submitExport"
+                    ref="exportPasswordInputRef"
+                />
+                <p class="hint">Remember this password - you'll need it to load your data later!</p>
+                <div class="modal-buttons">
+                    <button class="btn btn-outline" @click="cancelExport">Cancel</button>
+                    <button class="btn btn-primary" @click="submitExport" :disabled="!passwordInput">Encrypt & Export</button>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuizStore } from '../stores/quiz'
 import { showToast } from '../utils/toast'
@@ -115,7 +156,14 @@ import { showToast } from '../utils/toast'
 const router = useRouter()
 const quizStore = useQuizStore()
 const showDeleteConfirm = ref(false)
+const showPasswordModal = ref(false)
+const showExportModal = ref(false)
+const passwordInput = ref('')
+const passwordInputRef = ref<HTMLInputElement | null>(null)
+const exportPasswordInputRef = ref<HTMLInputElement | null>(null)
 const lastExportTime = ref<number | null>(null)
+let pendingFile: File | null = null
+let isLoadAction = false
 
 const hasAnswers = computed(() => quizStore.answers.length > 0)
 const privacyScore = computed(() => quizStore.calculatePrivacyScore())
@@ -131,68 +179,100 @@ const scoreDescription = computed(() => {
     return 'Needs attention. Many improvements can be made.'
 })
 
-const loadDashboard = async () => {
+const loadDashboard = () => {
     const fileInput = document.createElement('input')
     fileInput.type = 'file'
     fileInput.accept = '.json'
 
-    fileInput.onchange = async (e: Event) => {
+    fileInput.onchange = (e: Event) => {
         const target = e.target as HTMLInputElement
         const file = target.files?.[0]
         if (!file) return
 
-        const password = prompt('Enter your password to decrypt:')
-        if (!password) return
-
-        try {
-            await quizStore.importEncryptedData(file, password)
-            showToast('Data loaded successfully!', 'success')
-        } catch (error) {
-            const err = error as Error
-            showToast('Error loading data: ' + err.message, 'error')
-        }
+        pendingFile = file
+        isLoadAction = true
+        passwordInput.value = ''
+        showPasswordModal.value = true
+        nextTick(() => {
+            passwordInputRef.value?.focus()
+        })
     }
 
     fileInput.click()
 }
 
-const exportData = async () => {
-    const password = prompt('Enter a password to encrypt your data:')
-    if (!password) return
+const exportData = () => {
+    passwordInput.value = ''
+    showExportModal.value = true
+    nextTick(() => {
+        exportPasswordInputRef.value?.focus()
+    })
+}
+
+const submitExport = async () => {
+    if (!passwordInput.value) return
 
     try {
-        await quizStore.exportEncryptedData(password)
+        await quizStore.exportEncryptedData(passwordInput.value)
         lastExportTime.value = Date.now()
+        showExportModal.value = false
         showToast('Data exported successfully!', 'success')
     } catch (error) {
         const err = error as Error
         showToast('Error exporting data: ' + err.message, 'error')
+    } finally {
+        passwordInput.value = ''
     }
 }
 
-const importData = async () => {
+const cancelExport = () => {
+    showExportModal.value = false
+    passwordInput.value = ''
+}
+
+const importData = () => {
     const fileInput = document.createElement('input')
     fileInput.type = 'file'
     fileInput.accept = '.json'
 
-    fileInput.onchange = async (e: Event) => {
+    fileInput.onchange = (e: Event) => {
         const target = e.target as HTMLInputElement
         const file = target.files?.[0]
         if (!file) return
 
-        const password = prompt('Enter your password to decrypt:')
-        if (!password) return
-
-        try {
-            await quizStore.importEncryptedData(file, password)
-            showToast('Data imported successfully!', 'success')
-        } catch (error) {
-            const err = error as Error
-            showToast('Error importing data: ' + err.message, 'error')
-        }
+        pendingFile = file
+        isLoadAction = false
+        passwordInput.value = ''
+        showPasswordModal.value = true
+        nextTick(() => {
+            passwordInputRef.value?.focus()
+        })
     }
 
     fileInput.click()
+}
+
+const submitPassword = async () => {
+    if (!passwordInput.value || !pendingFile) return
+
+    try {
+        await quizStore.importEncryptedData(pendingFile, passwordInput.value)
+        showPasswordModal.value = false
+        const message = isLoadAction ? 'Data loaded successfully!' : 'Data imported successfully!'
+        showToast(message, 'success')
+    } catch (error) {
+        const err = error as Error
+        showToast('Error loading data: ' + err.message, 'error')
+    } finally {
+        pendingFile = null
+        passwordInput.value = ''
+    }
+}
+
+const cancelPasswordInput = () => {
+    showPasswordModal.value = false
+    pendingFile = null
+    passwordInput.value = ''
 }
 
 const resetData = () => {
@@ -469,5 +549,28 @@ const cancelDelete = () => {
     gap: 1rem;
     justify-content: flex-end;
     margin-top: 1.5rem;
+}
+
+.password-input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
+    transition: border-color 0.2s;
+}
+
+.password-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.hint {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    font-style: italic;
+    margin-top: -1rem;
+    margin-bottom: 1rem;
 }
 </style>
