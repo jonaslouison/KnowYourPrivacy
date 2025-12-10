@@ -1,4 +1,24 @@
-export const quizQuestions = [
+export interface QuizOption {
+  label: string
+  value: string
+  score: number
+  threat?: string | null
+}
+
+export interface QuizQuestion {
+  id: string
+  category: string
+  question: string
+  options: QuizOption[]
+}
+
+export interface Recommendations {
+  [key: string]: {
+    [key: string]: string[]
+  }
+}
+
+export const quizQuestions: QuizQuestion[] = [
   // App Usage Questions
   {
     id: 'browser-desktop',
@@ -161,7 +181,7 @@ export const quizQuestions = [
 ]
 
 // Privacy recommendations by category
-export const recommendations = {
+export const recommendations: Recommendations = {
   'browser-desktop': {
     chrome: ['Firefox', 'Brave', 'Mullvad Browser'],
     edge: ['Firefox', 'Brave', 'Mullvad Browser'],

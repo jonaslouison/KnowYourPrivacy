@@ -23,7 +23,7 @@ And then the user can decide what apps they want to switch to.
 
 
 I already made a paper prototype and now want to code this. 
-I have some experience in Vue, Pinia. 
+I have some experience in Vue, Pinia and Typescript. 
 And I have seen that https://www.privacyguides.org/ has a lot of Reccomendations in Markdown 
 format that I can use. They are just using html and Material for MkDocs.
 Now i am unsure what to use for my Quiz and dashboard.

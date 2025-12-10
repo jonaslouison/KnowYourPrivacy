@@ -73,7 +73,7 @@
     </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuizStore } from '../stores/quiz'
@@ -102,7 +102,8 @@ const exportData = async () => {
         await quizStore.exportEncryptedData(password)
         alert('Data exported successfully!')
     } catch (error) {
-        alert('Error exporting data: ' + error.message)
+        const err = error as Error
+        alert('Error exporting data: ' + err.message)
     }
 }
 
@@ -111,8 +112,9 @@ const importData = async () => {
     fileInput.type = 'file'
     fileInput.accept = '.json'
 
-    fileInput.onchange = async (e) => {
-        const file = e.target.files[0]
+    fileInput.onchange = async (e: Event) => {
+        const target = e.target as HTMLInputElement
+        const file = target.files?.[0]
         if (!file) return
 
         const password = prompt('Enter your password to decrypt:')
@@ -122,7 +124,8 @@ const importData = async () => {
             await quizStore.importEncryptedData(file, password)
             alert('Data imported successfully!')
         } catch (error) {
-            alert('Error importing data: ' + error.message)
+            const err = error as Error
+            alert('Error importing data: ' + err.message)
         }
     }
 
