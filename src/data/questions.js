@@ -1,0 +1,231 @@
+export const quizQuestions = [
+  // App Usage Questions
+  {
+    id: 'browser-desktop',
+    category: 'App Usage - Browser',
+    question: 'What browser do you use on desktop?',
+    options: [
+      { label: 'Google Chrome', value: 'chrome', score: 30 },
+      { label: 'Microsoft Edge', value: 'edge', score: 35 },
+      { label: 'Safari', value: 'safari', score: 50 },
+      { label: 'Firefox', value: 'firefox', score: 75 },
+      { label: 'Brave', value: 'brave', score: 90 },
+      { label: 'Tor Browser', value: 'tor', score: 100 },
+      { label: 'Other privacy-focused browser', value: 'other-privacy', score: 85 }
+    ]
+  },
+  {
+    id: 'browser-mobile',
+    category: 'App Usage - Browser',
+    question: 'What browser do you use on mobile?',
+    options: [
+      { label: 'Google Chrome', value: 'chrome', score: 30 },
+      { label: 'Safari', value: 'safari', score: 50 },
+      { label: 'Firefox', value: 'firefox', score: 75 },
+      { label: 'Brave', value: 'brave', score: 90 },
+      { label: 'DuckDuckGo Browser', value: 'ddg', score: 85 },
+      { label: 'Other privacy-focused browser', value: 'other-privacy', score: 80 }
+    ]
+  },
+  {
+    id: 'email-provider',
+    category: 'App Usage - Email',
+    question: 'What email provider do you use?',
+    options: [
+      { label: 'Gmail', value: 'gmail', score: 30 },
+      { label: 'Outlook/Hotmail', value: 'outlook', score: 35 },
+      { label: 'Yahoo Mail', value: 'yahoo', score: 30 },
+      { label: 'ProtonMail', value: 'protonmail', score: 95 },
+      { label: 'Tutanota', value: 'tutanota', score: 95 },
+      { label: 'Other privacy-focused provider', value: 'other-privacy', score: 85 }
+    ]
+  },
+  {
+    id: 'search-engine',
+    category: 'App Usage - Search',
+    question: 'What search engine do you use?',
+    options: [
+      { label: 'Google', value: 'google', score: 20 },
+      { label: 'Bing', value: 'bing', score: 30 },
+      { label: 'DuckDuckGo', value: 'duckduckgo', score: 90 },
+      { label: 'Startpage', value: 'startpage', score: 90 },
+      { label: 'Brave Search', value: 'brave-search', score: 85 },
+      { label: 'Other privacy-focused search', value: 'other-privacy', score: 80 }
+    ]
+  },
+  {
+    id: 'messaging-app',
+    category: 'App Usage - Messaging',
+    question: 'What messaging app do you primarily use?',
+    options: [
+      { label: 'WhatsApp', value: 'whatsapp', score: 40 },
+      { label: 'Facebook Messenger', value: 'messenger', score: 20 },
+      { label: 'Telegram', value: 'telegram', score: 60 },
+      { label: 'Signal', value: 'signal', score: 100 },
+      { label: 'iMessage', value: 'imessage', score: 70 },
+      { label: 'Other privacy-focused app', value: 'other-privacy', score: 80 }
+    ]
+  },
+  {
+    id: 'cloud-storage',
+    category: 'App Usage - Cloud Storage',
+    question: 'What cloud storage service do you use?',
+    options: [
+      { label: 'Google Drive', value: 'gdrive', score: 30 },
+      { label: 'Dropbox', value: 'dropbox', score: 40 },
+      { label: 'OneDrive', value: 'onedrive', score: 35 },
+      { label: 'iCloud', value: 'icloud', score: 50 },
+      { label: 'Nextcloud (self-hosted)', value: 'nextcloud', score: 100 },
+      { label: 'ProtonDrive', value: 'protondrive', score: 95 },
+      { label: 'Don\'t use cloud storage', value: 'none', score: 90 }
+    ]
+  },
+  {
+    id: 'password-manager',
+    category: 'App Usage - Security',
+    question: 'Do you use a password manager?',
+    options: [
+      { label: 'No, I reuse passwords', value: 'none-reuse', score: 0 },
+      { label: 'No, but I use unique passwords', value: 'none-unique', score: 40 },
+      { label: 'Yes, browser built-in', value: 'browser', score: 60 },
+      { label: 'Yes, Bitwarden', value: 'bitwarden', score: 95 },
+      { label: 'Yes, 1Password', value: '1password', score: 90 },
+      { label: 'Yes, KeePass/KeePassXC', value: 'keepass', score: 100 },
+      { label: 'Yes, other password manager', value: 'other', score: 80 }
+    ]
+  },
+  {
+    id: 'vpn-usage',
+    category: 'App Usage - Security',
+    question: 'Do you use a VPN?',
+    options: [
+      { label: 'No', value: 'no', score: 30 },
+      { label: 'Yes, free VPN', value: 'free', score: 40 },
+      { label: 'Yes, paid VPN (Mullvad, IVPN, ProtonVPN)', value: 'paid-privacy', score: 100 },
+      { label: 'Yes, other paid VPN', value: 'paid-other', score: 70 },
+      { label: 'Yes, self-hosted VPN', value: 'selfhosted', score: 90 }
+    ]
+  },
+
+  // Threat Model Questions
+  {
+    id: 'threat-surveillance',
+    category: 'Threat Model',
+    question: 'Are you concerned about surveillance capitalism (companies tracking you for ads)?',
+    options: [
+      { label: 'Not concerned', value: 'no', score: 0, threat: null },
+      { label: 'Somewhat concerned', value: 'somewhat', score: 50, threat: 'Surveillance Capitalism' },
+      { label: 'Very concerned', value: 'yes', score: 100, threat: 'Surveillance Capitalism' }
+    ]
+  },
+  {
+    id: 'threat-fingerprinting',
+    category: 'Threat Model',
+    question: 'Are you concerned about online fingerprinting and tracking?',
+    options: [
+      { label: 'Not concerned', value: 'no', score: 0, threat: null },
+      { label: 'Somewhat concerned', value: 'somewhat', score: 50, threat: 'Online Fingerprinting' },
+      { label: 'Very concerned', value: 'yes', score: 100, threat: 'Online Fingerprinting' }
+    ]
+  },
+  {
+    id: 'threat-government',
+    category: 'Threat Model',
+    question: 'Are you concerned about government surveillance?',
+    options: [
+      { label: 'Not concerned', value: 'no', score: 0, threat: null },
+      { label: 'Somewhat concerned', value: 'somewhat', score: 50, threat: 'Government Surveillance' },
+      { label: 'Very concerned', value: 'yes', score: 100, threat: 'Government Surveillance' }
+    ]
+  },
+  {
+    id: 'threat-data-breaches',
+    category: 'Threat Model',
+    question: 'Are you concerned about data breaches?',
+    options: [
+      { label: 'Not concerned', value: 'no', score: 0, threat: null },
+      { label: 'Somewhat concerned', value: 'somewhat', score: 50, threat: 'Data Breaches' },
+      { label: 'Very concerned', value: 'yes', score: 100, threat: 'Data Breaches' }
+    ]
+  },
+  {
+    id: 'threat-identity-theft',
+    category: 'Threat Model',
+    question: 'Are you concerned about identity theft?',
+    options: [
+      { label: 'Not concerned', value: 'no', score: 0, threat: null },
+      { label: 'Somewhat concerned', value: 'somewhat', score: 50, threat: 'Identity Theft' },
+      { label: 'Very concerned', value: 'yes', score: 100, threat: 'Identity Theft' }
+    ]
+  }
+]
+
+// Privacy recommendations by category
+export const recommendations = {
+  'browser-desktop': {
+    chrome: ['Firefox', 'Brave', 'Mullvad Browser'],
+    edge: ['Firefox', 'Brave', 'Mullvad Browser'],
+    safari: ['Firefox', 'Brave'],
+    firefox: ['Consider hardening with privacy extensions'],
+    brave: ['Already excellent choice!'],
+    tor: ['Perfect for maximum anonymity!'],
+    'other-privacy': ['Great choice!']
+  },
+  'browser-mobile': {
+    chrome: ['Firefox Focus', 'Brave', 'DuckDuckGo Browser'],
+    safari: ['Firefox Focus', 'Brave', 'DuckDuckGo Browser'],
+    firefox: ['Consider Firefox Focus for mobile'],
+    brave: ['Excellent choice!'],
+    ddg: ['Great choice!'],
+    'other-privacy': ['Great choice!']
+  },
+  'email-provider': {
+    gmail: ['ProtonMail', 'Tutanota', 'Mailbox.org'],
+    outlook: ['ProtonMail', 'Tutanota', 'Mailbox.org'],
+    yahoo: ['ProtonMail', 'Tutanota', 'Mailbox.org'],
+    protonmail: ['Excellent choice!'],
+    tutanota: ['Excellent choice!'],
+    'other-privacy': ['Great choice!']
+  },
+  'search-engine': {
+    google: ['DuckDuckGo', 'Startpage', 'Brave Search'],
+    bing: ['DuckDuckGo', 'Startpage', 'Brave Search'],
+    duckduckgo: ['Excellent choice!'],
+    startpage: ['Excellent choice!'],
+    'brave-search': ['Great choice!'],
+    'other-privacy': ['Great choice!']
+  },
+  'messaging-app': {
+    whatsapp: ['Signal', 'Session', 'Threema'],
+    messenger: ['Signal', 'Session', 'Threema'],
+    telegram: ['Signal - better encryption by default'],
+    signal: ['Perfect choice!'],
+    imessage: ['Good, but consider Signal for cross-platform'],
+    'other-privacy': ['Great choice!']
+  },
+  'cloud-storage': {
+    gdrive: ['Nextcloud', 'ProtonDrive', 'Cryptomator + any cloud'],
+    dropbox: ['Nextcloud', 'ProtonDrive', 'Cryptomator + any cloud'],
+    onedrive: ['Nextcloud', 'ProtonDrive', 'Cryptomator + any cloud'],
+    icloud: ['Nextcloud', 'ProtonDrive', 'Consider encryption'],
+    nextcloud: ['Perfect for self-hosting!'],
+    protondrive: ['Excellent choice!'],
+    none: ['Good for privacy!']
+  },
+  'password-manager': {
+    'none-reuse': ['URGENT: Use Bitwarden, KeePassXC, or 1Password'],
+    'none-unique': ['Consider Bitwarden or KeePassXC'],
+    browser: ['Consider Bitwarden or KeePassXC for better security'],
+    bitwarden: ['Excellent choice!'],
+    '1password': ['Great choice!'],
+    keepass: ['Perfect for offline security!'],
+    other: ['Good choice!']
+  },
+  'vpn-usage': {
+    no: ['Consider Mullvad, IVPN, or ProtonVPN'],
+    free: ['Upgrade to paid: Mullvad, IVPN, or ProtonVPN'],
+    'paid-privacy': ['Excellent choice!'],
+    'paid-other': ['Consider Mullvad, IVPN, or ProtonVPN'],
+    selfhosted: ['Great for control!']
+  }
+}
