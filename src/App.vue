@@ -8,7 +8,7 @@
                 <div class="nav-links">
                     <router-link to="/">Home</router-link>
                     <router-link to="/quiz">Quiz</router-link>
-                    <router-link to="/dashboard" v-if="hasCompletedQuiz">Dashboard</router-link>
+                    <router-link to="/dashboard">Dashboard</router-link>
                 </div>
             </nav>
         </header>
@@ -16,6 +16,8 @@
         <main>
             <router-view />
         </main>
+
+        <ToastContainer />
 
         <footer class="footer">
             <div class="container">
@@ -31,11 +33,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useQuizStore } from './stores/quiz'
-
-const quizStore = useQuizStore()
-const hasCompletedQuiz = computed(() => quizStore.isCompleted)
+import ToastContainer from './components/ToastContainer.vue'
 </script>
 
 <style scoped>
