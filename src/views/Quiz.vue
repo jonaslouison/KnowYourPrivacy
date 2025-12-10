@@ -33,7 +33,7 @@
     </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuizStore } from '../stores/quiz'
@@ -42,7 +42,7 @@ const router = useRouter()
 const quizStore = useQuizStore()
 
 const currentQuestionIndex = ref(0)
-const selectedAnswer = ref(null)
+const selectedAnswer = ref<string | null>(null)
 const quizCompleted = ref(false)
 
 const questions = quizStore.questions
@@ -59,7 +59,7 @@ const loadExistingAnswer = () => {
 
 loadExistingAnswer()
 
-const selectAnswer = (value) => {
+const selectAnswer = (value: string) => {
     selectedAnswer.value = value
 }
 

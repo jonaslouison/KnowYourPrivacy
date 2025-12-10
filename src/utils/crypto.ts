@@ -5,11 +5,8 @@
 
 /**
  * Derives a cryptographic key from a password
- * @param {string} password - User's password
- * @param {Uint8Array} salt - Salt for key derivation
- * @returns {Promise<CryptoKey>} - Derived key
  */
-async function deriveKey(password, salt) {
+async function deriveKey(password: string, salt: BufferSource): Promise<CryptoKey> {
   const encoder = new TextEncoder()
   const keyMaterial = await crypto.subtle.importKey(
     'raw',
@@ -35,11 +32,8 @@ async function deriveKey(password, salt) {
 
 /**
  * Encrypts data with a password
- * @param {object} data - Data to encrypt
- * @param {string} password - Password for encryption
- * @returns {Promise<string>} - Encrypted data as base64 string
  */
-export async function encryptData(data, password) {
+export async function encryptData(data: any, password: string): Promise<string> {
   const encoder = new TextEncoder()
   const salt = crypto.getRandomValues(new Uint8Array(16))
   const iv = crypto.getRandomValues(new Uint8Array(12))
@@ -65,11 +59,8 @@ export async function encryptData(data, password) {
 
 /**
  * Decrypts data with a password
- * @param {string} encryptedString - Base64 encrypted data
- * @param {string} password - Password for decryption
- * @returns {Promise<object>} - Decrypted data
  */
-export async function decryptData(encryptedString, password) {
+export async function decryptData(encryptedString: string, password: string): Promise<any> {
   const decoder = new TextDecoder()
   
   // Convert from base64
@@ -94,10 +85,8 @@ export async function decryptData(encryptedString, password) {
 
 /**
  * Downloads encrypted data as a file
- * @param {string} encryptedData - Encrypted data string
- * @param {string} filename - Name for the download file
  */
-export function downloadEncryptedFile(encryptedData, filename = 'knowyourprivacy-data.json') {
+export function downloadEncryptedFile(encryptedData: string, filename: string = 'knowyourprivacy-data.json'): void {
   const blob = new Blob([encryptedData], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
@@ -109,17 +98,14 @@ export function downloadEncryptedFile(encryptedData, filename = 'knowyourprivacy
 
 /**
  * Reads and decrypts a file
- * @param {File} file - File to read
- * @param {string} password - Password for decryption
- * @returns {Promise<object>} - Decrypted data
  */
-export async function readEncryptedFile(file, password) {
+export async function readEncryptedFile(file: File, password: string): Promise<any> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
     
     reader.onload = async (e) => {
       try {
-        const encryptedString = e.target.result
+        const encryptedString = e.target?.result as string
         const data = await decryptData(encryptedString, password)
         resolve(data)
       } catch (error) {
