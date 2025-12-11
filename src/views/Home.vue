@@ -8,7 +8,7 @@
                 All data stays on your device - encrypted and secure.
             </p>
             <button class="btn btn-primary btn-large" @click="startQuiz">
-                Start Privacy Quiz
+                {{ quizStore.isLoadedFromFile ? '👁️ See Quiz Answers' : '🎯 Start Privacy Quiz' }}
             </button>
             <button class="btn btn-secondary btn-large" @click="loadDashboard">
                 📥 Load Saved Data
@@ -167,7 +167,14 @@ const submitPassword = async () => {
         await quizStore.importEncryptedData(pendingFile, passwordInput.value)
         showPasswordModal.value = false
         showToast('Data loaded successfully!', 'success')
-        router.push('/dashboard')
+
+        // Route based on completion state so unfinished quizzes resume where left off
+        if (quizStore.isCompleted) {
+            router.push('/dashboard')
+        } else {
+            router.push('/quiz')
+        }
+
         // Only clear on success
         pendingFile = null
         passwordInput.value = ''

@@ -2,16 +2,26 @@
     <div class="dashboard container">
         <div v-if="!hasAnswers" class="empty-state card">
             <h2>No Quiz Data</h2>
-            <p>You haven't completed the quiz yet. Take the quiz to see your privacy dashboard.</p>
+            <p>You haven't started the quiz yet. Begin to see your privacy dashboard.</p>
             <div class="action-buttons">
                 <button class="btn btn-primary" @click="router.push('/quiz')">Start Quiz</button>
                 <button class="btn btn-secondary" @click="loadDashboard">📥 Load Saved Data</button>
             </div>
         </div>
 
+        <div v-else-if="shouldContinueQuiz" class="continue-state card">
+            <h2>Continue Your Quiz</h2>
+            <p>You have unfinished answers. Resume to pick up where you left off.</p>
+            <p class="progress-hint">Current position: Question {{ quizStore.currentQuestionIndex + 1 }} of {{ quizStore.questions.length }}</p>
+            <div class="action-buttons">
+                <button class="btn btn-primary" @click="router.push('/quiz')">➡️ Continue Quiz</button>
+                <button class="btn btn-secondary" @click="loadDashboard">📥 Load a Different File</button>
+            </div>
+        </div>
+
         <div v-else>
             <!-- Unsaved Data Warning Banner -->
-            <div v-if="hasUnsavedChanges" class="warning-banner">
+            <div v-if="hasUnsavedChanges && !quizStore.isLoadedFromFile" class="warning-banner">
                 <div class="warning-content">
                     <span class="warning-icon">⚠️</span>
                     <div class="warning-text">
@@ -21,6 +31,17 @@
                     <button class="btn btn-primary btn-small" @click="exportData">
                         💾 Export Now
                     </button>
+                </div>
+            </div>
+
+            <!-- Saved File Success Banner -->
+            <div v-if="quizStore.isLoadedFromFile" class="success-banner">
+                <div class="success-content">
+                    <span class="success-icon">✅</span>
+                    <div class="success-text">
+                        <strong>Your Quiz is currently saved in this file</strong>
+                        <p>Your progress and results are securely stored.</p>
+                    </div>
                 </div>
             </div>
 
@@ -219,6 +240,8 @@ let pendingFile: File | null = null
 let isLoadAction = false
 
 const hasAnswers = computed(() => quizStore.answers.length > 0)
+const isCompleted = computed(() => quizStore.isCompleted)
+const shouldContinueQuiz = computed(() => hasAnswers.value && !isCompleted.value)
 const privacyScore = computed(() => quizStore.calculatePrivacyScore())
 const threatModel = computed(() => quizStore.getThreatModel())
 const appCategories = computed(() => quizStore.getAppCategories())
@@ -397,6 +420,14 @@ const submitPassword = async () => {
         showPasswordModal.value = false
         const message = isLoadAction ? 'Data loaded successfully!' : 'Data imported successfully!'
         showToast(message, 'success')
+
+        // Route based on completion state so unfinished quizzes resume where left off
+        if (quizStore.isCompleted) {
+            // Stay on dashboard (already here), but ensure data reflects loaded state
+        } else {
+            router.push('/quiz')
+        }
+
         // Only clear on success
         pendingFile = null
         passwordInput.value = ''
@@ -452,6 +483,25 @@ const cancelDelete = () => {
     padding: 3rem;
 }
 
+.continue-state {
+    text-align: center;
+    padding: 3rem;
+    border: 2px dashed var(--primary-color);
+    background: #f5f7ff;
+    border-radius: 12px;
+    margin-bottom: 2rem;
+}
+
+.continue-state h2 {
+    color: var(--primary-color);
+    margin-bottom: 0.75rem;
+}
+
+.progress-hint {
+    color: var(--text-secondary);
+    margin: 0.5rem 0 1.5rem;
+}
+
 .empty-state h2 {
     margin-bottom: 1rem;
     color: var(--text-primary);
@@ -495,6 +545,43 @@ const cancelDelete = () => {
 
 .warning-text p {
     color: #856404;
+    margin: 0;
+    font-size: 0.95rem;
+}
+
+.success-banner {
+    background: linear-gradient(135deg, #d4edda 0%, #e8f5e9 100%);
+    border: 2px solid #28a745;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.15);
+}
+
+.success-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.success-icon {
+    font-size: 2rem;
+    flex-shrink: 0;
+}
+
+.success-text {
+    flex: 1;
+}
+
+.success-text strong {
+    display: block;
+    color: #155724;
+    font-size: 1.1rem;
+    margin-bottom: 0.25rem;
+}
+
+.success-text p {
+    color: #155724;
     margin: 0;
     font-size: 0.95rem;
 }
