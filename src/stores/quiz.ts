@@ -24,12 +24,15 @@ export interface QuizState {
   questions: QuizQuestion[]
   answers: Answer[]
   isCompleted: boolean
+  currentQuestionIndex: number
+  isLoadedFromFile: boolean
 }
 
 export interface ExportData {
   _format: 'knowyourprivacy-v1'
   answers: Answer[]
   isCompleted: boolean
+  currentQuestionIndex: number
   exportedAt: string
 }
 
@@ -37,7 +40,9 @@ export const useQuizStore = defineStore('quiz', {
   state: (): QuizState => ({
     questions: quizQuestions,
     answers: [],
-    isCompleted: false
+    isCompleted: false,
+    currentQuestionIndex: 0,
+    isLoadedFromFile: false
   }),
 
   getters: {
@@ -247,6 +252,8 @@ export const useQuizStore = defineStore('quiz', {
     resetQuiz(): void {
       this.answers = []
       this.isCompleted = false
+      this.currentQuestionIndex = 0
+      this.isLoadedFromFile = false
     },
 
     /**
@@ -257,6 +264,7 @@ export const useQuizStore = defineStore('quiz', {
         _format: 'knowyourprivacy-v1',
         answers: this.answers,
         isCompleted: this.isCompleted,
+        currentQuestionIndex: this.currentQuestionIndex,
         exportedAt: new Date().toISOString()
       }
 
@@ -281,6 +289,8 @@ export const useQuizStore = defineStore('quiz', {
 
       this.answers = data.answers
       this.isCompleted = data.isCompleted || false
+      this.currentQuestionIndex = data.currentQuestionIndex || 0
+      this.isLoadedFromFile = true
     }
   }
 })
