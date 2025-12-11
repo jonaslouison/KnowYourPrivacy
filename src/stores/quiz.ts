@@ -27,6 +27,7 @@ export interface QuizState {
 }
 
 export interface ExportData {
+  _format: 'knowyourprivacy-v1'
   answers: Answer[]
   isCompleted: boolean
   exportedAt: string
@@ -251,15 +252,16 @@ export const useQuizStore = defineStore('quiz', {
     /**
      * Export encrypted data to file
      */
-    async exportEncryptedData(password: string): Promise<void> {
+    async exportEncryptedData(password: string): Promise<boolean> {
       const data: ExportData = {
+        _format: 'knowyourprivacy-v1',
         answers: this.answers,
         isCompleted: this.isCompleted,
         exportedAt: new Date().toISOString()
       }
 
       const encryptedString = await encryptData(data, password)
-      downloadEncryptedFile(encryptedString)
+      return downloadEncryptedFile(encryptedString)
     },
 
     /**
@@ -268,12 +270,17 @@ export const useQuizStore = defineStore('quiz', {
     async importEncryptedData(file: File, password: string): Promise<void> {
       const data = await readEncryptedFile(file, password)
 
-      if (data.answers && Array.isArray(data.answers)) {
-        this.answers = data.answers
-        this.isCompleted = data.isCompleted || false
-      } else {
-        throw new Error('Invalid data format')
+      // Validate the decrypted data has correct format identifier
+      if (!data._format || data._format !== 'knowyourprivacy-v1') {
+        throw new Error('Invalid file: This is not a Know Your Privacy export file. Please select a valid export file.')
       }
+
+      if (!data.answers || !Array.isArray(data.answers)) {
+        throw new Error('Corrupted file: Invalid data structure in export file.')
+      }
+
+      this.answers = data.answers
+      this.isCompleted = data.isCompleted || false
     }
   }
 })
