@@ -86,14 +86,39 @@ export async function decryptData(encryptedString: string, password: string): Pr
 /**
  * Downloads encrypted data as a file
  */
-export function downloadEncryptedFile(encryptedData: string, filename: string = 'knowyourprivacy-data.json'): void {
-  const blob = new Blob([encryptedData], { type: 'application/json' })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = filename
-  link.click()
-  URL.revokeObjectURL(url)
+export function downloadEncryptedFile(encryptedData: string, filename: string = 'knowyourprivacy-data.json'): boolean {
+  try {
+    const blob = new Blob([encryptedData], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = filename
+    link.click()
+    URL.revokeObjectURL(url)
+    return true
+  } catch (error) {
+    return false
+  }
+}
+
+/**
+ * Validates if a file is readable (basic file validation)
+ */
+export async function validateExportFile(file: File): Promise<void> {
+  return new Promise((resolve, reject) => {
+    // Just check file size and basic properties
+    if (file.size === 0) {
+      reject(new Error('File is empty'))
+      return
+    }
+
+    if (!file.type.includes('json') && !file.name.endsWith('.json')) {
+      reject(new Error('File does not appear to be a JSON file'))
+      return
+    }
+
+    resolve()
+  })
 }
 
 /**

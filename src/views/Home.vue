@@ -76,15 +76,26 @@
         <div v-if="showPasswordModal" class="modal-overlay" @click="cancelPasswordInput">
             <div class="modal-content" @click.stop>
                 <h3>🔐 Enter Password</h3>
+                <div class="file-info">
+                    <p class="file-label">Selected file:</p>
+                    <div class="file-name">
+                        <p>📄 {{ fileName }}</p>
+                        <button class="btn btn-outline" @click="loadDifferentFile">📂 Change File</button>
+                    </div>
+                    
+                </div>
                 <p>Enter your password to decrypt the file:</p>
                 <input
                     v-model="passwordInput"
                     type="password"
                     class="password-input"
-                    placeholder="Enter password"
+                    :class="{ 'error': passwordError }"
                     @keyup.enter="submitPassword"
                     ref="passwordInputRef"
                 />
+                <div v-if="passwordError" class="error-message">
+                    ⚠️ {{ passwordError }}
+                </div>
                 <div class="modal-buttons">
                     <button class="btn btn-outline" @click="cancelPasswordInput">Cancel</button>
                     <button class="btn btn-primary" @click="submitPassword" :disabled="!passwordInput">Decrypt</button>
@@ -99,11 +110,14 @@ import { ref, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuizStore } from '../stores/quiz'
 import { showToast } from '../utils/toast'
+import { validateExportFile } from '../utils/crypto'
 
 const router = useRouter()
 const quizStore = useQuizStore()
 const showPasswordModal = ref(false)
+const fileName = ref('')
 const passwordInput = ref('')
+const passwordError = ref('')
 const passwordInputRef = ref<HTMLInputElement | null>(null)
 let pendingFile: File | null = null
 
@@ -116,17 +130,31 @@ const loadDashboard = () => {
     fileInput.type = 'file'
     fileInput.accept = '.json'
 
-    fileInput.onchange = (e: Event) => {
+    fileInput.onchange = async (e: Event) => {
         const target = e.target as HTMLInputElement
         const file = target.files?.[0]
-        if (!file) return
+        if (!file) {
+            showToast('File selection cancelled', 'warning')
+            return
+        }
 
-        pendingFile = file
-        passwordInput.value = ''
-        showPasswordModal.value = true
-        nextTick(() => {
-            passwordInputRef.value?.focus()
-        })
+        try {
+            // Validate file format first
+            await validateExportFile(file)
+            pendingFile = file
+            fileName.value = file.name
+            passwordInput.value = ''
+            passwordError.value = ''
+            showPasswordModal.value = true
+            nextTick(() => {
+                passwordInputRef.value?.focus()
+            })
+        } catch (error) {
+            const err = error as Error
+            showToast(err.message, 'error')
+            // Re-open file picker automatically
+            fileInput.click()
+        }
     }
 
     fileInput.click()
@@ -140,19 +168,28 @@ const submitPassword = async () => {
         showPasswordModal.value = false
         showToast('Data loaded successfully!', 'success')
         router.push('/dashboard')
-    } catch (error) {
-        const err = error as Error
-        showToast('Error loading data: ' + err.message, 'error')
-    } finally {
+        // Only clear on success
         pendingFile = null
         passwordInput.value = ''
+        passwordError.value = ''
+    } catch (error) {
+        const err = error as Error
+        passwordError.value = err.message
+        // Do NOT clear password, allow user to retry
     }
 }
 
 const cancelPasswordInput = () => {
     showPasswordModal.value = false
     pendingFile = null
+    fileName.value = ''
     passwordInput.value = ''
+    passwordError.value = ''
+}
+
+const loadDifferentFile = () => {
+    cancelPasswordInput()
+    loadDashboard()
 }
 </script>
 
@@ -313,6 +350,57 @@ const cancelPasswordInput = () => {
 .password-input:focus {
     outline: none;
     border-color: var(--primary-color);
+}
+
+.password-input.error {
+    border-color: var(--danger-color);
+    background-color: rgba(220, 38, 38, 0.05);
+}
+
+.error-message {
+    color: var(--danger-color);
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+    padding: 0.5rem;
+    background-color: rgba(220, 38, 38, 0.1);
+    border-radius: 6px;
+    border-left: 3px solid var(--danger-color);
+}
+
+.file-info {
+    background-color: #f5f5f5;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.file-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin: 0 0 0.5rem 0;
+}
+
+.file-name {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--text-primary);
+    font-weight: 600;
+    margin: 0;
+}
+
+.file-name p {
+    margin: 0;
+    flex: 1;
+    word-break: break-word;
+}
+
+.file-name .btn {
+    white-space: nowrap;
+    flex-shrink: 0;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
 }
 
 .modal-buttons {
