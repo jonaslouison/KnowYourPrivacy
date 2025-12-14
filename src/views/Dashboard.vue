@@ -20,12 +20,12 @@
         </div>
 
         <div v-else>
-            <div v-if="hasUnsavedChanges" class="warning-banner">
+            <div v-if="dashboardBannerType === 'warning'" class="warning-banner">
                 <div class="warning-content">
                     <span class="warning-icon">⚠️</span>
                     <div class="warning-text">
                         <strong>Unsaved Data</strong>
-                        <p>Your quiz results haven't been exported yet. Export them to save your progress!</p>
+                        <p>Your quiz results are out of sync with {{ dashboardFileLabel }}. Export to keep the file updated.</p>
                     </div>
                     <BaseButton variant="primary" size="small" @click="exportData">
                         💾 Export Now
@@ -33,11 +33,11 @@
                 </div>
             </div>
 
-            <div v-if="quizStore.isLoadedFromFile" class="success-banner">
+            <div v-else-if="dashboardBannerType === 'success'" class="success-banner">
                 <div class="success-content">
                     <span class="success-icon">✅</span>
                     <div class="success-text">
-                        <strong>Your Quiz is currently saved in this file</strong>
+                        <strong>Data saved to {{ dashboardFileLabel }}</strong>
                         <p>Your progress and results are securely stored.</p>
                     </div>
                 </div>
@@ -48,49 +48,33 @@
                     <div class="panel-heading">
                         <div class="heading-main">
                             <div>
-                                <p class="eyebrow">Threat Model</p>
-                                <div class="heading-title">
-                                    <h2>{{ displayThreatSpectrumLabel }}</h2>
+                                <h2 class="panel-title">
+                                    Threat Model : 
+                                    <BaseDropdown
+                                        id="threat-level-select"
+                                        :model-value="displayThreatLevel"
+                                        :options="threatLevelDropdownOptions"
+                                        @update:modelValue="handleThreatLevelChange"
+                                    />
                                     <span v-if="manualOverride" class="manual-tag">Manual</span>
-                                </div>
+                                    <button type="button" class="reset-button" @click="resetThreatLevel" :disabled="!manualOverride">
+                                        reset
+                                    </button>
+                                </h2>
                                 <p class="subtext">{{ displayThreatSpectrumDescription }}</p>
-                            </div>
-                            <div class="heading-select-wrapper">
-                                <label for="threat-level-select">Threat level</label>
-                                <select id="threat-level-select" :value="displayThreatLevel" @change="handleThreatLevelChange">
-                                    <option v-for="option in threatLevelOptions" :key="option.level" :value="option.level">
-                                        Level {{ option.level }} · {{ option.label }}
-                                    </option>
-                                </select>
-                                <button type="button" class="reset-button" @click="resetThreatLevel" :disabled="!manualOverride">
-                                    reset
-                                </button>
+                                <p class="meta">Computed level · {{ quizStore.computedThreatLevel }} · {{ computedThreatSpectrumInfo.label }}</p>
                             </div>
                         </div>
-                        <div class="awareness-display">
-                            <div class="score-display compact">
-                                <div class="score-value">{{ displayThreatLevel }}</div>
-                                <div class="score-denominator">/ 4</div>
-                            </div>
-                            <p class="awareness-label">Awareness meter</p>
-                        </div>
-                        <p class="meta">Computed level · {{ quizStore.computedThreatLevel }} · {{ computedThreatSpectrumInfo.label }}</p>
                     </div>
                     <div class="threat-body">
-                        <div class="threat-chips">
-                            <div
-                                v-for="entry in threatEntries"
-                                :key="entry.questionId"
-                                class="threat-entry-row"
-                            >
-                                <span class="chip" :class="entry.severity">
-                                    {{ entry.label }}
-                                </span>
-                                <BaseButton variant="ghost" size="small" @click="jumpToThreatPriorities">
-                                    ✏️ Edit
-                                </BaseButton>
-                            </div>
-                            <p v-if="!threatEntries.length" class="muted">Answer the threat model questions to surface your biggest risks.</p>
+                        <div class="tierlist-column">
+                            <BaseTierlist
+                                :tiers="tierDefinitions"
+                                :items="threatTierItems"
+                                :assignments="threatTierAssignments"
+                                :show-available-zone="false"
+                                @update:assignments="updateTierAssignments"
+                            />
                         </div>
                         <div class="priority-actions">
                             <h3>Priority actions</h3>
@@ -109,15 +93,11 @@
                             </ul>
                         </div>
                     </div>
-                    <div class="panel-actions compact">
-                        <BaseButton variant="secondary" size="small" @click="reviewQuiz">Review Quiz Answers</BaseButton>
-                    </div>
                 </section>
 
                 <section class="score-panel card">
                     <div class="panel-heading">
-                        <p class="eyebrow">Privacy Score</p>
-                        <h2>{{ privacyScoreDisplay }}</h2>
+                        <h2>Privacy Score · {{ privacyScoreDisplay }}</h2>
                         <p class="subtext">Average of your device ratings so the score reflects device-specific privacy.</p>
                     </div>
                     <div class="score-display compact">
@@ -130,8 +110,7 @@
 
             <section class="devices-panel card">
                 <div class="panel-heading">
-                    <p class="eyebrow">Your Devices</p>
-                    <h2>Focus on one device</h2>
+                    <h2>Your Devices · Focus on one device</h2>
                 </div>
                 <div class="device-switcher">
                     <BaseButton
@@ -176,12 +155,12 @@
                             <tr v-for="row in deviceRows" :key="row.questionId">
                                 <td>{{ row.label }}</td>
                                 <td>
-                                    <div class="current-app-cell">
-                                        <span>{{ row.currentApp }}</span>
-                                        <BaseButton variant="ghost" size="small" @click="jumpToQuestion(row.questionId)">
-                                            ✏️ Edit
-                                        </BaseButton>
-                                    </div>
+                                    <BaseDropdown
+                                        :model-value="getCurrentAnswerValue(row.questionId)"
+                                        :options="getDropdownOptions(row.questionId)"
+                                        placeholder="Awaiting response"
+                                        @update:modelValue="(value) => handleDeviceOptionChange(row.questionId, value)"
+                                    />
                                 </td>
                                 <td>
                                     <span class="badge" :class="row.scoreClass">{{ row.scoreLabel }}</span>
@@ -314,9 +293,18 @@ import { useRouter } from 'vue-router'
 import BaseButton from '../components/BaseButton.vue'
 import BaseInput from '../components/BaseInput.vue'
 import BaseModal from '../components/BaseModal.vue'
+import BaseTierlist from '../components/BaseTierlist.vue'
+import BaseDropdown from '../components/BaseDropdown.vue'
 import type { DeviceType } from '../data/devices'
-import { useQuizStore } from '../stores/quiz'
-import type { AppCategory } from '../stores/quiz'
+import {
+    formatThreatTierEntry,
+    parseThreatTierAnswerValue,
+    THREAT_CATALOG,
+    THREAT_TIER_LABELS,
+    THREAT_TIER_ORDER,
+    useQuizStore
+} from '../stores/quiz'
+import type { AppCategory, ThreatTierId } from '../stores/quiz'
 import { showToast } from '../utils/toast'
 import { validateExportFile } from '../utils/crypto'
 
@@ -348,10 +336,26 @@ const appCategories = computed<AppCategory[]>(() => quizStore.getAppCategories()
 const actionableRecommendations = computed(() => {
     return appCategories.value
         .filter((category) => category.recommendations.length > 0)
-    .sort((a, b) => a.scoreValue - b.scoreValue)
+        .sort((a, b) => a.scoreValue - b.scoreValue)
         .slice(0, 3)
 })
-const threatEntries = computed(() => quizStore.threatEntries)
+const tierDefinitions = THREAT_TIER_ORDER.map((tier) => ({
+    id: tier,
+    label: THREAT_TIER_LABELS[tier]
+}))
+const threatTierItems = THREAT_CATALOG.map((entry) => {
+    const label = entry.label || entry.id
+    return { id: label, label }
+})
+const threatTierAssignments = computed<Record<ThreatTierId, string[]>>(() =>
+    parseThreatTierAnswerValue(quizStore.getAnswer('threat-priorities'))
+)
+const updateTierAssignments = (value: Record<ThreatTierId, string[]>) => {
+    const ordered = THREAT_TIER_ORDER.flatMap((tier) =>
+        (value[tier] ?? []).map((label) => formatThreatTierEntry(tier, label))
+    )
+    quizStore.setThreatOrder(ordered)
+}
 const manualOverride = computed(() => quizStore.manualOverride)
 const displayThreatLevel = computed(() => quizStore.displayThreatLevel)
 const displayThreatSpectrumInfo = computed(() => quizStore.displayThreatSpectrumInfo)
@@ -359,9 +363,14 @@ const displayThreatSpectrumLabel = computed(() => displayThreatSpectrumInfo.valu
 const displayThreatSpectrumDescription = computed(() => displayThreatSpectrumInfo.value.description)
 const computedThreatSpectrumInfo = computed(() => quizStore.computedThreatSpectrumInfo)
 const threatLevelOptions = computed(() => quizStore.threatSpectrumOptions)
+const threatLevelDropdownOptions = computed(() =>
+    threatLevelOptions.value.map((option) => ({
+        value: option.level,
+        label: `Level ${option.level} · ${option.label}`
+    }))
+)
 const privacyScoreNormalized = computed(() => quizStore.privacyScoreNormalized)
 const privacyScoreDisplay = computed(() => privacyScoreNormalized.value.toFixed(1))
-const quizFlow = computed(() => quizStore.quizFlow)
 const deviceRows = computed(() => quizStore.getDeviceSetup(selectedDevice.value))
 const selectedDeviceRating = computed(() => quizStore.getDeviceRatingNormalized(selectedDevice.value))
 const deviceLabel = computed(() => {
@@ -379,9 +388,13 @@ const scoreDescription = computed(() => {
     if (score >= 1.5) return `Fair. Your ${displayThreatSpectrumLabel.value} profile still has some exposed areas.`
     return `Needs attention. The ${displayThreatSpectrumLabel.value} profile deserves more focused controls.`
 })
-const handleThreatLevelChange = (event: Event) => {
-    const select = event.target as HTMLSelectElement
-    quizStore.setManualThreatLevel(Number(select.value))
+const dashboardBannerType = computed<'warning' | 'success' | null>(() => {
+    if (!quizStore.isLoadedFromFile) return null
+    return hasUnsavedChanges.value ? 'warning' : 'success'
+})
+const dashboardFileLabel = computed(() => fileName.value || 'loaded file')
+const handleThreatLevelChange = (value: string | number) => {
+    quizStore.setManualThreatLevel(Number(value))
 }
 
 const resetThreatLevel = () => {
@@ -392,16 +405,23 @@ const selectDevice = (device: DeviceType) => {
     selectedDevice.value = device
 }
 
-const jumpToQuestion = (questionId: string) => {
-    const index = quizFlow.value.findIndex((item) => item.question.id === questionId)
-    if (index === -1) return
-    quizStore.currentQuestionIndex = index
-    router.push('/quiz')
+const getQuestionOptions = (questionId: string) => {
+    const question = quizStore.questions.find((entry) => entry.id === questionId)
+    return question?.options ?? []
 }
-const jumpToThreatPriorities = () => jumpToQuestion('threat-priorities')
 
-const reviewQuiz = () => {
-    router.push('/quiz')
+const getDropdownOptions = (questionId: string) =>
+    getQuestionOptions(questionId).map((option) => ({ value: option.value, label: option.label }))
+
+const getCurrentAnswerValue = (questionId: string) => {
+    const answer = quizStore.getAnswer(questionId)
+    if (!answer) return ''
+    return Array.isArray(answer) ? answer[0] ?? '' : answer
+}
+
+const handleDeviceOptionChange = (questionId: string, value: string | number) => {
+    if (!value) return
+    quizStore.saveAnswer({ questionId, answer: String(value) })
 }
 
 const loadDashboard = () => {
@@ -687,20 +707,25 @@ const cancelDelete = () => {
     letter-spacing: 0.1em;
 }
 
+.heading-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.meta {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+}
+
 .heading-select-wrapper {
     min-width: 200px;
     display: flex;
     flex-direction: column;
     gap: 0.25rem;
-}
-
-.heading-select-wrapper select {
-    border-radius: 999px;
-    padding: 0.5rem 1rem;
-    border: 1px solid var(--border-color);
-    background: var(--card-bg);
-    color: var(--text-primary);
-    font-weight: 600;
 }
 
 .reset-button {
@@ -711,13 +736,6 @@ const cancelDelete = () => {
     letter-spacing: 0.1em;
     cursor: pointer;
 }
-
-.awareness-display {
-    display: flex;
-    align-items: baseline;
-    gap: 0.5rem;
-}
-
 .score-display {
     display: flex;
     align-items: baseline;
@@ -746,37 +764,15 @@ const cancelDelete = () => {
 
 .threat-body {
     display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
     gap: 1rem;
 }
 
-.threat-chips {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-}
-
-.chip {
-    padding: 0.35rem 0.8rem;
-    border-radius: 999px;
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    background: var(--border-color);
-}
-
-.chip.high {
-    background: #ffe2e2;
-    color: #c00;
-}
-
-.chip.medium {
-    background: #fff4dd;
-    color: #c97100;
-}
-
-.chip.low {
-    background: #e2f0ff;
-    color: #0056c1;
+.tierlist-column {
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 1rem;
+    background: var(--card-bg);
 }
 
 .priority-actions ul {
@@ -872,21 +868,6 @@ const cancelDelete = () => {
     color: var(--text-secondary);
 }
 
-.current-app-cell {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
-}
-
-.threat-entry-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
-    flex-wrap: wrap;
-}
-
 .answers-list {
     display: flex;
     flex-direction: column;
@@ -916,20 +897,8 @@ const cancelDelete = () => {
     gap: 0.75rem;
 }
 
-.panel-actions {
-    display: flex;
-    justify-content: flex-end;
-}
-
 .muted {
     color: var(--text-secondary);
-}
-
-.score-panel .eyebrow,
-.threat-model-panel .eyebrow {
-    color: var(--text-secondary);
-    letter-spacing: 0.2em;
-    font-size: 0.7rem;
 }
 
 .file-info {

@@ -25,6 +25,10 @@ const props = defineProps({
     assignments: {
         type: Object as PropType<Record<string, string[]>>,
         default: () => ({})
+    },
+    showAvailableZone: {
+        type: Boolean as PropType<boolean>,
+        default: () => true
     }
 })
 
@@ -182,7 +186,7 @@ const previewLabel = computed(() => (draggedItem.value ? getItemLabel(draggedIte
 
 <template>
     <div class="tierlist">
-        <div class="available-zone">
+        <div v-if="props.showAvailableZone" class="available-zone">
             <div class="section-heading">
                 <p class="label">Available Threats</p>
             </div>
