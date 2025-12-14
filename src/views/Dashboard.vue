@@ -4,8 +4,8 @@
             <h2>No Quiz Data</h2>
             <p>You haven't started the quiz yet. Begin to see your privacy dashboard.</p>
             <div class="action-buttons">
-                <button class="btn btn-primary" @click="router.push('/quiz')">Start Quiz</button>
-                <button class="btn btn-secondary" @click="loadDashboard">📥 Load Saved Data</button>
+                <BaseButton variant="primary" @click="router.push('/quiz')">Start Quiz</BaseButton>
+                <BaseButton variant="secondary" @click="loadDashboard">📥 Load Saved Data</BaseButton>
             </div>
         </div>
 
@@ -14,8 +14,8 @@
             <p>You have unfinished answers. Resume to pick up where you left off.</p>
             <p class="progress-hint">Current position: Question {{ quizStore.currentQuestionIndex + 1 }} of {{ quizStore.questions.length }}</p>
             <div class="action-buttons">
-                <button class="btn btn-primary" @click="router.push('/quiz')">➡️ Continue Quiz</button>
-                <button class="btn btn-secondary" @click="loadDashboard">📥 Load a Different File</button>
+                <BaseButton variant="primary" @click="router.push('/quiz')">➡️ Continue Quiz</BaseButton>
+                <BaseButton variant="secondary" @click="loadDashboard">📥 Load a Different File</BaseButton>
             </div>
         </div>
 
@@ -28,9 +28,9 @@
                         <strong>Unsaved Data</strong>
                         <p>Your quiz results haven't been exported yet. Export them to save your progress!</p>
                     </div>
-                    <button class="btn btn-primary btn-small" @click="exportData">
+                    <BaseButton variant="primary" size="small" @click="exportData">
                         💾 Export Now
-                    </button>
+                    </BaseButton>
                 </div>
             </div>
 
@@ -95,129 +95,118 @@
                     <h2>Save Your Data</h2>
                     <p>Export your encrypted quiz results to keep track of your privacy journey.</p>
                     <div class="action-buttons">
-                        <button class="btn btn-primary" @click="exportData">
+                        <BaseButton variant="primary" @click="exportData">
                             💾 Export Encrypted Data
-                        </button>
-                        <button class="btn btn-outline" @click="importData">
+                        </BaseButton>
+                        <BaseButton variant="outline" @click="importData">
                             📥 Import Data
-                        </button>
-                        <button class="btn btn-outline" @click="resetData">
+                        </BaseButton>
+                        <BaseButton variant="outline" @click="resetData">
                             🔄 Retake Quiz
-                        </button>
-                        <button class="btn btn-danger" @click="showDeleteConfirm = true">
+                        </BaseButton>
+                        <BaseButton variant="danger" @click="showDeleteConfirm = true">
                             🗑️ Delete All Data
-                        </button>
+                        </BaseButton>
                     </div>
                 </div>
             </section>
         </div>
 
-        <!-- Delete Confirmation Dialog -->
-        <div v-if="showDeleteConfirm" class="modal-overlay" @click="cancelDelete">
-            <div class="modal-content" @click.stop>
-                <h3>⚠️ Delete All Data?</h3>
-                <p>This will permanently delete all your quiz answers and results. This action cannot be undone.</p>
-                <p><strong>Make sure you've exported your data if you want to keep it!</strong></p>
-                <div class="modal-buttons">
-                    <button class="btn btn-outline" @click="cancelDelete">Cancel</button>
-                    <button class="btn btn-danger" @click="confirmDelete">Delete Everything</button>
-                </div>
-            </div>
-        </div>
+        <BaseModal v-model:visible="showDeleteConfirm" title="⚠️ Delete All Data?" :hideCloseButton="true">
+            <p>This will permanently delete all your quiz answers and results. This action cannot be undone.</p>
+            <p><strong>Make sure you've exported your data if you want to keep it!</strong></p>
+            <template #footer>
+                <BaseButton variant="outline" @click="cancelDelete">Cancel</BaseButton>
+                <BaseButton variant="danger" @click="confirmDelete">Delete Everything</BaseButton>
+            </template>
+        </BaseModal>
 
-        <!-- Password Input Modal -->
-        <div v-if="showPasswordModal" class="modal-overlay" @click="cancelPasswordInput">
-            <div class="modal-content" @click.stop>
-                <h3>🔐 Enter Password</h3>
-                <div class="file-info">
-                    <p class="file-label">Selected file:</p>
-                    <div class="file-name">
-                        <p>📄 {{ fileName }}</p>
-                        <button class="btn btn-outline" @click="loadDifferentFile">📂 Change File</button>
-                    </div>
-                </div>
-                <p>Enter your password to decrypt the file:</p>
-                <input
-                    v-model="passwordInput"
-                    type="password"
-                    class="password-input"
-                    :class="{ 'error': passwordError }"
-                    @keyup.enter="submitPassword"
-                    ref="passwordInputRef"
-                />
-                <div v-if="passwordError" class="error-message">
-                    ⚠️ {{ passwordError }}
-                </div>
-                <div class="modal-buttons">
-                    <button class="btn btn-outline" @click="cancelPasswordInput">Cancel</button>
-                    <button class="btn btn-primary" @click="submitPassword" :disabled="!passwordInput">Decrypt</button>
+        <BaseModal v-model:visible="showPasswordModal" title="🔐 Enter Password" :hideCloseButton="true">
+            <div class="file-info">
+                <p class="file-label">Selected file:</p>
+                <div class="file-name">
+                    <p>📄 {{ fileName }}</p>
+                    <BaseButton variant="outline" size="small" class="change-file" @click="loadDifferentFile">
+                        📂 Change File
+                    </BaseButton>
                 </div>
             </div>
-        </div>
+            <p>Enter your password to decrypt the file:</p>
+            <BaseInput
+                v-model="passwordInput"
+                type="password"
+                class="password-input"
+                :class="{ error: passwordError }"
+                @keyup.enter="submitPassword"
+                ref="passwordInputRef"
+            />
+            <div v-if="passwordError" class="error-message">
+                ⚠️ {{ passwordError }}
+            </div>
+            <template #footer>
+                <BaseButton variant="outline" size="small" @click="cancelPasswordInput">Cancel</BaseButton>
+                <BaseButton variant="primary" size="small" @click="submitPassword" :disabled="!passwordInput">Decrypt</BaseButton>
+            </template>
+        </BaseModal>
 
-        <!-- Export Password Modal -->
-        <div v-if="showExportModal" class="modal-overlay" @click="cancelExport">
-            <div class="modal-content" @click.stop>
-                <h3>🔐 Set Password</h3>
-                <p>Choose a strong password to encrypt your data:</p>
-                <input
-                    v-model="passwordInput"
-                    type="password"
-                    class="password-input"
-                    :class="{ 'error': exportPasswordError }"
-                    @keyup.enter="submitExport"
-                    ref="exportPasswordInputRef"
-                />
-                <div v-if="exportPasswordError" class="error-message">
-                    ⚠️ {{ exportPasswordError }}
-                </div>
-                <p class="hint">Remember this password - you'll need it to load your data later!</p>
-                <div class="modal-buttons">
-                    <button class="btn btn-outline" @click="cancelExport">Cancel</button>
-                    <button class="btn btn-primary" @click="submitExport" :disabled="!passwordInput">Encrypt & Export</button>
-                </div>
+        <BaseModal v-model:visible="showExportModal" title="🔐 Set Password" :hideCloseButton="true">
+            <p>Choose a strong password to encrypt your data:</p>
+            <BaseInput
+                v-model="passwordInput"
+                type="password"
+                class="password-input"
+                :class="{ error: exportPasswordError }"
+                @keyup.enter="submitExport"
+                ref="exportPasswordInputRef"
+            />
+            <div v-if="exportPasswordError" class="error-message">
+                ⚠️ {{ exportPasswordError }}
             </div>
-        </div>
+            <p class="hint">Remember this password - you'll need it to load your data later!</p>
+            <template #footer>
+                <BaseButton variant="outline" size="small" @click="cancelExport">Cancel</BaseButton>
+                <BaseButton variant="primary" size="small" @click="submitExport" :disabled="!passwordInput">Encrypt & Export</BaseButton>
+            </template>
+        </BaseModal>
 
-        <!-- Export Password Confirmation Modal (First Time) -->
-        <div v-if="showExportConfirmModal" class="modal-overlay" @click="cancelExportConfirm">
-            <div class="modal-content" @click.stop>
-                <h3>🔐 Create Export Password</h3>
-                <p>Create a strong password to encrypt your data:</p>
-                <input
-                    v-model="passwordInput"
-                    type="password"
-                    class="password-input"
-                    :class="{ 'error': exportPasswordError }"
-                    placeholder="Enter password"
-                    @keyup.enter="submitExportConfirm"
-                    ref="exportPasswordInputRef"
-                />
-                <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem;">Re-enter your password to confirm:</p>
-                <input
-                    v-model="confirmPassword"
-                    type="password"
-                    class="password-input"
-                    :class="{ 'error': exportPasswordError }"
-                    placeholder="Confirm password"
-                    @keyup.enter="submitExportConfirm"
-                />
-                <div v-if="exportPasswordError" class="error-message">
-                    ⚠️ {{ exportPasswordError }}
-                </div>
-                <p class="hint">Remember this password - you'll need it to load your data later!</p>
-                <div class="modal-buttons">
-                    <button class="btn btn-outline" @click="cancelExportConfirm">Cancel</button>
-                    <button class="btn btn-primary" @click="submitExportConfirm" :disabled="!passwordInput || !confirmPassword">Encrypt & Export</button>
-                </div>
+        <BaseModal v-model:visible="showExportConfirmModal" title="🔐 Create Export Password" :hideCloseButton="true">
+            <p>Create a strong password to encrypt your data:</p>
+            <BaseInput
+                v-model="passwordInput"
+                type="password"
+                class="password-input"
+                :class="{ error: exportPasswordError }"
+                placeholder="Enter password"
+                @keyup.enter="submitExportConfirm"
+                ref="exportPasswordInputRef"
+            />
+            <p class="confirm-hint">Re-enter your password to confirm:</p>
+            <BaseInput
+                v-model="confirmPassword"
+                type="password"
+                class="password-input"
+                :class="{ error: exportPasswordError }"
+                placeholder="Confirm password"
+                @keyup.enter="submitExportConfirm"
+            />
+            <div v-if="exportPasswordError" class="error-message">
+                ⚠️ {{ exportPasswordError }}
             </div>
-        </div>
+            <p class="hint">Remember this password - you'll need it to load your data later!</p>
+            <template #footer>
+                <BaseButton variant="outline" size="small" @click="cancelExportConfirm">Cancel</BaseButton>
+                <BaseButton variant="primary" size="small" @click="submitExportConfirm" :disabled="!passwordInput || !confirmPassword">Encrypt & Export</BaseButton>
+            </template>
+        </BaseModal>
     </div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
+import BaseButton from '../components/BaseButton.vue'
+import BaseInput from '../components/BaseInput.vue'
+import BaseModal from '../components/BaseModal.vue'
 import { useQuizStore } from '../stores/quiz'
 import { showToast } from '../utils/toast'
 import { validateExportFile } from '../utils/crypto'
@@ -232,8 +221,8 @@ const passwordInput = ref('')
 const passwordError = ref('')
 const exportPasswordError = ref('')
 const fileName = ref('')
-const passwordInputRef = ref<HTMLInputElement | null>(null)
-const exportPasswordInputRef = ref<HTMLInputElement | null>(null)
+const passwordInputRef = ref<{ focus: () => void } | null>(null)
+const exportPasswordInputRef = ref<{ focus: () => void } | null>(null)
 const confirmPassword = ref('')
 const lastExportTime = ref<number | null>(null)
 let pendingFile: File | null = null
@@ -744,52 +733,7 @@ const cancelDelete = () => {
     flex-wrap: wrap;
 }
 
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.6);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-}
-
-.modal-content {
-    background: white;
-    padding: 2rem;
-    border-radius: 12px;
-    max-width: 500px;
-    margin: 1rem;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-}
-
-.modal-content h3 {
-    color: var(--danger-color);
-    margin-bottom: 1rem;
-    font-size: 1.5rem;
-}
-
-.modal-content p {
-    color: var(--text-secondary);
-    margin-bottom: 1rem;
-    line-height: 1.6;
-}
-
-.modal-content p strong {
-    color: var(--text-primary);
-}
-
-.modal-buttons {
-    display: flex;
-    gap: 1rem;
-    justify-content: flex-end;
-    margin-top: 1.5rem;
-}
-
-.password-input {
+.password-input .base-input {
     width: 100%;
     padding: 0.75rem;
     border: 2px solid var(--border-color);
@@ -797,14 +741,14 @@ const cancelDelete = () => {
     font-size: 1rem;
     margin-bottom: 1.5rem;
     transition: border-color 0.2s;
+    background: var(--card-bg);
 }
 
-.password-input:focus {
-    outline: none;
+.password-input .base-input:focus {
     border-color: var(--primary-color);
 }
 
-.password-input.error {
+.password-input.error .base-input {
     border-color: var(--danger-color);
     background-color: rgba(220, 38, 38, 0.05);
 }
@@ -825,6 +769,13 @@ const cancelDelete = () => {
     font-style: italic;
     margin-top: -1rem;
     margin-bottom: 1rem;
+}
+
+.confirm-hint {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-top: 0.5rem;
+    margin-bottom: 0.75rem;
 }
 
 .file-info {
@@ -855,7 +806,7 @@ const cancelDelete = () => {
     flex: 1;
 }
 
-.file-name .btn {
+.file-name .change-file {
     white-space: nowrap;
     flex-shrink: 0;
 }

@@ -1,12 +1,11 @@
 <template>
     <div class="toast-container">
         <transition-group name="toast">
-            <div v-for="toast in toasts" :key="toast.id" :class="['toast', `toast-${toast.type}`]"
-                @click="removeToast(toast.id)">
+            <div v-for="toast in toasts" :key="toast.id" :class="['toast', `toast-${toast.type}`]" @click="removeToast(toast.id)">
                 <span class="toast-icon">{{ getIcon(toast.type) }}</span>
                 <span class="toast-message">{{ toast.message }}</span>
                 <span v-if="toast.count > 1" class="toast-counter">x{{ toast.count }}</span>
-                <button class="toast-close" @click.stop="removeToast(toast.id)">×</button>
+                <BaseButton variant="ghost" size="small" class="toast-close" @click.stop="removeToast(toast.id)">×</BaseButton>
             </div>
         </transition-group>
     </div>
@@ -14,6 +13,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
+import BaseButton from './BaseButton.vue'
 import { toastManager, Toast } from '../utils/toast'
 
 const toasts = ref<Toast[]>([])
@@ -91,12 +91,22 @@ const getIcon = (type: string) => {
 }
 
 .toast-close {
-    background: transparent;
     border: none;
+    background: rgba(15, 23, 42, 0.05);
     color: var(--text-secondary);
     font-size: 1.1rem;
     line-height: 1;
     padding: 0;
+    min-width: 1.7rem;
+    height: 1.7rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--border-radius-pill);
+}
+
+.toast-close:hover {
+    background: rgba(15, 23, 42, 0.12);
 }
 
 .toast-success {
