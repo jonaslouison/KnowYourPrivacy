@@ -149,10 +149,17 @@ const cancelDelete = () => {
                 <p class="question-category">{{ currentQuestion.category }}</p>
 
                 <div class="options">
-                    <button v-for="option in currentQuestion.options" :key="option.value" class="option-btn"
-                        :class="{ selected: selectedAnswer === option.value }" @click="selectAnswer(option.value)">
+                    <BaseButton
+                        v-for="option in currentQuestion.options"
+                        :key="option.value"
+                        variant="ghost"
+                        class="option-btn"
+                        :class="{ selected: selectedAnswer === option.value }"
+                        @click="selectAnswer(option.value)"
+                        type="button"
+                    >
                         {{ option.label }}
-                    </button>
+                    </BaseButton>
                 </div>
 
                 <div class="quiz-actions">
@@ -233,11 +240,6 @@ const cancelDelete = () => {
 .header-buttons {
     display: flex;
     gap: 0.5rem;
-}
-
-.btn-small {
-    padding: 0.5rem 1rem;
-    font-size: 0.875rem;
 }
 
 .progress-bar {
@@ -325,7 +327,7 @@ const cancelDelete = () => {
     }
 }
 
-.header-buttons .btn {
+.header-buttons .base-button {
     white-space: nowrap;
 }
 
@@ -396,11 +398,6 @@ const cancelDelete = () => {
     max-width: 500px;
     margin-left: auto;
     margin-right: auto;
-}
-
-.btn-large {
-    padding: 1rem 2rem;
-    font-size: 1.1rem;
 }
 
 @keyframes slideUp {

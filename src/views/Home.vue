@@ -7,12 +7,12 @@
                 Take our privacy quiz to get a personalized privacy score and actionable recommendations.
                 All data stays on your device - encrypted and secure.
             </p>
-            <button class="btn btn-primary btn-large" @click="startQuiz">
+            <BaseButton variant="primary" class="btn-large" @click="startQuiz">
                 {{ quizStore.isLoadedFromFile ? '👁️ See Quiz Answers' : '🎯 Start Privacy Quiz' }}
-            </button>
-            <button class="btn btn-secondary btn-large" @click="loadDashboard">
+            </BaseButton>
+            <BaseButton variant="secondary" class="btn-large" @click="loadDashboard">
                 📥 Load Saved Data
-            </button>
+            </BaseButton>
         </section>
 
         <section class="features">
@@ -72,42 +72,42 @@
             </div>
         </section>
 
-        <!-- Password Input Modal -->
-        <div v-if="showPasswordModal" class="modal-overlay" @click="cancelPasswordInput">
-            <div class="modal-content" @click.stop>
-                <h3>🔐 Enter Password</h3>
-                <div class="file-info">
-                    <p class="file-label">Selected file:</p>
-                    <div class="file-name">
-                        <p>📄 {{ fileName }}</p>
-                        <button class="btn btn-outline" @click="loadDifferentFile">📂 Change File</button>
-                    </div>
-                    
-                </div>
-                <p>Enter your password to decrypt the file:</p>
-                <input
-                    v-model="passwordInput"
-                    type="password"
-                    class="password-input"
-                    :class="{ 'error': passwordError }"
-                    @keyup.enter="submitPassword"
-                    ref="passwordInputRef"
-                />
-                <div v-if="passwordError" class="error-message">
-                    ⚠️ {{ passwordError }}
-                </div>
-                <div class="modal-buttons">
-                    <button class="btn btn-outline" @click="cancelPasswordInput">Cancel</button>
-                    <button class="btn btn-primary" @click="submitPassword" :disabled="!passwordInput">Decrypt</button>
+        <BaseModal v-model:visible="showPasswordModal" title="🔐 Enter Password" :hideCloseButton="true">
+            <div class="file-info">
+                <p class="file-label">Selected file:</p>
+                <div class="file-name">
+                    <p>📄 {{ fileName }}</p>
+                    <BaseButton variant="outline" size="small" class="change-file" @click="loadDifferentFile">
+                        📂 Change File
+                    </BaseButton>
                 </div>
             </div>
-        </div>
+            <p>Enter your password to decrypt the file:</p>
+            <BaseInput
+                v-model="passwordInput"
+                type="password"
+                class="password-input"
+                :class="{ error: passwordError }"
+                @keyup.enter="submitPassword"
+                ref="passwordInputRef"
+            />
+            <div v-if="passwordError" class="error-message">
+                ⚠️ {{ passwordError }}
+            </div>
+            <template #footer>
+                <BaseButton variant="outline" size="small" @click="cancelPasswordInput">Cancel</BaseButton>
+                <BaseButton variant="primary" size="small" @click="submitPassword" :disabled="!passwordInput">Decrypt</BaseButton>
+            </template>
+        </BaseModal>
     </div>
 </template>
 
 <script setup lang="ts">
 import { ref, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
+import BaseButton from '../components/BaseButton.vue'
+import BaseInput from '../components/BaseInput.vue'
+import BaseModal from '../components/BaseModal.vue'
 import { useQuizStore } from '../stores/quiz'
 import { showToast } from '../utils/toast'
 import { validateExportFile } from '../utils/crypto'
@@ -118,7 +118,7 @@ const showPasswordModal = ref(false)
 const fileName = ref('')
 const passwordInput = ref('')
 const passwordError = ref('')
-const passwordInputRef = ref<HTMLInputElement | null>(null)
+const passwordInputRef = ref<{ focus: () => void } | null>(null)
 let pendingFile: File | null = null
 
 const startQuiz = () => {
@@ -310,41 +310,7 @@ const loadDifferentFile = () => {
     color: var(--text-secondary);
 }
 
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.6);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-}
-
-.modal-content {
-    background: white;
-    padding: 2rem;
-    border-radius: 12px;
-    max-width: 500px;
-    width: 90%;
-    margin: 1rem;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-}
-
-.modal-content h3 {
-    color: var(--primary-color);
-    margin-bottom: 1rem;
-    font-size: 1.5rem;
-}
-
-.modal-content p {
-    color: var(--text-secondary);
-    margin-bottom: 1.5rem;
-}
-
-.password-input {
+.password-input .base-input {
     width: 100%;
     padding: 0.75rem;
     border: 2px solid var(--border-color);
@@ -352,14 +318,14 @@ const loadDifferentFile = () => {
     font-size: 1rem;
     margin-bottom: 1.5rem;
     transition: border-color 0.2s;
+    background: var(--card-bg);
 }
 
-.password-input:focus {
-    outline: none;
+.password-input .base-input:focus {
     border-color: var(--primary-color);
 }
 
-.password-input.error {
+.password-input.error .base-input {
     border-color: var(--danger-color);
     background-color: rgba(220, 38, 38, 0.05);
 }
@@ -403,16 +369,10 @@ const loadDifferentFile = () => {
     word-break: break-word;
 }
 
-.file-name .btn {
+.file-name .change-file {
     white-space: nowrap;
     flex-shrink: 0;
     padding: 0.5rem 0.75rem;
     font-size: 0.875rem;
-}
-
-.modal-buttons {
-    display: flex;
-    gap: 1rem;
-    justify-content: flex-end;
 }
 </style>
