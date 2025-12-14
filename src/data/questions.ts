@@ -1,3 +1,5 @@
+import { DEVICE_SELECTION_OPTIONS, type DeviceType } from './devices'
+
 export interface QuizOption {
   label: string
   value: string
@@ -5,11 +7,14 @@ export interface QuizOption {
   threat?: string | null
 }
 
+export type QuizQuestionDevice = DeviceType | 'mobile'
+
 export interface QuizQuestion {
   id: string
   category: string
   question: string
   options: QuizOption[]
+  device?: QuizQuestionDevice
 }
 
 export interface Recommendations {
@@ -19,11 +24,22 @@ export interface Recommendations {
 }
 
 export const quizQuestions: QuizQuestion[] = [
+  {
+    id: 'device-selection',
+    category: 'Setup',
+    question: 'What devices are you using?',
+    options: DEVICE_SELECTION_OPTIONS.map((option) => ({
+      label: option.label,
+      value: option.id,
+      score: 0
+    }))
+  },
   // App Usage Questions
   {
     id: 'browser-desktop',
     category: 'App Usage - Browser',
     question: 'What browser do you use on desktop?',
+    device: 'pc',
     options: [
       { label: 'Google Chrome', value: 'chrome', score: 30 },
       { label: 'Microsoft Edge', value: 'edge', score: 35 },
@@ -38,6 +54,7 @@ export const quizQuestions: QuizQuestion[] = [
     id: 'browser-mobile',
     category: 'App Usage - Browser',
     question: 'What browser do you use on mobile?',
+    device: 'mobile',
     options: [
       { label: 'Google Chrome', value: 'chrome', score: 30 },
       { label: 'Safari', value: 'safari', score: 50 },
@@ -77,6 +94,7 @@ export const quizQuestions: QuizQuestion[] = [
     id: 'messaging-app',
     category: 'App Usage - Messaging',
     question: 'What messaging app do you primarily use?',
+    device: 'mobile',
     options: [
       { label: 'WhatsApp', value: 'whatsapp', score: 40 },
       { label: 'Facebook Messenger', value: 'messenger', score: 20 },
@@ -124,6 +142,41 @@ export const quizQuestions: QuizQuestion[] = [
       { label: 'Yes, paid VPN (Mullvad, IVPN, ProtonVPN)', value: 'paid-privacy', score: 100 },
       { label: 'Yes, other paid VPN', value: 'paid-other', score: 70 },
       { label: 'Yes, self-hosted VPN', value: 'selfhosted', score: 90 }
+    ]
+  },
+
+  {
+    id: 'os-desktop',
+    category: 'App Usage - Operating System',
+    question: 'What operating system powers your desktop device?',
+    device: 'pc',
+    options: [
+      { label: 'Windows 11/10', value: 'windows', score: 50 },
+      { label: 'macOS', value: 'macos', score: 70 },
+      { label: 'Linux (Ubuntu, Fedora, etc.)', value: 'linux', score: 90 },
+      { label: 'Other (BSD, self-built)', value: 'other-desktop', score: 80 }
+    ]
+  },
+  {
+    id: 'os-mobile',
+    category: 'App Usage - Operating System',
+    question: 'What OS do you run on your phone?',
+    device: 'phone',
+    options: [
+      { label: 'Android', value: 'android', score: 60 },
+      { label: 'iOS', value: 'ios', score: 80 },
+      { label: 'Other (feature phone, custom ROM)', value: 'other-mobile', score: 70 }
+    ]
+  },
+  {
+    id: 'os-tablet',
+    category: 'App Usage - Operating System',
+    question: 'What OS runs on your tablet?',
+    device: 'tablet',
+    options: [
+      { label: 'iPadOS', value: 'ipados', score: 80 },
+      { label: 'Android', value: 'android-tablet', score: 60 },
+      { label: 'Other (dedicated OS or Linux)', value: 'other-tablet', score: 75 }
     ]
   },
 
@@ -177,6 +230,12 @@ export const quizQuestions: QuizQuestion[] = [
       { label: 'Somewhat concerned', value: 'somewhat', score: 50, threat: 'Identity Theft' },
       { label: 'Very concerned', value: 'yes', score: 100, threat: 'Identity Theft' }
     ]
+  },
+  {
+    id: 'threat-priorities',
+    category: 'Threat Model',
+    question: 'Order the threats that concern you most',
+    options: []
   }
 ]
 
@@ -247,5 +306,21 @@ export const recommendations: Recommendations = {
     'paid-privacy': ['Excellent choice!'],
     'paid-other': ['Consider Mullvad, IVPN, or ProtonVPN'],
     selfhosted: ['Great for control!']
+  },
+  'os-desktop': {
+    windows: ['Explore Linux distros (Fedora, Pop!_OS) or Hardened Windows guides'],
+    macos: ['Harden macOS privacy settings and enable full-disk encryption'],
+    linux: ['Keep the kernel updated and use distro-specific repos'],
+    'other-desktop': ['Document your stack and keep packages trimmed to essentials']
+  },
+  'os-mobile': {
+    android: ['Use privacy forks (Graphene, /e/ OS) and audit app permissions'],
+    ios: ['Disable analytics, limit ad tracking, and lock down Siri data'],
+    'other-mobile': ['Keep firmware patched and avoid untrusted stores']
+  },
+  'os-tablet': {
+    ipados: ['Lock iPadOS with screen time passcode and use Privacy Relay'],
+    'android-tablet': ['Pair with a privacy-friendly launcher and audit apps'],
+    'other-tablet': ['Document firmware sources and update channels carefully']
   }
 }

@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import BaseButton from '../components/BaseButton.vue'
 import BaseModal from '../components/BaseModal.vue'
-import { useQuizStore } from '../stores/quiz'
+import { useQuizStore, QUIZ_SECTION_LABELS, type QuizSectionKey, type ThreatEntry } from '../stores/quiz'
 import { showToast } from '../utils/toast'
 import { useReloadGuard } from '../composables/useReloadGuard'
 
@@ -12,59 +12,126 @@ const route = useRoute()
 const quizStore = useQuizStore()
 const { openPasswordModal } = useReloadGuard()
 
-const selectedAnswer = ref<string | null>(null)
+const selectedAnswer = ref<string | string[] | null>(null)
+const priorityOrder = ref<string[]>([])
 const quizCompleted = ref(false)
 const showQuiz = ref(true)
 const quizResumedBanner = ref(false)
 const showDeleteConfirm = ref(false)
 const showRestartConfirm = ref(false)
 
-const questions = quizStore.questions
-
-const currentQuestion = computed(() => questions[quizStore.currentQuestionIndex])
-const isLastQuestion = computed(() => quizStore.currentQuestionIndex === questions.length - 1)
-const progressPercentage = computed(() => ((quizStore.currentQuestionIndex + 1) / questions.length) * 100)
+const questionFlow = computed(() => quizStore.quizFlow)
+const flowLength = computed(() => questionFlow.value.length)
+const currentFlowIndex = computed(() => {
+    if (!flowLength.value) return 0
+    return Math.min(quizStore.currentQuestionIndex, flowLength.value - 1)
+})
+const currentFlowItem = computed(() => questionFlow.value[currentFlowIndex.value])
+const currentQuestion = computed(() => currentFlowItem.value?.question ?? quizStore.questions[0])
+const currentSectionKey = computed<QuizSectionKey>(() => currentFlowItem.value?.section ?? 'device-selection')
+const currentContextLabel = computed(() => QUIZ_SECTION_LABELS[currentSectionKey.value])
+const progressPercentage = computed(() => {
+    if (!flowLength.value) return 0
+    return ((currentFlowIndex.value + 1) / flowLength.value) * 100
+})
+const isLastQuestion = computed(() => flowLength.value > 0 && currentFlowIndex.value === flowLength.value - 1)
 const reviewMode = computed(() => route.query.review === '1')
 const quizCardVisible = computed(() => showQuiz.value && (!quizCompleted.value || reviewMode.value))
+const isDeviceSelectionQuestion = computed(() => currentQuestion.value.id === 'device-selection')
+const isThreatPriorityQuestion = computed(() => currentQuestion.value.id === 'threat-priorities')
+const threatEntriesList = computed(() => quizStore.threatEntries)
+const priorityThreatEntries = computed<ThreatEntry[]>(() =>
+    priorityOrder.value
+        .map((label) => threatEntriesList.value.find((entry) => entry.label === label))
+        .filter((entry): entry is ThreatEntry => Boolean(entry))
+)
+const normalizeSelectionArray = (value?: string | string[] | null): string[] => {
+    if (!value) return []
+    return Array.isArray(value) ? value : [value]
+}
 
-onMounted(() => {
-    if (quizStore.isCompleted) {
-        quizCompleted.value = true
-        if (reviewMode.value) {
-            showQuiz.value = true
-            quizStore.currentQuestionIndex = 0
-        } else {
-            showQuiz.value = false
-        }
-    } else {
-        quizCompleted.value = false
-        showQuiz.value = true
-    }
-
-    loadExistingAnswer()
-
-    if (quizStore.isLoadedFromFile && !quizStore.isCompleted) {
-        quizResumedBanner.value = true
-    }
-})
+const updatePriorityOrderFromStore = () => {
+    const stored = quizStore.getAnswer('threat-priorities')
+    const storedOrder = Array.isArray(stored) ? stored : []
+    const threatLabels = threatEntriesList.value.map((entry) => entry.label)
+    const merged = [...storedOrder, ...threatLabels.filter((label) => !storedOrder.includes(label))]
+    priorityOrder.value = merged.filter((label) => threatLabels.includes(label))
+}
 
 const loadExistingAnswer = () => {
-    const existingAnswer = quizStore.getAnswer(currentQuestion.value.id)
-    selectedAnswer.value = existingAnswer || null
+    const flow = currentFlowItem.value
+    if (!flow) return
+    const storedAnswer = quizStore.getAnswer(flow.question.id)
+
+    if (flow.question.id === 'device-selection') {
+        selectedAnswer.value = normalizeSelectionArray(storedAnswer)
+        return
+    }
+
+    if (flow.question.id === 'threat-priorities') {
+        selectedAnswer.value = null
+        updatePriorityOrderFromStore()
+        return
+    }
+
+    selectedAnswer.value = Array.isArray(storedAnswer) ? storedAnswer[0] ?? null : storedAnswer
 }
 
 const selectAnswer = (value: string) => {
-    selectedAnswer.value = value
+    if (isDeviceSelectionQuestion.value) {
+        const current = Array.isArray(selectedAnswer.value) ? [...selectedAnswer.value] : []
+        const index = current.indexOf(value)
+        if (index !== -1) {
+            current.splice(index, 1)
+        } else {
+            current.push(value)
+        }
+        selectedAnswer.value = current
+    } else {
+        selectedAnswer.value = value
+    }
+
     if (quizResumedBanner.value) quizResumedBanner.value = false
 }
 
-const nextQuestion = () => {
-    if (!selectedAnswer.value) return
+const isOptionSelected = (value: string) => {
+    if (isDeviceSelectionQuestion.value) {
+        return Array.isArray(selectedAnswer.value) && selectedAnswer.value.includes(value)
+    }
+    return selectedAnswer.value === value
+}
 
-    quizStore.saveAnswer({
-        questionId: currentQuestion.value.id,
-        answer: selectedAnswer.value
-    })
+const movePriorityEntry = (label: string, direction: 'up' | 'down') => {
+    const list = [...priorityOrder.value]
+    const index = list.indexOf(label)
+    if (index === -1) return
+    const target = direction === 'up' ? index - 1 : index + 1
+    if (target < 0 || target >= list.length) return
+    ;[list[index], list[target]] = [list[target], list[index]]
+    priorityOrder.value = list
+}
+
+const nextQuestion = () => {
+    const flow = currentFlowItem.value
+    if (!flow) return
+    const questionId = flow.question.id
+
+    if (questionId === 'device-selection') {
+        const selections = Array.isArray(selectedAnswer.value) ? selectedAnswer.value : []
+        if (!selections.length) return
+        quizStore.saveAnswer({
+            questionId,
+            answer: selections
+        })
+    } else if (questionId === 'threat-priorities') {
+        quizStore.setThreatOrder(priorityOrder.value)
+    } else {
+        if (!selectedAnswer.value || Array.isArray(selectedAnswer.value)) return
+        quizStore.saveAnswer({
+            questionId,
+            answer: selectedAnswer.value
+        })
+    }
 
     if (isLastQuestion.value) {
         quizStore.completeQuiz()
@@ -116,6 +183,52 @@ const confirmDelete = () => {
 const cancelDelete = () => {
     showDeleteConfirm.value = false
 }
+
+watch(
+    questionFlow,
+    (flow) => {
+        if (!flow.length) return
+        if (quizStore.currentQuestionIndex > flow.length - 1) {
+            quizStore.currentQuestionIndex = Math.max(flow.length - 1, 0)
+        }
+    },
+    { immediate: true }
+)
+
+watch(currentFlowItem, () => {
+    loadExistingAnswer()
+})
+
+watch(
+    threatEntriesList,
+    () => {
+        if (isThreatPriorityQuestion.value) {
+            updatePriorityOrderFromStore()
+        }
+    },
+    { deep: true }
+)
+
+onMounted(() => {
+    if (quizStore.isCompleted) {
+        quizCompleted.value = true
+        if (reviewMode.value) {
+            showQuiz.value = true
+            quizStore.currentQuestionIndex = 0
+        } else {
+            showQuiz.value = false
+        }
+    } else {
+        quizCompleted.value = false
+        showQuiz.value = true
+    }
+
+    loadExistingAnswer()
+
+    if (quizStore.isLoadedFromFile && !quizStore.isCompleted) {
+        quizResumedBanner.value = true
+    }
+})
 </script>
 
 <template>
@@ -139,7 +252,11 @@ const cancelDelete = () => {
             <div class="progress-bar">
                 <div class="progress-fill" :style="{ width: progressPercentage + '%' }"></div>
             </div>
-            <p class="progress-text">Question {{ quizStore.currentQuestionIndex + 1 }} of {{ questions.length }}</p>
+            <p class="progress-text">Question {{ currentFlowIndex + 1 }} of {{ flowLength }}</p>
+        </div>
+        <div v-if="quizCardVisible" class="context-card">
+            <p class="context-title">{{ currentContextLabel }}</p>
+            <p class="context-subtitle">{{ currentQuestion.category }}</p>
         </div>
 
         <!-- Transient Unfinished Quiz Indicator (only right after resume) -->
@@ -157,20 +274,50 @@ const cancelDelete = () => {
         <div v-if="quizCardVisible" class="quiz-content">
             <div class="question-card card">
                 <h2>{{ currentQuestion.question }}</h2>
-                <p class="question-category">{{ currentQuestion.category }}</p>
+                <p v-if="isDeviceSelectionQuestion" class="question-note">Select every device you rely on right now.</p>
 
-                <div class="options">
+                <div v-if="!isThreatPriorityQuestion" class="options">
                     <BaseButton
                         v-for="option in currentQuestion.options"
                         :key="option.value"
                         variant="ghost"
                         class="option-btn"
-                        :class="{ selected: selectedAnswer === option.value }"
+                        :class="{ selected: isOptionSelected(option.value) }"
                         @click="selectAnswer(option.value)"
                         type="button"
                     >
                         {{ option.label }}
                     </BaseButton>
+                </div>
+
+                <div v-if="isThreatPriorityQuestion" class="threat-order">
+                    <p class="hint">Drag your highest priorities to the top and reorder as your threat model evolves.</p>
+                    <div v-if="priorityThreatEntries.length" class="threat-order-list">
+                        <div
+                            v-for="(entry, index) in priorityThreatEntries"
+                            :key="entry.questionId"
+                            class="threat-order-item"
+                        >
+                            <div class="threat-order-label">
+                                <span class="threat-order-rank">#{{ index + 1 }}</span>
+                                <span>{{ entry.label }}</span>
+                            </div>
+                            <div class="threat-order-controls">
+                                <BaseButton variant="ghost" size="small" :disabled="index === 0" @click="movePriorityEntry(entry.label, 'up')">
+                                    ↑
+                                </BaseButton>
+                                <BaseButton
+                                    variant="ghost"
+                                    size="small"
+                                    :disabled="index === priorityThreatEntries.length - 1"
+                                    @click="movePriorityEntry(entry.label, 'down')"
+                                >
+                                    ↓
+                                </BaseButton>
+                            </div>
+                        </div>
+                    </div>
+                    <p v-else class="muted">Answer the threat questions above to unlock your threat-order list.</p>
                 </div>
 
                 <div class="quiz-actions">
@@ -232,6 +379,26 @@ const cancelDelete = () => {
 
 .quiz-header {
     margin-bottom: 1.25rem;
+}
+
+.context-card {
+    border-radius: 14px;
+    padding: 1rem 1.5rem;
+    background: linear-gradient(135deg, rgba(24, 40, 255, 0.12), rgba(118, 87, 255, 0.15));
+    margin-bottom: 1.25rem;
+}
+
+.context-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin: 0;
+}
+
+.context-subtitle {
+    margin: 0.35rem 0 0;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
 }
 
 .quiz-header-top {
@@ -317,12 +484,10 @@ const cancelDelete = () => {
     color: var(--text-primary);
 }
 
-.question-category {
-    color: var(--primary-color);
-    font-size: 0.9rem;
-    font-weight: 600;
-    margin-bottom: 2rem;
-    text-transform: uppercase;
+.question-note {
+    margin: 0 0 1rem;
+    font-size: 0.95rem;
+    color: var(--text-secondary);
 }
 
 .options {
@@ -375,6 +540,44 @@ const cancelDelete = () => {
 .quiz-actions button:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+.threat-order {
+    margin-top: 1.5rem;
+}
+
+.threat-order-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.threat-order-item {
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.threat-order-label {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-weight: 600;
+}
+
+.threat-order-rank {
+    font-size: 0.85rem;
+    letter-spacing: 0.15em;
+    color: var(--text-secondary);
+}
+
+.threat-order-controls {
+    display: flex;
+    gap: 0.5rem;
 }
 
 .completion-screen {
