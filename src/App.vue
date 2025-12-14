@@ -18,38 +18,31 @@
         </main>
 
         <ToastContainer />
-        <div v-if="showReloadConfirm" class="modal-overlay" @click="cancelReload">
-            <div class="modal-content" @click.stop>
-                <h3>Are you sure?</h3>
-                <p class="modal-description">
-                    Reloading will discard unsaved answers. Save before leaving to keep your progress.
-                </p>
-                <div class="modal-buttons">
-                    <button class="btn btn-outline" @click="cancelReload">Cancel</button>
-                    <button class="btn btn-secondary" @click="saveAndReload">Save & reload</button>
-                    <button class="btn btn-danger" @click="confirmReload">Discard & reload</button>
-                </div>
-            </div>
-        </div>
+        <BaseModal v-model:visible="showReloadConfirm" title="Are you sure?">
+            <p class="modal-description">
+                Reloading will discard unsaved answers. Save before leaving to keep your progress.
+            </p>
+            <template #footer>
+                <BaseButton variant="outline" @click="cancelReload">Cancel</BaseButton>
+                <BaseButton variant="secondary" @click="saveAndReload">Save & reload</BaseButton>
+                <BaseButton variant="danger" @click="confirmReload">Discard & reload</BaseButton>
+            </template>
+        </BaseModal>
 
-        <div v-if="showPasswordModal" class="modal-overlay" @click="cancelPasswordInput">
-            <div class="modal-content" @click.stop>
-                <h3>🔐 Save Your Progress</h3>
-                <p class="modal-description">Enter a password to encrypt your quiz progress.</p>
-                <input
-                    v-model="passwordInput"
-                    ref="passwordInputRef"
-                    type="password"
-                    class="password-input"
-                    placeholder="Choose a password"
-                />
-                <p v-if="passwordError" class="error-message">{{ passwordError }}</p>
-                <div class="modal-buttons">
-                    <button class="btn btn-outline" @click="cancelPasswordInput">Cancel</button>
-                    <button class="btn btn-secondary" @click="submitPassword">Save</button>
-                </div>
-            </div>
-        </div>
+        <BaseModal v-model:visible="showPasswordModal" title="🔐 Save Your Progress">
+            <p class="modal-description">Enter a password to encrypt your quiz progress.</p>
+            <BaseInput
+                v-model="passwordInput"
+                :ref="passwordInputRef"
+                type="password"
+                placeholder="Choose a password"
+            />
+            <p v-if="passwordError" class="error-message">{{ passwordError }}</p>
+            <template #footer>
+                <BaseButton variant="outline" @click="cancelPasswordInput">Cancel</BaseButton>
+                <BaseButton variant="secondary" @click="submitPassword">Save</BaseButton>
+            </template>
+        </BaseModal>
 
         <footer class="footer">
             <div class="container">
@@ -66,6 +59,9 @@
 
 <script setup lang="ts">
 import ToastContainer from './components/ToastContainer.vue'
+import BaseModal from './components/BaseModal.vue'
+import BaseButton from './components/BaseButton.vue'
+import BaseInput from './components/BaseInput.vue'
 import { onMounted, onBeforeUnmount } from 'vue'
 import {
     registerReloadGuardListeners,
@@ -73,18 +69,20 @@ import {
     useReloadGuard
 } from './composables/useReloadGuard'
 
+const reloadGuard = useReloadGuard()
 const {
     showReloadConfirm,
     showPasswordModal,
     passwordInput,
     passwordError,
-    passwordInputRef,
     cancelPasswordInput,
     submitPassword,
     cancelReload,
     saveAndReload,
     confirmReload
-} = useReloadGuard()
+} = reloadGuard
+
+const passwordInputRef = reloadGuard.passwordInputRef
 
 onMounted(registerReloadGuardListeners)
 onBeforeUnmount(unregisterReloadGuardListeners)
