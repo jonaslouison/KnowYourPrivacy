@@ -48,6 +48,7 @@
             <div class="container">
                 <p>🔐 All data is encrypted and stored locally on your device. No tracking. Open source.</p>
                 <p>
+                    Made with ❤️ 
                     <a href="https://github.com/Nepholis/KnowYourPrivacy" target="_blank" rel="noopener noreferrer">
                         View on GitHub
                     </a>

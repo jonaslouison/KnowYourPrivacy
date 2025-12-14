@@ -1,14 +1,83 @@
 import { defineStore } from 'pinia'
 import { quizQuestions, recommendations, QuizQuestion } from '../data/questions'
 import {
+  DeviceSelectionId,
+  DeviceSelectionOption,
+  DeviceType,
+  DEVICE_FLOW_ORDER,
+  DEVICE_SELECTION_MAP,
+  DEVICE_SELECTION_OPTIONS
+} from '../data/devices'
+import {
   encryptData,
   downloadEncryptedFile,
   readEncryptedFile
 } from '../utils/crypto'
 
+const THREAT_QUESTION_IDS = [
+  'threat-surveillance',
+  'threat-fingerprinting',
+  'threat-government',
+  'threat-data-breaches',
+  'threat-identity-theft'
+]
+
+const THREAT_SPECTRUM = [
+  { level: 1, label: 'Normie', description: 'You prioritize convenience and are just starting to learn about tracking.' },
+  { level: 2, label: 'Aware', description: 'You notice tracking but still lean on defaults for daily tasks.' },
+  { level: 3, label: 'Guarded', description: 'You actively harden your stack and value consistent tooling.' },
+  { level: 4, label: 'Ghost', description: 'Every connection is treated as a risk and you prefer air-gapped controls.' }
+]
+
+const DEVICE_TYPES: DeviceType[] = DEVICE_FLOW_ORDER
+
+const DEVICE_SETUP_CONFIG: Record<DeviceType, Array<{ questionId: string; label: string }>> = {
+  pc: [
+    { questionId: 'os-desktop', label: 'Operating System' },
+    { questionId: 'browser-desktop', label: 'Web Browser' },
+    { questionId: 'search-engine', label: 'Search Engine' },
+    { questionId: 'email-provider', label: 'Email Provider' },
+    { questionId: 'cloud-storage', label: 'Cloud Storage' },
+    { questionId: 'password-manager', label: 'Password Manager' },
+    { questionId: 'vpn-usage', label: 'VPN Service' }
+  ],
+  phone: [
+    { questionId: 'os-mobile', label: 'Operating System' },
+    { questionId: 'browser-mobile', label: 'Web Browser' },
+    { questionId: 'messaging-app', label: 'Messaging App' },
+    { questionId: 'email-provider', label: 'Email Provider' },
+    { questionId: 'vpn-usage', label: 'VPN Service' }
+  ],
+  tablet: [
+    { questionId: 'os-tablet', label: 'Operating System' },
+    { questionId: 'browser-mobile', label: 'Web Browser' },
+    { questionId: 'cloud-storage', label: 'Cloud Storage' },
+    { questionId: 'messaging-app', label: 'Messaging App' }
+  ]
+}
+
+const mapScoreLabel = (score: number): string => {
+  if (score >= 80) return 'Excellent'
+  if (score >= 60) return 'Good'
+  if (score > 0) return 'Needs Improvement'
+  return 'Pending'
+}
+
+const mapScoreClass = (score: number): 'good' | 'medium' | 'poor' => {
+  if (score >= 80) return 'good'
+  if (score >= 60) return 'medium'
+  return 'poor'
+}
+
+const mapThreatSeverity = (score: number): 'high' | 'medium' | 'low' => {
+  if (score >= 80) return 'high'
+  if (score >= 40) return 'medium'
+  return 'low'
+}
+
 export interface Answer {
   questionId: string
-  answer: string
+  answer: string | string[]
 }
 
 export interface AppCategory {
@@ -17,7 +86,25 @@ export interface AppCategory {
   currentApp: string
   score: string
   scoreClass: 'good' | 'medium' | 'poor'
+  scoreValue: number
   recommendations: string[]
+}
+
+export interface DeviceRow {
+  questionId: string
+  label: string
+  currentApp: string
+  scoreValue: number
+  scoreLabel: string
+  scoreClass: 'good' | 'medium' | 'poor'
+  recommendations: string[]
+}
+
+export interface ThreatEntry {
+  questionId: string
+  label: string
+  score: number
+  severity: 'high' | 'medium' | 'low'
 }
 
 export interface QuizState {
@@ -26,6 +113,8 @@ export interface QuizState {
   isCompleted: boolean
   currentQuestionIndex: number
   isLoadedFromFile: boolean
+  manualThreatLevel: number
+  manualOverride: boolean
 }
 
 export interface ExportData {
@@ -36,20 +125,218 @@ export interface ExportData {
   exportedAt: string
 }
 
-export const useQuizStore = defineStore('quiz', {
+export type QuizSectionKey = DeviceType | 'general' | 'threat' | 'priorities' | 'device-selection'
+
+export interface QuizFlowItem {
+  question: QuizQuestion
+  section: QuizSectionKey
+}
+
+const normalizeAnswerValue = (value?: string | string[]): string[] => {
+  if (!value) return []
+  return Array.isArray(value) ? value : [value]
+}
+
+const getPrimaryValue = (value?: string | string[]): string | undefined => {
+  return normalizeAnswerValue(value)[0]
+}
+
+const getDeviceSelectionAnswer = (state: QuizState): DeviceSelectionId[] => {
+  const entry = state.answers.find((answer) => answer.questionId === 'device-selection')
+  return normalizeAnswerValue(entry?.answer) as DeviceSelectionId[]
+}
+
+const getThreatPriorityAnswer = (state: QuizState): string[] => {
+  const entry = state.answers.find((answer) => answer.questionId === 'threat-priorities')
+  return normalizeAnswerValue(entry?.answer)
+}
+
+const calculateNormalizedThreatScore = (state: QuizState): number => {
+  if (state.answers.length === 0) return 0
+  const sum = THREAT_QUESTION_IDS.reduce((acc, questionId) => {
+    const answer = state.answers.find((a) => a.questionId === questionId)
+    const question = state.questions.find((q) => q.id === questionId)
+    const option = question?.options.find((o) => o.value === getPrimaryValue(answer?.answer))
+    return acc + (option?.score ?? 0)
+  }, 0)
+  return sum / (THREAT_QUESTION_IDS.length * 100)
+}
+
+const resolveComputedThreatLevel = (state: QuizState): number => {
+  if (state.answers.length === 0) return 1
+  const normalized = calculateNormalizedThreatScore(state)
+  if (normalized >= 0.75) return 4
+  if (normalized >= 0.5) return 3
+  if (normalized >= 0.25) return 2
+  return 1
+}
+
+const buildDeviceRows = (device: DeviceType, state: QuizState): DeviceRow[] => {
+  const config = DEVICE_SETUP_CONFIG[device] || []
+  return config.map((item) => {
+    const answer = state.answers.find((a) => a.questionId === item.questionId)
+    const question = state.questions.find((q) => q.id === item.questionId)
+    const selectedValue = getPrimaryValue(answer?.answer)
+    const option = question?.options.find((opt) => opt.value === selectedValue)
+    const score = option?.score ?? 0
+    return {
+      questionId: item.questionId,
+      label: item.label,
+      currentApp: option?.label ?? 'Awaiting response',
+      scoreValue: score,
+      scoreLabel: mapScoreLabel(score),
+      scoreClass: mapScoreClass(score),
+      recommendations: selectedValue
+        ? recommendations[item.questionId]?.[selectedValue] ?? []
+        : []
+    }
+  })
+}
+
+const computeDeviceRating = (device: DeviceType, state: QuizState): number => {
+  const rows = buildDeviceRows(device, state)
+  const answeredRows = rows.filter((row) => row.scoreValue > 0)
+  if (!answeredRows.length) return 0
+  const sum = answeredRows.reduce((acc, row) => acc + row.scoreValue, 0)
+  return sum / answeredRows.length
+}
+
+const computeDeviceRatingNormalized = (device: DeviceType, state: QuizState): number => {
+  const rating = computeDeviceRating(device, state)
+  return Math.round((rating / 25) * 10) / 10
+}
+
+export const QUIZ_SECTION_LABELS: Record<QuizSectionKey, string> = {
+  'device-selection': 'Device Setup',
+  pc: 'PC Environment',
+  phone: 'Phone Environment',
+  tablet: 'Tablet Environment',
+  general: 'App Usage',
+  threat: 'Threat Model',
+  priorities: 'Threat Priorities'
+}
+
+const matchesDeviceContext = (question: QuizQuestion, device: DeviceType): boolean => {
+  if (!question.device) return false
+  if (question.device === device) return true
+  if (question.device === 'mobile' && (device === 'phone' || device === 'tablet')) return true
+  return false
+}
+
+const calculatePrivacyScoreNormalized = (state: QuizState): number => {
+  const total = DEVICE_TYPES.reduce((acc, device) => acc + computeDeviceRatingNormalized(device, state), 0)
+  if (!DEVICE_TYPES.length) return 0
+  return Math.round((total / DEVICE_TYPES.length) * 10) / 10
+}
+
+const getSelectedDeviceTypes = (state: QuizState): DeviceType[] => {
+  const selectionValues = getDeviceSelectionAnswer(state)
+  if (!selectionValues.length) return []
+  const selectedDevices = selectionValues
+    .map((value) => DEVICE_SELECTION_MAP[value])
+    .filter((device): device is DeviceType => Boolean(device))
+  if (!selectedDevices.length) return []
+  const deduped = Array.from(new Set(selectedDevices))
+  return DEVICE_FLOW_ORDER.filter((device) => deduped.includes(device))
+}
+
+const buildQuizFlow = (state: QuizState): QuizFlowItem[] => {
+  const selectedDevices = getSelectedDeviceTypes(state)
+  const flow: QuizFlowItem[] = []
+  const visited = new Set<string>()
+
+  const deviceSelectionQuestion = state.questions.find((question) => question.id === 'device-selection')
+  if (deviceSelectionQuestion) {
+    flow.push({ question: deviceSelectionQuestion, section: 'device-selection' })
+    visited.add(deviceSelectionQuestion.id)
+  }
+
+  const orderedDevices = DEVICE_FLOW_ORDER.filter((device) => selectedDevices.includes(device))
+  orderedDevices.forEach((device) => {
+    state.questions.forEach((question) => {
+      if (visited.has(question.id)) return
+      if (matchesDeviceContext(question, device)) {
+        flow.push({ question, section: device })
+        visited.add(question.id)
+      }
+    })
+  })
+
+  const generalQuestions = state.questions.filter((question) => {
+    if (visited.has(question.id)) return false
+    if (THREAT_QUESTION_IDS.includes(question.id)) return false
+    if (question.id === 'threat-priorities') return false
+    if (question.device) return false
+    return true
+  })
+  generalQuestions.forEach((question) => {
+    flow.push({ question, section: 'general' })
+    visited.add(question.id)
+  })
+
+  THREAT_QUESTION_IDS.forEach((questionId) => {
+    const question = state.questions.find((entry) => entry.id === questionId)
+    if (question) {
+      flow.push({ question, section: 'threat' })
+      visited.add(question.id)
+    }
+  })
+
+  const priorityQuestion = state.questions.find((entry) => entry.id === 'threat-priorities')
+  if (priorityQuestion) {
+    flow.push({ question: priorityQuestion, section: 'priorities' })
+    visited.add(priorityQuestion.id)
+  }
+
+  return flow
+}
+
+const getThreatEntriesFromState = (state: QuizState): ThreatEntry[] => {
+  const entries: ThreatEntry[] = []
+  THREAT_QUESTION_IDS.forEach((questionId) => {
+    const answer = state.answers.find((a) => a.questionId === questionId)
+    const question = state.questions.find((q) => q.id === questionId)
+    const option = question?.options.find((opt) => opt.value === getPrimaryValue(answer?.answer))
+    if (option && option.threat) {
+      entries.push({
+        questionId,
+        label: option.threat,
+        score: option.score ?? 0,
+        severity: mapThreatSeverity(option.score ?? 0)
+      })
+    }
+  })
+  return entries.sort((a, b) => b.score - a.score)
+}
+
+const getOrderedThreatEntriesFromState = (state: QuizState): ThreatEntry[] => {
+  const baseEntries = getThreatEntriesFromState(state)
+  const priorityOrder = getThreatPriorityAnswer(state)
+  if (!priorityOrder.length) return baseEntries
+  const ordered = priorityOrder
+    .map((label) => baseEntries.find((entry) => entry.label === label))
+    .filter((entry): entry is ThreatEntry => Boolean(entry))
+  const remainder = baseEntries.filter((entry) => !priorityOrder.includes(entry.label))
+  return [...ordered, ...remainder]
+}
+
+export const useQuizStore = defineStore({
+  id: 'quiz',
   state: (): QuizState => ({
     questions: quizQuestions,
     answers: [],
     isCompleted: false,
     currentQuestionIndex: 0,
-    isLoadedFromFile: false
+    isLoadedFromFile: false,
+    manualThreatLevel: 1,
+    manualOverride: false
   }),
 
   getters: {
     /**
      * Get answer for a specific question
      */
-    getAnswer: (state) => (questionId: string): string | null => {
+    getAnswer: (state) => (questionId: string): string | string[] | null => {
       const answer = state.answers.find((a) => a.questionId === questionId)
       return answer ? answer.answer : null
     },
@@ -62,16 +349,20 @@ export const useQuizStore = defineStore('quiz', {
 
       let totalScore = 0
       let totalWeight = 0
+      const ignoredQuestions = ['device-selection', 'threat-priorities']
 
       state.answers.forEach((answer) => {
+        if (ignoredQuestions.includes(answer.questionId)) return
         const question = state.questions.find((q) => q.id === answer.questionId)
-        if (question) {
-          const option = question.options.find((o) => o.value === answer.answer)
+        if (!question) return
+        const values = normalizeAnswerValue(answer.answer)
+        values.forEach((value) => {
+          const option = question.options.find((o) => o.value === value)
           if (option && option.score !== undefined) {
             totalScore += option.score
             totalWeight += 100
           }
-        }
+        })
       })
 
       return totalWeight > 0 ? Math.round((totalScore / totalWeight) * 100) : 0
@@ -86,7 +377,7 @@ export const useQuizStore = defineStore('quiz', {
       state.answers.forEach((answer) => {
         const question = state.questions.find((q) => q.id === answer.questionId)
         if (question) {
-          const option = question.options.find((o) => o.value === answer.answer)
+          const option = question.options.find((o) => o.value === getPrimaryValue(answer.answer))
           if (option && option.threat && !threats.includes(option.threat)) {
             threats.push(option.threat)
           }
@@ -106,8 +397,12 @@ export const useQuizStore = defineStore('quiz', {
       const browserDesktop = state.answers.find((a) => a.questionId === 'browser-desktop')
       if (browserDesktop) {
         const question = state.questions.find((q) => q.id === 'browser-desktop')
-        const option = question?.options.find((o) => o.value === browserDesktop.answer)
+        const answerValue = getPrimaryValue(browserDesktop.answer)
+        const option = answerValue ? question?.options.find((o) => o.value === answerValue) : undefined
         const score = option?.score || 0
+        const recommendationList = answerValue
+          ? recommendations['browser-desktop']?.[answerValue] ?? []
+          : []
 
         categories.push({
           name: 'Web Browser (Desktop)',
@@ -115,7 +410,8 @@ export const useQuizStore = defineStore('quiz', {
           currentApp: option?.label || 'Unknown',
           score: score >= 80 ? 'Excellent' : score >= 60 ? 'Good' : 'Needs Improvement',
           scoreClass: score >= 80 ? 'good' : score >= 60 ? 'medium' : 'poor',
-          recommendations: recommendations['browser-desktop']?.[browserDesktop.answer] || []
+          scoreValue: score,
+          recommendations: recommendationList
         })
       }
 
@@ -123,8 +419,12 @@ export const useQuizStore = defineStore('quiz', {
       const email = state.answers.find((a) => a.questionId === 'email-provider')
       if (email) {
         const question = state.questions.find((q) => q.id === 'email-provider')
-        const option = question?.options.find((o) => o.value === email.answer)
+        const answerValue = getPrimaryValue(email.answer)
+        const option = answerValue ? question?.options.find((o) => o.value === answerValue) : undefined
         const score = option?.score || 0
+        const recommendationList = answerValue
+          ? recommendations['email-provider']?.[answerValue] ?? []
+          : []
 
         categories.push({
           name: 'Email Provider',
@@ -132,7 +432,8 @@ export const useQuizStore = defineStore('quiz', {
           currentApp: option?.label || 'Unknown',
           score: score >= 80 ? 'Excellent' : score >= 60 ? 'Good' : 'Needs Improvement',
           scoreClass: score >= 80 ? 'good' : score >= 60 ? 'medium' : 'poor',
-          recommendations: recommendations['email-provider']?.[email.answer] || []
+          scoreValue: score,
+          recommendations: recommendationList
         })
       }
 
@@ -140,8 +441,12 @@ export const useQuizStore = defineStore('quiz', {
       const search = state.answers.find((a) => a.questionId === 'search-engine')
       if (search) {
         const question = state.questions.find((q) => q.id === 'search-engine')
-        const option = question?.options.find((o) => o.value === search.answer)
+        const answerValue = getPrimaryValue(search.answer)
+        const option = answerValue ? question?.options.find((o) => o.value === answerValue) : undefined
         const score = option?.score || 0
+        const recommendationList = answerValue
+          ? recommendations['search-engine']?.[answerValue] ?? []
+          : []
 
         categories.push({
           name: 'Search Engine',
@@ -149,7 +454,8 @@ export const useQuizStore = defineStore('quiz', {
           currentApp: option?.label || 'Unknown',
           score: score >= 80 ? 'Excellent' : score >= 60 ? 'Good' : 'Needs Improvement',
           scoreClass: score >= 80 ? 'good' : score >= 60 ? 'medium' : 'poor',
-          recommendations: recommendations['search-engine']?.[search.answer] || []
+          scoreValue: score,
+          recommendations: recommendationList
         })
       }
 
@@ -157,8 +463,12 @@ export const useQuizStore = defineStore('quiz', {
       const messaging = state.answers.find((a) => a.questionId === 'messaging-app')
       if (messaging) {
         const question = state.questions.find((q) => q.id === 'messaging-app')
-        const option = question?.options.find((o) => o.value === messaging.answer)
+        const answerValue = getPrimaryValue(messaging.answer)
+        const option = answerValue ? question?.options.find((o) => o.value === answerValue) : undefined
         const score = option?.score || 0
+        const recommendationList = answerValue
+          ? recommendations['messaging-app']?.[answerValue] ?? []
+          : []
 
         categories.push({
           name: 'Messaging App',
@@ -166,7 +476,8 @@ export const useQuizStore = defineStore('quiz', {
           currentApp: option?.label || 'Unknown',
           score: score >= 80 ? 'Excellent' : score >= 60 ? 'Good' : 'Needs Improvement',
           scoreClass: score >= 80 ? 'good' : score >= 60 ? 'medium' : 'poor',
-          recommendations: recommendations['messaging-app']?.[messaging.answer] || []
+          scoreValue: score,
+          recommendations: recommendationList
         })
       }
 
@@ -174,8 +485,12 @@ export const useQuizStore = defineStore('quiz', {
       const cloud = state.answers.find((a) => a.questionId === 'cloud-storage')
       if (cloud) {
         const question = state.questions.find((q) => q.id === 'cloud-storage')
-        const option = question?.options.find((o) => o.value === cloud.answer)
+        const answerValue = getPrimaryValue(cloud.answer)
+        const option = answerValue ? question?.options.find((o) => o.value === answerValue) : undefined
         const score = option?.score || 0
+        const recommendationList = answerValue
+          ? recommendations['cloud-storage']?.[answerValue] ?? []
+          : []
 
         categories.push({
           name: 'Cloud Storage',
@@ -183,7 +498,8 @@ export const useQuizStore = defineStore('quiz', {
           currentApp: option?.label || 'Unknown',
           score: score >= 80 ? 'Excellent' : score >= 60 ? 'Good' : 'Needs Improvement',
           scoreClass: score >= 80 ? 'good' : score >= 60 ? 'medium' : 'poor',
-          recommendations: recommendations['cloud-storage']?.[cloud.answer] || []
+          scoreValue: score,
+          recommendations: recommendationList
         })
       }
 
@@ -191,8 +507,12 @@ export const useQuizStore = defineStore('quiz', {
       const password = state.answers.find((a) => a.questionId === 'password-manager')
       if (password) {
         const question = state.questions.find((q) => q.id === 'password-manager')
-        const option = question?.options.find((o) => o.value === password.answer)
+        const answerValue = getPrimaryValue(password.answer)
+        const option = answerValue ? question?.options.find((o) => o.value === answerValue) : undefined
         const score = option?.score || 0
+        const recommendationList = answerValue
+          ? recommendations['password-manager']?.[answerValue] ?? []
+          : []
 
         categories.push({
           name: 'Password Manager',
@@ -200,7 +520,8 @@ export const useQuizStore = defineStore('quiz', {
           currentApp: option?.label || 'Unknown',
           score: score >= 80 ? 'Excellent' : score >= 60 ? 'Good' : 'Needs Improvement',
           scoreClass: score >= 80 ? 'good' : score >= 60 ? 'medium' : 'poor',
-          recommendations: recommendations['password-manager']?.[password.answer] || []
+          scoreValue: score,
+          recommendations: recommendationList
         })
       }
 
@@ -208,8 +529,12 @@ export const useQuizStore = defineStore('quiz', {
       const vpn = state.answers.find((a) => a.questionId === 'vpn-usage')
       if (vpn) {
         const question = state.questions.find((q) => q.id === 'vpn-usage')
-        const option = question?.options.find((o) => o.value === vpn.answer)
+        const answerValue = getPrimaryValue(vpn.answer)
+        const option = answerValue ? question?.options.find((o) => o.value === answerValue) : undefined
         const score = option?.score || 0
+        const recommendationList = answerValue
+          ? recommendations['vpn-usage']?.[answerValue] ?? []
+          : []
 
         categories.push({
           name: 'VPN Service',
@@ -217,12 +542,32 @@ export const useQuizStore = defineStore('quiz', {
           currentApp: option?.label || 'Unknown',
           score: score >= 80 ? 'Excellent' : score >= 60 ? 'Good' : 'Needs Improvement',
           scoreClass: score >= 80 ? 'good' : score >= 60 ? 'medium' : 'poor',
-          recommendations: recommendations['vpn-usage']?.[vpn.answer] || []
+          scoreValue: score,
+          recommendations: recommendationList
         })
       }
 
       return categories
-    }
+    },
+    selectedDeviceSelections: (state): DeviceSelectionOption[] => {
+      const selectionValues = getDeviceSelectionAnswer(state)
+      if (!selectionValues.length) return []
+      return DEVICE_SELECTION_OPTIONS.filter((option) => selectionValues.includes(option.id))
+    },
+    selectedDeviceTypes: (state): DeviceType[] => getSelectedDeviceTypes(state),
+    quizFlow: (state): QuizFlowItem[] => buildQuizFlow(state),
+    normalizedThreatScore: (state) => calculateNormalizedThreatScore(state),
+    computedThreatLevel: (state) => resolveComputedThreatLevel(state),
+    computedThreatSpectrumInfo: (state) => THREAT_SPECTRUM[resolveComputedThreatLevel(state) - 1] ?? THREAT_SPECTRUM[0],
+    displayThreatLevel: (state) => state.manualThreatLevel,
+    displayThreatSpectrumInfo: (state) => THREAT_SPECTRUM[state.manualThreatLevel - 1] ?? THREAT_SPECTRUM[0],
+    threatSpectrumOptions: () => THREAT_SPECTRUM,
+    threatEntries: (state): ThreatEntry[] => getThreatEntriesFromState(state),
+    orderedThreatEntries: (state): ThreatEntry[] => getOrderedThreatEntriesFromState(state),
+    getDeviceSetup: (state) => (device: DeviceType): DeviceRow[] => buildDeviceRows(device, state),
+    getDeviceRating: (state) => (device: DeviceType): number => computeDeviceRating(device, state),
+    getDeviceRatingNormalized: (state) => (device: DeviceType): number => computeDeviceRatingNormalized(device, state),
+    privacyScoreNormalized: (state) => calculatePrivacyScoreNormalized(state)
   },
 
   actions: {
@@ -236,6 +581,10 @@ export const useQuizStore = defineStore('quiz', {
         this.answers[existingIndex] = payload
       } else {
         this.answers.push(payload)
+      }
+
+      if (!this.manualOverride) {
+        this.manualThreatLevel = this.computedThreatLevel
       }
     },
 
@@ -254,6 +603,32 @@ export const useQuizStore = defineStore('quiz', {
       this.isCompleted = false
       this.currentQuestionIndex = 0
       this.isLoadedFromFile = false
+      this.manualThreatLevel = 1
+      this.manualOverride = false
+    },
+
+    setThreatOrder(order: string[]): void {
+      const existingIndex = this.answers.findIndex((entry) => entry.questionId === 'threat-priorities')
+      const payload: Answer = {
+        questionId: 'threat-priorities',
+        answer: order
+      }
+      if (existingIndex !== -1) {
+        this.answers[existingIndex] = payload
+      } else {
+        this.answers.push(payload)
+      }
+    },
+
+    setManualThreatLevel(level: number): void {
+      const clamped = Math.min(Math.max(level, 1), 4)
+      this.manualThreatLevel = clamped
+      this.manualOverride = clamped !== this.computedThreatLevel
+    },
+
+    resetManualThreatLevel(): void {
+      this.manualThreatLevel = this.computedThreatLevel
+      this.manualOverride = false
     },
 
     /**
@@ -291,6 +666,8 @@ export const useQuizStore = defineStore('quiz', {
       this.isCompleted = data.isCompleted || false
       this.currentQuestionIndex = data.currentQuestionIndex || 0
       this.isLoadedFromFile = true
+      this.manualThreatLevel = this.computedThreatLevel
+      this.manualOverride = false
     }
   }
 })

@@ -20,8 +20,7 @@
         </div>
 
         <div v-else>
-            <!-- Unsaved Data Warning Banner -->
-            <div v-if="hasUnsavedChanges && !quizStore.isLoadedFromFile" class="warning-banner">
+            <div v-if="hasUnsavedChanges" class="warning-banner">
                 <div class="warning-content">
                     <span class="warning-icon">⚠️</span>
                     <div class="warning-text">
@@ -34,7 +33,6 @@
                 </div>
             </div>
 
-            <!-- Saved File Success Banner -->
             <div v-if="quizStore.isLoadedFromFile" class="success-banner">
                 <div class="success-content">
                     <span class="success-icon">✅</span>
@@ -45,48 +43,157 @@
                 </div>
             </div>
 
-            <section class="score-section">
-                <div class="score-card card">
-                    <h1>Your Privacy Score</h1>
-                    <div class="score-circle">
-                        <div class="score-value">{{ privacyScore }}</div>
-                        <div class="score-label">/ 100</div>
-                    </div>
-                    <p class="score-description">{{ scoreDescription }}</p>
-                </div>
-            </section>
-
-            <section class="threat-model-section">
-                <div class="card">
-                    <h2>Your Threat Model</h2>
-                    <div class="threat-chips">
-                        <span v-for="threat in threatModel" :key="threat" class="chip">
-                            {{ threat }}
-                        </span>
-                    </div>
-                </div>
-            </section>
-
-            <section class="apps-section">
-                <h2>Your Apps</h2>
-                <div class="app-categories">
-                    <div v-for="category in appCategories" :key="category.name" class="app-category card">
-                        <div class="category-header">
-                            <h3>{{ category.icon }} {{ category.name }}</h3>
-                            <span class="category-score" :class="category.scoreClass">
-                                {{ category.score }}
-                            </span>
+            <div class="dashboard-metrics">
+                <section class="threat-model-panel card">
+                    <div class="panel-heading">
+                        <div class="heading-main">
+                            <div>
+                                <p class="eyebrow">Threat Model</p>
+                                <div class="heading-title">
+                                    <h2>{{ displayThreatSpectrumLabel }}</h2>
+                                    <span v-if="manualOverride" class="manual-tag">Manual</span>
+                                </div>
+                                <p class="subtext">{{ displayThreatSpectrumDescription }}</p>
+                            </div>
+                            <div class="heading-select-wrapper">
+                                <label for="threat-level-select">Threat level</label>
+                                <select id="threat-level-select" :value="displayThreatLevel" @change="handleThreatLevelChange">
+                                    <option v-for="option in threatLevelOptions" :key="option.level" :value="option.level">
+                                        Level {{ option.level }} · {{ option.label }}
+                                    </option>
+                                </select>
+                                <button type="button" class="reset-button" @click="resetThreatLevel" :disabled="!manualOverride">
+                                    reset
+                                </button>
+                            </div>
                         </div>
-                        <p class="current-app">Currently using: <strong>{{ category.currentApp }}</strong></p>
-                        <div v-if="category.recommendations.length" class="recommendations">
-                            <h4>Privacy-focused alternatives:</h4>
+                        <div class="awareness-display">
+                            <div class="score-display compact">
+                                <div class="score-value">{{ displayThreatLevel }}</div>
+                                <div class="score-denominator">/ 4</div>
+                            </div>
+                            <p class="awareness-label">Awareness meter</p>
+                        </div>
+                        <p class="meta">Computed level · {{ quizStore.computedThreatLevel }} · {{ computedThreatSpectrumInfo.label }}</p>
+                    </div>
+                    <div class="threat-body">
+                        <div class="threat-chips">
+                            <div
+                                v-for="entry in threatEntries"
+                                :key="entry.questionId"
+                                class="threat-entry-row"
+                            >
+                                <span class="chip" :class="entry.severity">
+                                    {{ entry.label }}
+                                </span>
+                                <BaseButton variant="ghost" size="small" @click="jumpToThreatPriorities">
+                                    ✏️ Edit
+                                </BaseButton>
+                            </div>
+                            <p v-if="!threatEntries.length" class="muted">Answer the threat model questions to surface your biggest risks.</p>
+                        </div>
+                        <div class="priority-actions">
+                            <h3>Priority actions</h3>
                             <ul>
-                                <li v-for="rec in category.recommendations" :key="rec">
-                                    {{ rec }}
+                                <li v-for="recItem in actionableRecommendations" :key="recItem.name">
+                                    <div class="priority-label">
+                                        <span class="icon">{{ recItem.icon }}</span>
+                                        <div>
+                                            <strong>{{ recItem.name }}</strong>
+                                            <small>{{ recItem.currentApp }}</small>
+                                        </div>
+                                    </div>
+                                    <p class="recommendation">{{ recItem.recommendations[0] }}</p>
                                 </li>
+                                <li v-if="!actionableRecommendations.length" class="muted">You've already matched every core app to your threat model.</li>
                             </ul>
                         </div>
                     </div>
+                    <div class="panel-actions compact">
+                        <BaseButton variant="secondary" size="small" @click="reviewQuiz">Review Quiz Answers</BaseButton>
+                    </div>
+                </section>
+
+                <section class="score-panel card">
+                    <div class="panel-heading">
+                        <p class="eyebrow">Privacy Score</p>
+                        <h2>{{ privacyScoreDisplay }}</h2>
+                        <p class="subtext">Average of your device ratings so the score reflects device-specific privacy.</p>
+                    </div>
+                    <div class="score-display compact">
+                        <div class="score-value">{{ privacyScoreDisplay }}</div>
+                        <div class="score-denominator">/ 4</div>
+                    </div>
+                    <p class="score-description">{{ scoreDescription }}</p>
+                </section>
+            </div>
+
+            <section class="devices-panel card">
+                <div class="panel-heading">
+                    <p class="eyebrow">Your Devices</p>
+                    <h2>Focus on one device</h2>
+                </div>
+                <div class="device-switcher">
+                    <BaseButton
+                        v-for="device in deviceTypes"
+                        :key="device"
+                        variant="ghost"
+                        size="small"
+                        :class="{ active: selectedDevice === device }"
+                        @click="selectDevice(device)"
+                    >
+                        {{ device === 'pc' ? 'Desktop' : device === 'phone' ? 'Phone' : 'Tablet' }}
+                    </BaseButton>
+                </div>
+                <p class="muted">Each table below shows the current apps you use for that device. Ratings feed into the overall privacy score.</p>
+            </section>
+
+            <section class="device-setup card">
+                <div class="panel-heading">
+                    <h2>Your {{ deviceLabel }} Setup</h2>
+                </div>
+                <div class="setup-summary">
+                    <div>
+                        <p class="muted">Device rating</p>
+                        <div class="score-display compact">
+                            <div class="score-value">{{ selectedDeviceRating.toFixed(1) }}</div>
+                            <div class="score-denominator">/ 4</div>
+                        </div>
+                    </div>
+                    <p class="muted">Focus on improving the low-rated rows to raise this device's privacy posture.</p>
+                </div>
+                <div class="device-table-wrapper">
+                    <table class="device-table">
+                        <thead>
+                            <tr>
+                                <th>Category</th>
+                                <th>Currently using</th>
+                                <th>Rating</th>
+                                <th>Recommendations</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="row in deviceRows" :key="row.questionId">
+                                <td>{{ row.label }}</td>
+                                <td>
+                                    <div class="current-app-cell">
+                                        <span>{{ row.currentApp }}</span>
+                                        <BaseButton variant="ghost" size="small" @click="jumpToQuestion(row.questionId)">
+                                            ✏️ Edit
+                                        </BaseButton>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge" :class="row.scoreClass">{{ row.scoreLabel }}</span>
+                                </td>
+                                <td>
+                                    <p v-if="row.recommendations.length">{{ row.recommendations[0] }}</p>
+                                    <p v-else class="muted">Finish the question to unlock recommendations.</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <p class="muted table-note">Privacy score is the average of each device rating ({{ privacyScoreDisplay }}/4).</p>
                 </div>
             </section>
 
@@ -207,7 +314,9 @@ import { useRouter } from 'vue-router'
 import BaseButton from '../components/BaseButton.vue'
 import BaseInput from '../components/BaseInput.vue'
 import BaseModal from '../components/BaseModal.vue'
+import type { DeviceType } from '../data/devices'
 import { useQuizStore } from '../stores/quiz'
+import type { AppCategory } from '../stores/quiz'
 import { showToast } from '../utils/toast'
 import { validateExportFile } from '../utils/crypto'
 
@@ -228,21 +337,72 @@ const lastExportTime = ref<number | null>(null)
 let pendingFile: File | null = null
 let isLoadAction = false
 
+const deviceTypes: DeviceType[] = ['pc', 'phone', 'tablet']
+const selectedDevice = ref<DeviceType>('pc')
+
 const hasAnswers = computed(() => quizStore.answers.length > 0)
 const isCompleted = computed(() => quizStore.isCompleted)
 const shouldContinueQuiz = computed(() => hasAnswers.value && !isCompleted.value)
-const privacyScore = computed(() => quizStore.calculatePrivacyScore())
-const threatModel = computed(() => quizStore.getThreatModel())
-const appCategories = computed(() => quizStore.getAppCategories())
 const hasUnsavedChanges = computed(() => hasAnswers.value && lastExportTime.value === null)
-
-const scoreDescription = computed(() => {
-    const score = privacyScore.value
-    if (score >= 80) return 'Excellent! You have strong privacy practices.'
-    if (score >= 60) return 'Good! There\'s room for improvement.'
-    if (score >= 40) return 'Fair. Consider implementing more privacy tools.'
-    return 'Needs attention. Many improvements can be made.'
+const appCategories = computed<AppCategory[]>(() => quizStore.getAppCategories())
+const actionableRecommendations = computed(() => {
+    return appCategories.value
+        .filter((category) => category.recommendations.length > 0)
+    .sort((a, b) => a.scoreValue - b.scoreValue)
+        .slice(0, 3)
 })
+const threatEntries = computed(() => quizStore.threatEntries)
+const manualOverride = computed(() => quizStore.manualOverride)
+const displayThreatLevel = computed(() => quizStore.displayThreatLevel)
+const displayThreatSpectrumInfo = computed(() => quizStore.displayThreatSpectrumInfo)
+const displayThreatSpectrumLabel = computed(() => displayThreatSpectrumInfo.value.label)
+const displayThreatSpectrumDescription = computed(() => displayThreatSpectrumInfo.value.description)
+const computedThreatSpectrumInfo = computed(() => quizStore.computedThreatSpectrumInfo)
+const threatLevelOptions = computed(() => quizStore.threatSpectrumOptions)
+const privacyScoreNormalized = computed(() => quizStore.privacyScoreNormalized)
+const privacyScoreDisplay = computed(() => privacyScoreNormalized.value.toFixed(1))
+const quizFlow = computed(() => quizStore.quizFlow)
+const deviceRows = computed(() => quizStore.getDeviceSetup(selectedDevice.value))
+const selectedDeviceRating = computed(() => quizStore.getDeviceRatingNormalized(selectedDevice.value))
+const deviceLabel = computed(() => {
+    if (selectedDevice.value === 'pc') return 'Desktop'
+    if (selectedDevice.value === 'phone') return 'Phone'
+    return 'Tablet'
+})
+const scoreDescription = computed(() => {
+    if (!hasAnswers.value) {
+        return 'Complete the quiz to unlock the personalized score and device breakdown.'
+    }
+    const score = privacyScoreNormalized.value
+    if (score >= 3.5) return `Excellent! Your ${displayThreatSpectrumLabel.value} profile is well protected across devices.`
+    if (score >= 2.5) return `Strong! Your ${displayThreatSpectrumLabel.value} profile is mostly aligned with your goals.`
+    if (score >= 1.5) return `Fair. Your ${displayThreatSpectrumLabel.value} profile still has some exposed areas.`
+    return `Needs attention. The ${displayThreatSpectrumLabel.value} profile deserves more focused controls.`
+})
+const handleThreatLevelChange = (event: Event) => {
+    const select = event.target as HTMLSelectElement
+    quizStore.setManualThreatLevel(Number(select.value))
+}
+
+const resetThreatLevel = () => {
+    quizStore.resetManualThreatLevel()
+}
+
+const selectDevice = (device: DeviceType) => {
+    selectedDevice.value = device
+}
+
+const jumpToQuestion = (questionId: string) => {
+    const index = quizFlow.value.findIndex((item) => item.question.id === questionId)
+    if (index === -1) return
+    quizStore.currentQuestionIndex = index
+    router.push('/quiz')
+}
+const jumpToThreatPriorities = () => jumpToQuestion('threat-priorities')
+
+const reviewQuiz = () => {
+    router.push('/quiz')
+}
 
 const loadDashboard = () => {
     const fileInput = document.createElement('input')
@@ -258,7 +418,6 @@ const loadDashboard = () => {
         }
 
         try {
-            // Validate file format first
             await validateExportFile(file)
             pendingFile = file
             fileName.value = file.name
@@ -272,7 +431,6 @@ const loadDashboard = () => {
         } catch (error) {
             const err = error as Error
             showToast(err.message, 'error')
-            // Re-open file picker automatically
             fileInput.click()
         }
     }
@@ -282,7 +440,6 @@ const loadDashboard = () => {
 
 const exportData = () => {
     if (lastExportTime.value === null) {
-        // First time export - ask for password confirmation
         passwordInput.value = ''
         confirmPassword.value = ''
         exportPasswordError.value = ''
@@ -291,7 +448,6 @@ const exportData = () => {
             exportPasswordInputRef.value?.focus()
         })
     } else {
-        // Already exported before - just ask for password
         passwordInput.value = ''
         exportPasswordError.value = ''
         showExportModal.value = true
@@ -313,13 +469,11 @@ const submitExport = async () => {
         lastExportTime.value = Date.now()
         showExportModal.value = false
         showToast('Data exported successfully!', 'success')
-        // Only clear on success
         passwordInput.value = ''
         exportPasswordError.value = ''
     } catch (error) {
         const err = error as Error
         exportPasswordError.value = err.message
-        // Do NOT clear password, allow user to retry
     }
 }
 
@@ -332,7 +486,6 @@ const cancelExport = () => {
 const submitExportConfirm = async () => {
     if (!passwordInput.value || !confirmPassword.value) return
 
-    // Validate passwords match
     if (passwordInput.value !== confirmPassword.value) {
         exportPasswordError.value = 'Passwords do not match. Please try again.'
         return
@@ -347,14 +500,12 @@ const submitExportConfirm = async () => {
         lastExportTime.value = Date.now()
         showExportConfirmModal.value = false
         showToast('Data exported successfully!', 'success')
-        // Only clear on success
         passwordInput.value = ''
         confirmPassword.value = ''
         exportPasswordError.value = ''
     } catch (error) {
         const err = error as Error
         exportPasswordError.value = err.message
-        // Do NOT clear passwords, allow user to retry
     }
 }
 
@@ -379,7 +530,6 @@ const importData = () => {
         }
 
         try {
-            // Validate file format first
             await validateExportFile(file)
             pendingFile = file
             fileName.value = file.name
@@ -393,7 +543,6 @@ const importData = () => {
         } catch (error) {
             const err = error as Error
             showToast(err.message, 'error')
-            // Re-open file picker automatically
             fileInput.click()
         }
     }
@@ -409,22 +558,15 @@ const submitPassword = async () => {
         showPasswordModal.value = false
         const message = isLoadAction ? 'Data loaded successfully!' : 'Data imported successfully!'
         showToast(message, 'success')
-
-        // Route based on completion state so unfinished quizzes resume where left off
-        if (quizStore.isCompleted) {
-            // Stay on dashboard (already here), but ensure data reflects loaded state
-        } else {
+        if (!quizStore.isCompleted) {
             router.push('/quiz')
         }
-
-        // Only clear on success
         pendingFile = null
         passwordInput.value = ''
         passwordError.value = ''
     } catch (error) {
         const err = error as Error
         passwordError.value = err.message
-        // Do NOT clear password, allow user to retry
     }
 }
 
@@ -467,347 +609,376 @@ const cancelDelete = () => {
     padding-top: 2rem;
 }
 
-.empty-state {
+.empty-state,
+.continue-state,
+.card {
+    border-radius: 16px;
+    padding: 2rem;
+    background: var(--card-bg);
+    box-shadow: 0 18px 40px rgba(15, 18, 48, 0.08);
+}
+
+.empty-state,
+.continue-state {
     text-align: center;
-    padding: 3rem;
 }
 
 .continue-state {
-    text-align: center;
-    padding: 3rem;
     border: 2px dashed var(--primary-color);
-    background: #f5f7ff;
-    border-radius: 12px;
     margin-bottom: 2rem;
 }
 
-.continue-state h2 {
-    color: var(--primary-color);
-    margin-bottom: 0.75rem;
-}
-
-.progress-hint {
-    color: var(--text-secondary);
-    margin: 0.5rem 0 1.5rem;
-}
-
-.empty-state h2 {
-    margin-bottom: 1rem;
-    color: var(--text-primary);
-}
-
-.empty-state p {
-    color: var(--text-secondary);
-    margin-bottom: 2rem;
+.warning-banner,
+.success-banner {
+    border-radius: 14px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
 }
 
 .warning-banner {
     background: linear-gradient(135deg, #fff3cd 0%, #fff8e1 100%);
     border: 2px solid #ffc107;
-    border-radius: 12px;
-    padding: 1.5rem;
-    margin-bottom: 2rem;
-    box-shadow: 0 2px 8px rgba(255, 193, 7, 0.15);
-}
-
-.warning-content {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
-
-.warning-icon {
-    font-size: 2rem;
-    flex-shrink: 0;
-}
-
-.warning-text {
-    flex: 1;
-}
-
-.warning-text strong {
-    display: block;
-    color: #856404;
-    font-size: 1.1rem;
-    margin-bottom: 0.25rem;
-}
-
-.warning-text p {
-    color: #856404;
-    margin: 0;
-    font-size: 0.95rem;
 }
 
 .success-banner {
     background: linear-gradient(135deg, #d4edda 0%, #e8f5e9 100%);
     border: 2px solid #28a745;
-    border-radius: 12px;
-    padding: 1.5rem;
-    margin-bottom: 2rem;
-    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.15);
 }
 
-.success-content {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-}
-
-.success-icon {
-    font-size: 2rem;
-    flex-shrink: 0;
-}
-
-.success-text {
-    flex: 1;
-}
-
-.success-text strong {
-    display: block;
-    color: #155724;
-    font-size: 1.1rem;
-    margin-bottom: 0.25rem;
-}
-
-.success-text p {
-    color: #155724;
-    margin: 0;
-    font-size: 0.95rem;
-}
-
-.score-section {
-    margin-bottom: 2rem;
-}
-
-.score-card {
-    text-align: center;
-    padding: 2.5rem;
-}
-
-.score-card h1 {
-    color: var(--primary-color);
+.dashboard-metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
     margin-bottom: 1.5rem;
 }
 
-.score-circle {
-    display: inline-flex;
-    align-items: baseline;
-    justify-content: center;
-    gap: 0.5rem;
-    margin: 1rem 0;
+.threat-model-panel,
+.score-panel {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
 }
 
-.score-value {
-    font-size: 5rem;
-    font-weight: 700;
+.panel-heading h2 {
+    margin: 0.25rem 0;
     color: var(--primary-color);
 }
 
-.score-label {
-    font-size: 2rem;
+.heading-main {
+    display: flex;
+    justify-content: space-between;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.heading-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.manual-tag {
+    padding: 0.1rem 0.75rem;
+    background: var(--border-color);
+    border-radius: 999px;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.heading-select-wrapper {
+    min-width: 200px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.heading-select-wrapper select {
+    border-radius: 999px;
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--border-color);
+    background: var(--card-bg);
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.reset-button {
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+}
+
+.awareness-display {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+}
+
+.score-display {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+}
+
+.score-display.compact .score-value {
+    font-size: 3.2rem;
+}
+
+.score-value {
+    font-size: 4rem;
+    color: var(--primary-color);
+    font-weight: 700;
+}
+
+.score-denominator {
+    font-size: 1.4rem;
     color: var(--text-secondary);
 }
 
 .score-description {
-    font-size: 1.1rem;
+    margin: 0;
     color: var(--text-secondary);
-    margin-top: 1rem;
 }
 
-.threat-model-section {
-    margin-bottom: 2rem;
-}
-
-.threat-model-section h2 {
-    color: var(--primary-color);
-    margin-bottom: 1rem;
+.threat-body {
+    display: grid;
+    gap: 1rem;
 }
 
 .threat-chips {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.chip {
+    padding: 0.35rem 0.8rem;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background: var(--border-color);
+}
+
+.chip.high {
+    background: #ffe2e2;
+    color: #c00;
+}
+
+.chip.medium {
+    background: #fff4dd;
+    color: #c97100;
+}
+
+.chip.low {
+    background: #e2f0ff;
+    color: #0056c1;
+}
+
+.priority-actions ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.priority-actions li {
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1rem;
+    background: var(--card-bg);
+}
+
+.device-switcher {
+    display: flex;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+    margin: 1rem 0;
+}
+
+.device-switcher .base-button {
+    border-radius: 999px;
+    border: 1px solid var(--border-color);
+}
+
+.device-switcher .base-button.active {
+    background: var(--primary-color);
+    color: #fff;
+    border-color: var(--primary-color);
+}
+
+.device-setup {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.setup-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.device-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+}
+
+.device-table th,
+.device-table td {
+    text-align: left;
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.badge {
+    padding: 0.35rem 0.8rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    display: inline-flex;
+    align-items: center;
+}
+
+.badge.good {
+    background: #e2f4ea;
+    color: #0f7c4d;
+}
+
+.badge.medium {
+    background: #fff4dd;
+    color: #c97100;
+}
+
+.badge.poor {
+    background: #ffe2e2;
+    color: #9c1c1c;
+}
+
+.table-note {
+    margin-top: 0.75rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.current-app-cell {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.threat-entry-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.answers-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.answer-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.answer-question {
+    margin: 0;
+    font-weight: 600;
+}
+
+.answer-value {
+    margin: 0;
+    color: var(--text-secondary);
+}
+
+.action-buttons {
     display: flex;
     flex-wrap: wrap;
     gap: 0.75rem;
 }
 
-.chip {
-    padding: 0.5rem 1rem;
-    background: var(--primary-color);
-    color: white;
-    border-radius: 20px;
-    font-size: 0.9rem;
-    font-weight: 500;
-}
-
-.apps-section {
-    margin-bottom: 2rem;
-}
-
-.apps-section>h2 {
-    color: var(--primary-color);
-    margin-bottom: 1.5rem;
-}
-
-.app-categories {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-    gap: 1.5rem;
-}
-
-.app-category {
-    padding: 1.5rem;
-}
-
-.category-header {
+.panel-actions {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
+    justify-content: flex-end;
 }
 
-.category-header h3 {
-    color: var(--text-primary);
-    font-size: 1.2rem;
-}
-
-.category-score {
-    padding: 0.25rem 0.75rem;
-    border-radius: 12px;
-    font-weight: 600;
-    font-size: 0.9rem;
-}
-
-.category-score.good {
-    background: #d1fae5;
-    color: var(--success-color);
-}
-
-.category-score.medium {
-    background: #fed7aa;
-    color: var(--warning-color);
-}
-
-.category-score.poor {
-    background: #fee2e2;
-    color: var(--danger-color);
-}
-
-.current-app {
+.muted {
     color: var(--text-secondary);
-    margin-bottom: 1rem;
 }
 
-.recommendations h4 {
-    font-size: 0.9rem;
-    color: var(--primary-color);
-    margin-bottom: 0.5rem;
-}
-
-.recommendations ul {
-    list-style: none;
-    padding-left: 0;
-}
-
-.recommendations li {
-    padding: 0.5rem 0;
+.score-panel .eyebrow,
+.threat-model-panel .eyebrow {
     color: var(--text-secondary);
-    border-bottom: 1px solid var(--border-color);
-}
-
-.recommendations li:last-child {
-    border-bottom: none;
-}
-
-.actions-section h2 {
-    color: var(--primary-color);
-    margin-bottom: 1rem;
-}
-
-.actions-section p {
-    color: var(--text-secondary);
-    margin-bottom: 1.5rem;
-}
-
-.action-buttons {
-    display: flex;
-    gap: 1rem;
-    flex-wrap: wrap;
-}
-
-.password-input .base-input {
-    width: 100%;
-    padding: 0.75rem;
-    border: 2px solid var(--border-color);
-    border-radius: 8px;
-    font-size: 1rem;
-    margin-bottom: 1.5rem;
-    transition: border-color 0.2s;
-    background: var(--card-bg);
-}
-
-.password-input .base-input:focus {
-    border-color: var(--primary-color);
-}
-
-.password-input.error .base-input {
-    border-color: var(--danger-color);
-    background-color: rgba(220, 38, 38, 0.05);
-}
-
-.error-message {
-    color: var(--danger-color);
-    font-size: 0.875rem;
-    margin-bottom: 1rem;
-    padding: 0.5rem;
-    background-color: rgba(220, 38, 38, 0.1);
-    border-radius: 6px;
-    border-left: 3px solid var(--danger-color);
-}
-
-.hint {
-    font-size: 0.875rem;
-    color: var(--text-secondary);
-    font-style: italic;
-    margin-top: -1rem;
-    margin-bottom: 1rem;
-}
-
-.confirm-hint {
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-    margin-top: 0.5rem;
-    margin-bottom: 0.75rem;
+    letter-spacing: 0.2em;
+    font-size: 0.7rem;
 }
 
 .file-info {
-    background-color: #f5f5f5;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 1rem;
     margin-bottom: 1rem;
-}
-
-.file-label {
-    font-size: 0.875rem;
-    color: var(--text-secondary);
-    margin: 0 0 0.5rem 0;
 }
 
 .file-name {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    justify-content: space-between;
 }
 
-.file-name p {
-    color: var(--text-primary);
+.file-label {
     font-weight: 600;
-    margin: 0;
-    word-break: break-word;
-    flex: 1;
+    margin-bottom: 0.25rem;
 }
 
-.file-name .change-file {
-    white-space: nowrap;
-    flex-shrink: 0;
+.password-input {
+    width: 100%;
+    margin-bottom: 0.5rem;
+}
+
+.error-message {
+    color: #c00;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.hint,
+.confirm-hint {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-top: 0.5rem;
+}
+
+@media (max-width: 720px) {
+    .dashboard-metrics {
+        grid-template-columns: 1fr;
+    }
+
+    .device-switcher,
+    .setup-summary,
+    .answers-list {
+        flex-direction: column;
+    }
+
+    .answer-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
 }
 </style>
