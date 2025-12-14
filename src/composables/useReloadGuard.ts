@@ -1,4 +1,4 @@
-import { computed, ComputedRef, nextTick, ref } from 'vue'
+import { computed, ComputedRef, nextTick, ref, type VNodeRef } from 'vue'
 import { showToast } from '../utils/toast'
 import { useQuizStore } from '../stores/quiz'
 
@@ -6,7 +6,7 @@ const showReloadConfirm = ref(false)
 const showPasswordModal = ref(false)
 const passwordInput = ref('')
 const passwordError = ref('')
-const passwordInputRef = ref<HTMLInputElement | null>(null)
+const passwordInputRef = ref<VNodeRef | null>(null)
 const reloadAfterSave = ref(false)
 const listenersRegistered = ref(false)
 
@@ -37,7 +37,8 @@ const openPasswordModal = () => {
     passwordInput.value = ''
     passwordError.value = ''
     nextTick(() => {
-        passwordInputRef.value?.focus()
+        const focusable = passwordInputRef.value as ({ focus?: () => void } | null)
+        focusable?.focus?.()
     })
 }
 

@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import BaseButton from '../components/BaseButton.vue'
+import BaseModal from '../components/BaseModal.vue'
 import { useQuizStore } from '../stores/quiz'
 import { showToast } from '../utils/toast'
 import { useReloadGuard } from '../composables/useReloadGuard'
@@ -112,15 +114,15 @@ const cancelDelete = () => {
             <div class="quiz-header-top">
                 <h1>Privacy Quiz</h1>
                 <div class="header-buttons">
-                    <button class="btn btn-outline btn-small" @click="showRestartConfirm = true" title="Restart Quiz">
+                    <BaseButton variant="outline" size="small" @click="showRestartConfirm = true" title="Restart Quiz">
                         🔄 Restart
-                    </button>
-                    <button class="btn btn-secondary btn-small" @click="exportDuringQuiz" title="Save Progress">
+                    </BaseButton>
+                    <BaseButton variant="secondary" size="small" @click="exportDuringQuiz" title="Save Progress">
                         💾 Save Progress
-                    </button>
-                    <button class="btn btn-danger btn-small" @click="showDeleteConfirm = true" title="Delete All Data">
+                    </BaseButton>
+                    <BaseButton variant="danger" size="small" @click="showDeleteConfirm = true" title="Delete All Data">
                         🗑️ Delete All Data
-                    </button>
+                    </BaseButton>
                 </div>
             </div>
             <div class="progress-bar">
@@ -154,12 +156,16 @@ const cancelDelete = () => {
                 </div>
 
                 <div class="quiz-actions">
-                    <button class="btn btn-outline" @click="previousQuestion" :disabled="quizStore.currentQuestionIndex === 0">
+                    <BaseButton
+                        variant="outline"
+                        :disabled="quizStore.currentQuestionIndex === 0"
+                        @click="previousQuestion"
+                    >
                         Previous
-                    </button>
-                    <button class="btn btn-primary" @click="nextQuestion" :disabled="!selectedAnswer">
+                    </BaseButton>
+                    <BaseButton variant="primary" :disabled="!selectedAnswer" @click="nextQuestion">
                         {{ isLastQuestion ? 'Finish' : 'Next' }}
-                    </button>
+                    </BaseButton>
                 </div>
             </div>
         </div>
@@ -173,34 +179,28 @@ const cancelDelete = () => {
                     <p class="completion-message">
                         You now have a personalized privacy score and recommendations for your digital security.
                     </p>
-                    <button class="btn btn-primary btn-large" @click="viewDashboard">
+                    <BaseButton variant="primary" size="medium" @click="viewDashboard">
                         📊 View Your Dashboard
-                    </button>
+                    </BaseButton>
                 </div>
             </div>
         </div>
 
-        <div v-if="showRestartConfirm" class="modal-overlay" @click="cancelRestart">
-            <div class="modal-content" @click.stop>
-                <h3>Restart Quiz?</h3>
-                <p>This will clear your current progress. Continue?</p>
-                <div class="modal-buttons">
-                    <button class="btn btn-outline" @click="cancelRestart">Cancel</button>
-                    <button class="btn btn-danger" @click="confirmRestart">Restart</button>
-                </div>
-            </div>
-        </div>
+        <BaseModal v-model:visible="showRestartConfirm" title="Restart Quiz?">
+            <p>This will clear your current progress. Continue?</p>
+            <template #footer>
+                <BaseButton variant="outline" @click="cancelRestart">Cancel</BaseButton>
+                <BaseButton variant="danger" @click="confirmRestart">Restart</BaseButton>
+            </template>
+        </BaseModal>
 
-        <div v-if="showDeleteConfirm" class="modal-overlay" @click="cancelDelete">
-            <div class="modal-content" @click.stop>
-                <h3>Delete All Data?</h3>
-                <p>All answers will be permanently removed. Are you sure?</p>
-                <div class="modal-buttons">
-                    <button class="btn btn-outline" @click="cancelDelete">Cancel</button>
-                    <button class="btn btn-danger" @click="confirmDelete">Delete</button>
-                </div>
-            </div>
-        </div>
+        <BaseModal v-model:visible="showDeleteConfirm" title="Delete All Data?">
+            <p>All answers will be permanently removed. Are you sure?</p>
+            <template #footer>
+                <BaseButton variant="outline" @click="cancelDelete">Cancel</BaseButton>
+                <BaseButton variant="danger" @click="confirmDelete">Delete</BaseButton>
+            </template>
+        </BaseModal>
 
     </div>
 </template>
