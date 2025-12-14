@@ -7,8 +7,8 @@
                 Take our privacy quiz to get a personalized privacy score and actionable recommendations.
                 All data stays on your device - encrypted and secure.
             </p>
-            <BaseButton variant="primary" class="btn-large" @click="startQuiz">
-                {{ quizStore.isLoadedFromFile ? '👁️ See Quiz Answers' : '🎯 Start Privacy Quiz' }}
+            <BaseButton variant="primary" class="btn-large" @click="goToQuiz">
+                {{ primaryCtaLabel }}
             </BaseButton>
             <BaseButton variant="secondary" class="btn-large" @click="loadDashboard">
                 📥 Load Saved Data
@@ -103,7 +103,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import BaseButton from '../components/BaseButton.vue'
 import BaseInput from '../components/BaseInput.vue'
@@ -121,7 +121,20 @@ const passwordError = ref('')
 const passwordInputRef = ref<{ focus: () => void } | null>(null)
 let pendingFile: File | null = null
 
-const startQuiz = () => {
+const primaryCtaLabel = computed(() => {
+    if (quizStore.isLoadedFromFile || quizStore.isCompleted) {
+        return '👁️ See Quiz Answers'
+    }
+
+    return '🎯 Start Privacy Quiz'
+})
+
+const goToQuiz = () => {
+    if (quizStore.isLoadedFromFile || quizStore.isCompleted) {
+        router.push({ path: '/quiz', query: { review: '1' } })
+        return
+    }
+
     router.push('/quiz')
 }
 

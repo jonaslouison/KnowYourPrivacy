@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import BaseButton from '../components/BaseButton.vue'
 import BaseModal from '../components/BaseModal.vue'
 import { useQuizStore } from '../stores/quiz'
@@ -8,6 +8,7 @@ import { showToast } from '../utils/toast'
 import { useReloadGuard } from '../composables/useReloadGuard'
 
 const router = useRouter()
+const route = useRoute()
 const quizStore = useQuizStore()
 const { openPasswordModal } = useReloadGuard()
 
@@ -23,14 +24,24 @@ const questions = quizStore.questions
 const currentQuestion = computed(() => questions[quizStore.currentQuestionIndex])
 const isLastQuestion = computed(() => quizStore.currentQuestionIndex === questions.length - 1)
 const progressPercentage = computed(() => ((quizStore.currentQuestionIndex + 1) / questions.length) * 100)
+const reviewMode = computed(() => route.query.review === '1')
+const quizCardVisible = computed(() => showQuiz.value && (!quizCompleted.value || reviewMode.value))
 
 onMounted(() => {
     if (quizStore.isCompleted) {
         quizCompleted.value = true
-        showQuiz.value = false
+        if (reviewMode.value) {
+            showQuiz.value = true
+            quizStore.currentQuestionIndex = 0
+        } else {
+            showQuiz.value = false
+        }
     } else {
-        loadExistingAnswer()
+        quizCompleted.value = false
+        showQuiz.value = true
     }
+
+    loadExistingAnswer()
 
     if (quizStore.isLoadedFromFile && !quizStore.isCompleted) {
         quizResumedBanner.value = true
@@ -110,7 +121,7 @@ const cancelDelete = () => {
 <template>
     <div class="quiz container">
         <!-- Quiz Header -->
-        <div v-if="!quizCompleted && showQuiz" class="quiz-header">
+        <div v-if="quizCardVisible" class="quiz-header">
             <div class="quiz-header-top">
                 <h1>Privacy Quiz</h1>
                 <div class="header-buttons">
@@ -143,7 +154,7 @@ const cancelDelete = () => {
         </div>
 
         <!-- Quiz Content -->
-        <div v-if="!quizCompleted && showQuiz" class="quiz-content">
+        <div v-if="quizCardVisible" class="quiz-content">
             <div class="question-card card">
                 <h2>{{ currentQuestion.question }}</h2>
                 <p class="question-category">{{ currentQuestion.category }}</p>
