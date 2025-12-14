@@ -14,7 +14,7 @@ import {
   readEncryptedFile
 } from '../utils/crypto'
 
-const THREAT_QUESTION_IDS = [
+export const THREAT_QUESTION_IDS = [
   'threat-surveillance',
   'threat-fingerprinting',
   'threat-government',
@@ -28,6 +28,29 @@ const THREAT_SPECTRUM = [
   { level: 3, label: 'Guarded', description: 'You actively harden your stack and value consistent tooling.' },
   { level: 4, label: 'Ghost', description: 'Every connection is treated as a risk and you prefer air-gapped controls.' }
 ]
+
+const TIER_SCORE_MAP: Record<ThreatTierId, number> = {
+  high: 100,
+  medium: 60,
+  low: 30
+}
+
+export const THREAT_TIER_ORDER = ['high', 'medium', 'low'] as const
+export type ThreatTierId = (typeof THREAT_TIER_ORDER)[number]
+export const THREAT_TIER_LABELS: Record<ThreatTierId, string> = {
+  high: 'High Concern',
+  medium: 'Moderate Concern',
+  low: 'Lower Concern'
+}
+
+export const THREAT_CATALOG: Array<{ id: string; label: string }> = THREAT_QUESTION_IDS.map((questionId) => {
+  const question = quizQuestions.find((entry) => entry.id === questionId)
+  const label = question?.options.find((option) => option.threat)?.threat
+  return {
+    id: questionId,
+    label: label ?? question?.question ?? questionId
+  }
+})
 
 const DEVICE_TYPES: DeviceType[] = DEVICE_FLOW_ORDER
 
@@ -132,7 +155,7 @@ export interface QuizFlowItem {
   section: QuizSectionKey
 }
 
-const normalizeAnswerValue = (value?: string | string[]): string[] => {
+const normalizeAnswerValue = (value?: string | string[] | null): string[] => {
   if (!value) return []
   return Array.isArray(value) ? value : [value]
 }
@@ -141,25 +164,50 @@ const getPrimaryValue = (value?: string | string[]): string | undefined => {
   return normalizeAnswerValue(value)[0]
 }
 
+export const formatThreatTierEntry = (tier: ThreatTierId, label: string): string => `${tier}::${label}`
+
+const parseThreatTierEntry = (value: string): { tier: ThreatTierId; label: string } | null => {
+  if (!value.includes('::')) return null
+  const [tier, ...parts] = value.split('::')
+  if (!tier || !parts.length) return null
+  if (!THREAT_TIER_ORDER.includes(tier as ThreatTierId)) return null
+  const label = parts.join('::')
+  return { tier: tier as ThreatTierId, label }
+}
+
+export const parseThreatTierAnswerValue = (value?: string | string[] | null): Record<ThreatTierId, string[]> => {
+  const entries = createEmptyTierAssignments()
+  const normalized = normalizeAnswerValue(value)
+  normalized.forEach((item) => {
+    const parsed = parseThreatTierEntry(item)
+    if (!parsed) return
+    entries[parsed.tier].push(parsed.label)
+  })
+  return entries
+}
+
+const createEmptyTierAssignments = (): Record<ThreatTierId, string[]> => {
+  return THREAT_TIER_ORDER.reduce((acc, tier) => {
+    acc[tier] = []
+    return acc
+  }, {} as Record<ThreatTierId, string[]>)
+}
+
+const getThreatTierAssignments = (state: QuizState): Record<ThreatTierId, string[]> => {
+  const answer = state.answers.find((entry) => entry.questionId === 'threat-priorities')
+  return parseThreatTierAnswerValue(answer?.answer)
+}
+
 const getDeviceSelectionAnswer = (state: QuizState): DeviceSelectionId[] => {
   const entry = state.answers.find((answer) => answer.questionId === 'device-selection')
   return normalizeAnswerValue(entry?.answer) as DeviceSelectionId[]
 }
 
-const getThreatPriorityAnswer = (state: QuizState): string[] => {
-  const entry = state.answers.find((answer) => answer.questionId === 'threat-priorities')
-  return normalizeAnswerValue(entry?.answer)
-}
-
 const calculateNormalizedThreatScore = (state: QuizState): number => {
-  if (state.answers.length === 0) return 0
-  const sum = THREAT_QUESTION_IDS.reduce((acc, questionId) => {
-    const answer = state.answers.find((a) => a.questionId === questionId)
-    const question = state.questions.find((q) => q.id === questionId)
-    const option = question?.options.find((o) => o.value === getPrimaryValue(answer?.answer))
-    return acc + (option?.score ?? 0)
-  }, 0)
-  return sum / (THREAT_QUESTION_IDS.length * 100)
+  const entries = getThreatEntriesFromState(state)
+  if (!entries.length) return 0
+  const sum = entries.reduce((acc, entry) => acc + entry.score, 0)
+  return sum / (entries.length * 100)
 }
 
 const resolveComputedThreatLevel = (state: QuizState): number => {
@@ -274,14 +322,6 @@ const buildQuizFlow = (state: QuizState): QuizFlowItem[] => {
     visited.add(question.id)
   })
 
-  THREAT_QUESTION_IDS.forEach((questionId) => {
-    const question = state.questions.find((entry) => entry.id === questionId)
-    if (question) {
-      flow.push({ question, section: 'threat' })
-      visited.add(question.id)
-    }
-  })
-
   const priorityQuestion = state.questions.find((entry) => entry.id === 'threat-priorities')
   if (priorityQuestion) {
     flow.push({ question: priorityQuestion, section: 'priorities' })
@@ -292,18 +332,15 @@ const buildQuizFlow = (state: QuizState): QuizFlowItem[] => {
 }
 
 const getThreatEntriesFromState = (state: QuizState): ThreatEntry[] => {
-  const entries: ThreatEntry[] = []
-  THREAT_QUESTION_IDS.forEach((questionId) => {
-    const answer = state.answers.find((a) => a.questionId === questionId)
-    const question = state.questions.find((q) => q.id === questionId)
-    const option = question?.options.find((opt) => opt.value === getPrimaryValue(answer?.answer))
-    if (option && option.threat) {
-      entries.push({
-        questionId,
-        label: option.threat,
-        score: option.score ?? 0,
-        severity: mapThreatSeverity(option.score ?? 0)
-      })
+  const assignments = getThreatTierAssignments(state)
+  const entries = THREAT_CATALOG.map((catalog) => {
+    const tier = THREAT_TIER_ORDER.find((tierId) => assignments[tierId].includes(catalog.label)) ?? 'low'
+    const score = TIER_SCORE_MAP[tier]
+    return {
+      questionId: catalog.id,
+      label: catalog.label,
+      score,
+      severity: mapThreatSeverity(score)
     }
   })
   return entries.sort((a, b) => b.score - a.score)
@@ -311,12 +348,13 @@ const getThreatEntriesFromState = (state: QuizState): ThreatEntry[] => {
 
 const getOrderedThreatEntriesFromState = (state: QuizState): ThreatEntry[] => {
   const baseEntries = getThreatEntriesFromState(state)
-  const priorityOrder = getThreatPriorityAnswer(state)
-  if (!priorityOrder.length) return baseEntries
-  const ordered = priorityOrder
+  const assignments = getThreatTierAssignments(state)
+  const orderedLabels = THREAT_TIER_ORDER.flatMap((tier) => assignments[tier])
+  if (!orderedLabels.length) return baseEntries
+  const ordered = orderedLabels
     .map((label) => baseEntries.find((entry) => entry.label === label))
     .filter((entry): entry is ThreatEntry => Boolean(entry))
-  const remainder = baseEntries.filter((entry) => !priorityOrder.includes(entry.label))
+  const remainder = baseEntries.filter((entry) => !ordered.some((orderedEntry) => orderedEntry.label === entry.label))
   return [...ordered, ...remainder]
 }
 

@@ -3,7 +3,18 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import BaseButton from '../components/BaseButton.vue'
 import BaseModal from '../components/BaseModal.vue'
-import { useQuizStore, QUIZ_SECTION_LABELS, type QuizSectionKey, type ThreatEntry } from '../stores/quiz'
+import BaseTierlist from '../components/BaseTierlist.vue'
+import {
+    useQuizStore,
+    QUIZ_SECTION_LABELS,
+    THREAT_CATALOG,
+    THREAT_TIER_LABELS,
+    THREAT_TIER_ORDER,
+    formatThreatTierEntry,
+    parseThreatTierAnswerValue,
+    type QuizSectionKey,
+    type ThreatTierId
+} from '../stores/quiz'
 import { showToast } from '../utils/toast'
 import { useReloadGuard } from '../composables/useReloadGuard'
 
@@ -13,7 +24,6 @@ const quizStore = useQuizStore()
 const { openPasswordModal } = useReloadGuard()
 
 const selectedAnswer = ref<string | string[] | null>(null)
-const priorityOrder = ref<string[]>([])
 const quizCompleted = ref(false)
 const showQuiz = ref(true)
 const quizResumedBanner = ref(false)
@@ -39,23 +49,43 @@ const reviewMode = computed(() => route.query.review === '1')
 const quizCardVisible = computed(() => showQuiz.value && (!quizCompleted.value || reviewMode.value))
 const isDeviceSelectionQuestion = computed(() => currentQuestion.value.id === 'device-selection')
 const isThreatPriorityQuestion = computed(() => currentQuestion.value.id === 'threat-priorities')
-const threatEntriesList = computed(() => quizStore.threatEntries)
-const priorityThreatEntries = computed<ThreatEntry[]>(() =>
-    priorityOrder.value
-        .map((label) => threatEntriesList.value.find((entry) => entry.label === label))
-        .filter((entry): entry is ThreatEntry => Boolean(entry))
+const tierlistItems = computed(() =>
+    THREAT_CATALOG.map((entry) => ({ id: entry.label, label: entry.label }))
 )
+const tierDefinitions = THREAT_TIER_ORDER.map((tier) => ({ id: tier, label: THREAT_TIER_LABELS[tier] }))
+const buildTierAssignmentSnapshot = (source?: Record<ThreatTierId, string[]>) => {
+    return THREAT_TIER_ORDER.reduce((acc, tier) => {
+        const values = source?.[tier] ?? []
+        acc[tier] = [...values]
+        return acc
+    }, {} as Record<ThreatTierId, string[]>)
+}
+const tierAssignments = ref<Record<ThreatTierId, string[]>>(buildTierAssignmentSnapshot())
+const storedTierAssignments = computed(() => {
+    const storedAnswer = quizStore.getAnswer('threat-priorities')
+    return parseThreatTierAnswerValue(storedAnswer)
+})
+watch(
+    storedTierAssignments,
+    (value) => {
+        tierAssignments.value = buildTierAssignmentSnapshot(value)
+    },
+    { deep: true, immediate: true }
+)
+const assignedOptionCount = computed(() => THREAT_TIER_ORDER.reduce((total, tier) => total + (tierAssignments.value[tier]?.length ?? 0), 0))
+const tierlistComplete = computed(() => tierlistItems.value.length > 0 && assignedOptionCount.value === tierlistItems.value.length)
+const canProceed = computed(() => {
+    if (isDeviceSelectionQuestion.value) {
+        return Array.isArray(selectedAnswer.value) && selectedAnswer.value.length > 0
+    }
+    if (isThreatPriorityQuestion.value) {
+        return tierlistComplete.value
+    }
+    return Boolean(selectedAnswer.value)
+})
 const normalizeSelectionArray = (value?: string | string[] | null): string[] => {
     if (!value) return []
     return Array.isArray(value) ? value : [value]
-}
-
-const updatePriorityOrderFromStore = () => {
-    const stored = quizStore.getAnswer('threat-priorities')
-    const storedOrder = Array.isArray(stored) ? stored : []
-    const threatLabels = threatEntriesList.value.map((entry) => entry.label)
-    const merged = [...storedOrder, ...threatLabels.filter((label) => !storedOrder.includes(label))]
-    priorityOrder.value = merged.filter((label) => threatLabels.includes(label))
 }
 
 const loadExistingAnswer = () => {
@@ -70,7 +100,7 @@ const loadExistingAnswer = () => {
 
     if (flow.question.id === 'threat-priorities') {
         selectedAnswer.value = null
-        updatePriorityOrderFromStore()
+        tierAssignments.value = buildTierAssignmentSnapshot(storedTierAssignments.value)
         return
     }
 
@@ -101,16 +131,6 @@ const isOptionSelected = (value: string) => {
     return selectedAnswer.value === value
 }
 
-const movePriorityEntry = (label: string, direction: 'up' | 'down') => {
-    const list = [...priorityOrder.value]
-    const index = list.indexOf(label)
-    if (index === -1) return
-    const target = direction === 'up' ? index - 1 : index + 1
-    if (target < 0 || target >= list.length) return
-    ;[list[index], list[target]] = [list[target], list[index]]
-    priorityOrder.value = list
-}
-
 const nextQuestion = () => {
     const flow = currentFlowItem.value
     if (!flow) return
@@ -124,7 +144,11 @@ const nextQuestion = () => {
             answer: selections
         })
     } else if (questionId === 'threat-priorities') {
-        quizStore.setThreatOrder(priorityOrder.value)
+        if (!tierlistComplete.value) return
+        const payload = THREAT_TIER_ORDER.flatMap((tier) =>
+            (tierAssignments.value[tier] ?? []).map((label) => formatThreatTierEntry(tier, label))
+        )
+        quizStore.setThreatOrder(payload)
     } else {
         if (!selectedAnswer.value || Array.isArray(selectedAnswer.value)) return
         quizStore.saveAnswer({
@@ -198,16 +222,6 @@ watch(
 watch(currentFlowItem, () => {
     loadExistingAnswer()
 })
-
-watch(
-    threatEntriesList,
-    () => {
-        if (isThreatPriorityQuestion.value) {
-            updatePriorityOrderFromStore()
-        }
-    },
-    { deep: true }
-)
 
 onMounted(() => {
     if (quizStore.isCompleted) {
@@ -290,34 +304,12 @@ onMounted(() => {
                     </BaseButton>
                 </div>
 
-                <div v-if="isThreatPriorityQuestion" class="threat-order">
-                    <p class="hint">Drag your highest priorities to the top and reorder as your threat model evolves.</p>
-                    <div v-if="priorityThreatEntries.length" class="threat-order-list">
-                        <div
-                            v-for="(entry, index) in priorityThreatEntries"
-                            :key="entry.questionId"
-                            class="threat-order-item"
-                        >
-                            <div class="threat-order-label">
-                                <span class="threat-order-rank">#{{ index + 1 }}</span>
-                                <span>{{ entry.label }}</span>
-                            </div>
-                            <div class="threat-order-controls">
-                                <BaseButton variant="ghost" size="small" :disabled="index === 0" @click="movePriorityEntry(entry.label, 'up')">
-                                    ↑
-                                </BaseButton>
-                                <BaseButton
-                                    variant="ghost"
-                                    size="small"
-                                    :disabled="index === priorityThreatEntries.length - 1"
-                                    @click="movePriorityEntry(entry.label, 'down')"
-                                >
-                                    ↓
-                                </BaseButton>
-                            </div>
-                        </div>
-                    </div>
-                    <p v-else class="muted">Answer the threat questions above to unlock your threat-order list.</p>
+                <div v-if="isThreatPriorityQuestion" class="tierlist-section">
+                    <BaseTierlist
+                        :tiers="tierDefinitions"
+                        :items="tierlistItems"
+                        v-model:assignments="tierAssignments"
+                    />
                 </div>
 
                 <div class="quiz-actions">
@@ -328,7 +320,7 @@ onMounted(() => {
                     >
                         Previous
                     </BaseButton>
-                    <BaseButton variant="primary" :disabled="!selectedAnswer" @click="nextQuestion">
+                    <BaseButton variant="primary" :disabled="!canProceed" @click="nextQuestion">
                         {{ isLastQuestion ? 'Finish' : 'Next' }}
                     </BaseButton>
                 </div>
@@ -542,42 +534,8 @@ onMounted(() => {
     cursor: not-allowed;
 }
 
-.threat-order {
+.tierlist-section {
     margin-top: 1.5rem;
-}
-
-.threat-order-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-}
-
-.threat-order-item {
-    border-radius: 10px;
-    padding: 0.75rem 1rem;
-    background: var(--card-bg);
-    border: 1px solid var(--border-color);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.threat-order-label {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    font-weight: 600;
-}
-
-.threat-order-rank {
-    font-size: 0.85rem;
-    letter-spacing: 0.15em;
-    color: var(--text-secondary);
-}
-
-.threat-order-controls {
-    display: flex;
-    gap: 0.5rem;
 }
 
 .completion-screen {
