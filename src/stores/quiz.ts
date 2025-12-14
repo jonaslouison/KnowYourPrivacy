@@ -25,7 +25,7 @@ export const THREAT_QUESTION_IDS = [
 const THREAT_SPECTRUM = [
   { level: 1, label: 'Normie', description: 'You prioritize convenience and are just starting to learn about tracking.' },
   { level: 2, label: 'Aware', description: 'You notice tracking but still lean on defaults for daily tasks.' },
-  { level: 3, label: 'Guarded', description: 'You actively harden your stack and value consistent tooling.' },
+  { level: 3, label: 'Activist', description: 'You actively harden your stack and value consistent tooling.' },
   { level: 4, label: 'Ghost', description: 'Every connection is treated as a risk and you prefer air-gapped controls.' }
 ]
 
