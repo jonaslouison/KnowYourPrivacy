@@ -46,3 +46,53 @@ const close = () => emit('update:visible', false)
 const slots = useSlots()
 const hasHeader = computed(() => !!props.title || !!slots.header)
 </script>
+
+<style scoped>
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.65);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-card {
+    background: var(--card-bg);
+    border-radius: calc(var(--border-radius) * 1.25);
+    padding: calc(var(--spacing-lg) + 0.5rem);
+    width: min(520px, 90vw);
+    box-shadow: 0 25px 70px rgba(15, 23, 42, 0.3);
+    position: relative;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-md);
+}
+
+.modal-title {
+    font-size: 1.5rem;
+    margin: 0;
+    color: var(--text-primary);
+}
+
+.modal-body {
+    color: var(--text-secondary);
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-lg);
+}
+
+.modal-close {
+    padding: 0.4rem 0.6rem;
+    border-radius: var(--border-radius-pill);
+}
+</style>

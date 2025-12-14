@@ -46,3 +46,32 @@ defineExpose({
     focus: () => inputRef.value?.focus()
 })
 </script>
+
+<style scoped>
+.base-input-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.base-input-label {
+    font-size: var(--font-size-small);
+    color: var(--text-secondary);
+    font-weight: var(--font-weight-semibold);
+}
+
+.base-input {
+    width: 100%;
+    padding: var(--spacing-sm);
+    border-radius: var(--border-radius);
+    border: 2px solid var(--border-color);
+    font-size: var(--font-size-base);
+    transition: border-color 0.2s ease;
+    background: var(--card-bg);
+}
+
+.base-input:focus {
+    border-color: var(--primary-color);
+    outline: none;
+}
+</style>

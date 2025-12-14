@@ -39,3 +39,60 @@ const buttonClasses = computed(() => [
 
 const buttonType = computed(() => props.type)
 </script>
+
+<style scoped>
+.base-button {
+    border: none;
+    border-radius: var(--border-radius);
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-semibold);
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+}
+
+.base-button.is-disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.base-button--primary {
+    background: var(--primary-color);
+    color: #fff;
+}
+
+.base-button--secondary {
+    background: var(--secondary-color);
+    color: #fff;
+}
+
+.base-button--danger {
+    background: var(--danger-color);
+    color: #fff;
+}
+
+.base-button--outline {
+    background: transparent;
+    color: var(--primary-color);
+    border: 2px solid var(--primary-color);
+}
+
+.base-button--ghost {
+    background: transparent;
+    color: var(--text-secondary);
+}
+
+.base-button--small {
+    padding: var(--spacing-xxs) var(--spacing-sm);
+    font-size: var(--font-size-small);
+}
+
+.base-button:not(.is-disabled):hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-lg);
+}
+</style>
