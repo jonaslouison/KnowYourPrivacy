@@ -23,7 +23,7 @@ const ensureGuardContext = () => {
     if (guardContext) return guardContext
 
     const quizStore = useQuizStore()
-    const shouldWarnOnReload = computed(() => quizStore.answers.length > 0 && !quizStore.isLoadedFromFile)
+    const shouldWarnOnReload = computed(() => quizStore.answers.length > 0)
 
     guardContext = { quizStore, shouldWarnOnReload }
     return guardContext
@@ -99,12 +99,13 @@ const openReloadConfirm = () => {
 
 export const beforeUnloadHandler = (e: BeforeUnloadEvent) => {
     const { shouldWarnOnReload } = ensureGuardContext()
-    if (!shouldWarnOnReload.value) return undefined
+    if (!shouldWarnOnReload.value) return '';
 
     showReloadConfirm.value = true
     e.preventDefault()
+    e.returnValue = '';
     // leaving e.returnValue untouched avoids the browser's own confirmation dialog
-    return undefined
+    return '';
 }
 
 const keydownHandler = (e: KeyboardEvent) => {
