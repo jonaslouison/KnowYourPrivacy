@@ -58,24 +58,17 @@ const DEVICE_SETUP_CONFIG: Record<DeviceType, Array<{ questionId: string; label:
   pc: [
     { questionId: 'os-desktop', label: 'Operating System' },
     { questionId: 'browser-desktop', label: 'Web Browser' },
-    { questionId: 'search-engine', label: 'Search Engine' },
-    { questionId: 'email-provider', label: 'Email Provider' },
-    { questionId: 'cloud-storage', label: 'Cloud Storage' },
-    { questionId: 'password-manager', label: 'Password Manager' },
-    { questionId: 'vpn-usage', label: 'VPN Service' }
+    { questionId: 'search-engine', label: 'Search Engine' }
   ],
   phone: [
     { questionId: 'os-mobile', label: 'Operating System' },
     { questionId: 'browser-mobile', label: 'Web Browser' },
-    { questionId: 'messaging-app', label: 'Messaging App' },
-    { questionId: 'email-provider', label: 'Email Provider' },
-    { questionId: 'vpn-usage', label: 'VPN Service' }
+    { questionId: 'search-engine', label: 'Search Engine' }
   ],
   tablet: [
     { questionId: 'os-tablet', label: 'Operating System' },
     { questionId: 'browser-mobile', label: 'Web Browser' },
-    { questionId: 'cloud-storage', label: 'Cloud Storage' },
-    { questionId: 'messaging-app', label: 'Messaging App' }
+    { questionId: 'search-engine', label: 'Search Engine' }
   ]
 }
 
