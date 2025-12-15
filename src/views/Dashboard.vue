@@ -47,24 +47,24 @@
                 <section class="threat-model-panel card">
                     <div class="panel-heading">
                         <div class="heading-main">
-                            <div>
-                                <h2 class="panel-title">
-                                    Threat Model : 
-                                    <BaseDropdown
-                                        id="threat-level-select"
-                                        :model-value="displayThreatLevel"
-                                        :options="threatLevelDropdownOptions"
-                                        @update:modelValue="handleThreatLevelChange"
-                                    />
-                                    <span v-if="manualOverride" class="manual-tag">Manual</span>
-                                    <button type="button" class="reset-button" @click="resetThreatLevel" :disabled="!manualOverride">
-                                        reset
-                                    </button>
-                                </h2>
-                                <p class="subtext">{{ displayThreatSpectrumDescription }}</p>
-                                <p class="meta">Computed level · {{ quizStore.computedThreatLevel }} · {{ computedThreatSpectrumInfo.label }}</p>
+                            <div class="heading-title">
+                                <h2 class="panel-title">Threat Model · {{ displayThreatSpectrumLabel }}</h2>
+                                <span class="manual-tag">{{ manualTagLabel }}</span>
+                            </div>
+                            <div class="heading-controls">
+                                <BaseDropdown
+                                    id="threat-level-select"
+                                    :model-value="displayThreatLevel"
+                                    :options="threatLevelDropdownOptions"
+                                    @update:modelValue="handleThreatLevelChange"
+                                />
+                                <BaseButton variant="ghost" size="small" @click="resetThreatLevel" :disabled="!manualOverride">
+                                    reset
+                                </BaseButton>
                             </div>
                         </div>
+                        <p class="subtext">{{ displayThreatSpectrumDescription }}</p>
+                        <p class="meta">Computed level · {{ quizStore.computedThreatLevel }} · {{ computedThreatSpectrumInfo.label }}</p>
                     </div>
                     <div class="threat-body">
                         <div class="tierlist-column">
@@ -357,6 +357,7 @@ const updateTierAssignments = (value: Record<ThreatTierId, string[]>) => {
     quizStore.setThreatOrder(ordered)
 }
 const manualOverride = computed(() => quizStore.manualOverride)
+const manualTagLabel = computed(() => (manualOverride.value ? 'Manual' : 'Computed'))
 const displayThreatLevel = computed(() => quizStore.displayThreatLevel)
 const displayThreatSpectrumInfo = computed(() => quizStore.displayThreatSpectrumInfo)
 const displayThreatSpectrumLabel = computed(() => displayThreatSpectrumInfo.value.label)
@@ -713,6 +714,14 @@ const cancelDelete = () => {
     justify-content: space-between;
     gap: 1rem;
     flex-wrap: wrap;
+}
+
+.heading-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-top: 0.5rem;
 }
 
 .meta {

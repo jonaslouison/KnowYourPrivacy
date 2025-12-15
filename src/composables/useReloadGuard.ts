@@ -15,6 +15,10 @@ let guardContext: {
     shouldWarnOnReload: ComputedRef<boolean>
 } | null = null
 
+export const resetReloadGuardContext = () => {
+    guardContext = null
+}
+
 const ensureGuardContext = () => {
     if (guardContext) return guardContext
 
@@ -93,12 +97,13 @@ const openReloadConfirm = () => {
     showReloadConfirm.value = true
 }
 
-const beforeUnloadHandler = (_e: BeforeUnloadEvent) => {
+export const beforeUnloadHandler = (e: BeforeUnloadEvent) => {
     const { shouldWarnOnReload } = ensureGuardContext()
-    if (shouldWarnOnReload.value) {
-        showReloadConfirm.value = true
-        return undefined
-    }
+    if (!shouldWarnOnReload.value) return undefined
+
+    showReloadConfirm.value = true
+    e.preventDefault()
+    // leaving e.returnValue untouched avoids the browser's own confirmation dialog
     return undefined
 }
 
