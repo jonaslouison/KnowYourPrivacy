@@ -131,7 +131,7 @@ const primaryCtaLabel = computed(() => {
 
 const goToQuiz = () => {
     if (quizStore.isLoadedFromFile || quizStore.isCompleted) {
-        router.push({ path: '/quiz', query: { review: '1' } })
+        router.push('/dashboard')
         return
     }
 

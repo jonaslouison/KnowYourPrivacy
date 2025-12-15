@@ -76,22 +76,6 @@
                                 @update:assignments="updateTierAssignments"
                             />
                         </div>
-                        <div class="priority-actions">
-                            <h3>Priority actions</h3>
-                            <ul>
-                                <li v-for="recItem in actionableRecommendations" :key="recItem.name">
-                                    <div class="priority-label">
-                                        <span class="icon">{{ recItem.icon }}</span>
-                                        <div>
-                                            <strong>{{ recItem.name }}</strong>
-                                            <small>{{ recItem.currentApp }}</small>
-                                        </div>
-                                    </div>
-                                    <p class="recommendation">{{ recItem.recommendations[0] }}</p>
-                                </li>
-                                <li v-if="!actionableRecommendations.length" class="muted">You've already matched every core app to your threat model.</li>
-                            </ul>
-                        </div>
                     </div>
                 </section>
 
@@ -105,43 +89,41 @@
                         <div class="score-denominator">/ 4</div>
                     </div>
                     <p class="score-description">{{ scoreDescription }}</p>
+                    <div class="priority-actions">
+                        <h3>Priority actions</h3>
+                        <ul>
+                            <li v-for="recItem in actionableRecommendations" :key="recItem.name">
+                                <div class="priority-label">
+                                    <span class="icon">{{ recItem.icon }}</span>
+                                    <div>
+                                        <strong>{{ recItem.name }}</strong>
+                                        <small>{{ recItem.currentApp }}</small>
+                                    </div>
+                                </div>
+                                <p class="recommendation">{{ recItem.recommendations[0] }}</p>
+                            </li>
+                            <li v-if="!actionableRecommendations.length" class="muted">You've already matched every core app to your threat model.</li>
+                        </ul>
+                    </div>
                 </section>
             </div>
 
-            <section class="devices-panel card">
-                <div class="panel-heading">
-                    <h2>Your Devices · Focus on one device</h2>
-                </div>
-                <div class="device-switcher">
-                    <BaseButton
-                        v-for="device in deviceTypes"
-                        :key="device"
-                        variant="ghost"
-                        size="small"
-                        :class="{ active: selectedDevice === device }"
-                        @click="selectDevice(device)"
-                    >
-                        {{ device === 'pc' ? 'Desktop' : device === 'phone' ? 'Phone' : 'Tablet' }}
-                    </BaseButton>
-                </div>
-                <p class="muted">Each table below shows the current apps you use for that device. Ratings feed into the overall privacy score.</p>
-            </section>
-
             <section class="device-setup card">
                 <div class="panel-heading">
-                    <h2>Your {{ deviceLabel }} Setup</h2>
+                    <h2>Your Digital Setup</h2>
+                    <p class="muted">Each table below shows the current apps you use for that device. Ratings feed into the overall privacy score.</p>
                 </div>
-                <div class="setup-summary">
-                    <div>
-                        <p class="muted">Device rating</p>
-                        <div class="score-display compact">
-                            <div class="score-value">{{ selectedDeviceRating.toFixed(1) }}</div>
-                            <div class="score-denominator">/ 4</div>
+                <div class="table-section">
+                    <div class="table-heading-row">
+                        <p class="table-heading">General Services</p>
+                        <div class="general-service-rating">
+                            <p class="muted">Service rating</p>
+                            <div class="score-display compact">
+                                <div class="score-value">{{ generalServiceRating.toFixed(1) }}</div>
+                                <div class="score-denominator">/ 4</div>
+                            </div>
                         </div>
                     </div>
-                    <p class="muted">Focus on improving the low-rated rows to raise this device's privacy posture.</p>
-                </div>
-                <div class="device-table-wrapper">
                     <table class="device-table">
                         <thead>
                             <tr>
@@ -152,9 +134,63 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr v-for="row in deviceRows" :key="row.questionId">
-                                <td>{{ row.label }}</td>
+                            <tr v-for="service in generalServicesRows" :key="service.questionId">
+                                <td>{{ service.label }}</td>
+                                <td class="currently-using-cell">
+                                    <BaseDropdown
+                                        :model-value="getCurrentAnswerValue(service.questionId)"
+                                        :options="getDropdownOptions(service.questionId)"
+                                        placeholder="Awaiting response"
+                                        @update:modelValue="(value) => handleGeneralOptionChange(service.questionId, value)"
+                                    />
+                                </td>
                                 <td>
+                                    <span class="badge" :class="service.scoreClass">{{ service.scoreLabel }}</span>
+                                </td>
+                                <td>
+                                    <p v-if="service.recommendations.length">{{ service.recommendations[0] }}</p>
+                                    <p v-else class="muted">Finish the question to unlock recommendations.</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="table-section">
+                    <div class="device-specific-header">
+                        <p class="table-heading">Device Specific</p>
+                        <div class="device-controls">
+                            <BaseButton
+                                v-for="device in deviceTypes"
+                                :key="device"
+                                :variant="selectedDevice === device ? 'primary' : 'outline'"
+                                size="small"
+                                @click="selectDevice(device)"
+                            >
+                                {{ device === 'pc' ? 'Desktop' : device === 'phone' ? 'Phone' : 'Tablet' }}
+                            </BaseButton>
+                        </div>
+                        <div class="device-rating">
+                            <p class="muted">Device rating</p>
+                            <div class="score-display compact">
+                                <div class="score-value">{{ selectedDeviceRating.toFixed(1) }}</div>
+                                <div class="score-denominator">/ 4</div>
+                            </div>
+                        </div>
+                    </div>
+                    <table class="device-table">
+                        <thead>
+                            <tr>
+                                <th>Category</th>
+                                <th>Currently using</th>
+                                <th>Rating</th>
+                                <th>Recommendations</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="row in deviceSpecificRows" :key="row.questionId">
+                                <td>{{ row.label }}</td>
+                                <td class="currently-using-cell">
                                     <BaseDropdown
                                         :model-value="getCurrentAnswerValue(row.questionId)"
                                         :options="getDropdownOptions(row.questionId)"
@@ -170,10 +206,13 @@
                                     <p v-else class="muted">Finish the question to unlock recommendations.</p>
                                 </td>
                             </tr>
+                            <tr v-if="!deviceSpecificRows.length">
+                                <td colspan="4" class="muted">Complete more selections to unlock device-specific suggestions.</td>
+                            </tr>
                         </tbody>
                     </table>
-                    <p class="muted table-note">Privacy score is the average of each device rating ({{ privacyScoreDisplay }}/4).</p>
                 </div>
+                <p class="muted table-note">Privacy score is the average of each device rating ({{ privacyScoreDisplay }}/4).</p>
             </section>
 
             <section class="actions-section">
@@ -288,7 +327,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, nextTick } from 'vue'
+import { computed, ref, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import BaseButton from '../components/BaseButton.vue'
 import BaseInput from '../components/BaseInput.vue'
@@ -322,8 +361,18 @@ const passwordInputRef = ref<{ focus: () => void } | null>(null)
 const exportPasswordInputRef = ref<{ focus: () => void } | null>(null)
 const confirmPassword = ref('')
 const lastExportTime = ref<number | null>(null)
+const isApplyingExternalData = ref(false)
 let pendingFile: File | null = null
 let isLoadAction = false
+
+const GENERAL_SERVICE_DEFINITIONS = [
+    { questionId: 'email-provider', label: 'Email Provider' },
+    { questionId: 'cloud-storage', label: 'Cloud Storage' },
+    { questionId: 'password-manager', label: 'Password Manager' },
+    { questionId: 'vpn-usage', label: 'VPN Service' },
+    { questionId: 'messaging-app', label: 'Messaging App' }
+] as const
+const GENERAL_SERVICE_QUESTION_IDS = GENERAL_SERVICE_DEFINITIONS.map((entry) => entry.questionId)
 
 const deviceTypes: DeviceType[] = ['pc', 'phone', 'tablet']
 const selectedDevice = ref<DeviceType>('pc')
@@ -333,6 +382,26 @@ const isCompleted = computed(() => quizStore.isCompleted)
 const shouldContinueQuiz = computed(() => hasAnswers.value && !isCompleted.value)
 const hasUnsavedChanges = computed(() => hasAnswers.value && lastExportTime.value === null)
 const appCategories = computed<AppCategory[]>(() => quizStore.getAppCategories())
+const generalServicesRows = computed(() =>
+    GENERAL_SERVICE_DEFINITIONS.map((definition) => {
+        const category = appCategories.value.find((entry) => entry.name === definition.label)
+        return {
+            questionId: definition.questionId,
+            label: definition.label,
+            scoreLabel: category?.score ?? 'Pending',
+            scoreClass: category?.scoreClass ?? 'poor',
+            scoreValue: category?.scoreValue ?? 0,
+            recommendations: category?.recommendations ?? [],
+            currentApp: category?.currentApp ?? 'Awaiting response'
+        }
+    })
+)
+const generalServiceRating = computed(() => {
+    const scoredValues = generalServicesRows.value.map((service) => service.scoreValue).filter((value) => value > 0)
+    if (!scoredValues.length) return 0
+    const average = scoredValues.reduce((sum, value) => sum + value, 0) / scoredValues.length
+    return Math.round((average / 25) * 10) / 10
+})
 const actionableRecommendations = computed(() => {
     return appCategories.value
         .filter((category) => category.recommendations.length > 0)
@@ -355,7 +424,22 @@ const updateTierAssignments = (value: Record<ThreatTierId, string[]>) => {
         (value[tier] ?? []).map((label) => formatThreatTierEntry(tier, label))
     )
     quizStore.setThreatOrder(ordered)
+    markUnsaved()
 }
+
+const markUnsaved = () => {
+    lastExportTime.value = null
+}
+
+watch(
+    () => quizStore.answers,
+    () => {
+        if (isApplyingExternalData.value) return
+        if (!quizStore.isLoadedFromFile) return
+        markUnsaved()
+    },
+    { deep: true }
+)
 const manualOverride = computed(() => quizStore.manualOverride)
 const manualTagLabel = computed(() => (manualOverride.value ? 'Manual' : 'Computed'))
 const displayThreatLevel = computed(() => quizStore.displayThreatLevel)
@@ -373,6 +457,7 @@ const threatLevelDropdownOptions = computed(() =>
 const privacyScoreNormalized = computed(() => quizStore.privacyScoreNormalized)
 const privacyScoreDisplay = computed(() => privacyScoreNormalized.value.toFixed(1))
 const deviceRows = computed(() => quizStore.getDeviceSetup(selectedDevice.value))
+const deviceSpecificRows = computed(() => deviceRows.value.filter((row) => !GENERAL_SERVICE_QUESTION_IDS.includes(row.questionId)))
 const selectedDeviceRating = computed(() => quizStore.getDeviceRatingNormalized(selectedDevice.value))
 const deviceLabel = computed(() => {
     if (selectedDevice.value === 'pc') return 'Desktop'
@@ -396,10 +481,12 @@ const dashboardBannerType = computed<'warning' | 'success' | null>(() => {
 const dashboardFileLabel = computed(() => fileName.value || 'loaded file')
 const handleThreatLevelChange = (value: string | number) => {
     quizStore.setManualThreatLevel(Number(value))
+    markUnsaved()
 }
 
 const resetThreatLevel = () => {
     quizStore.resetManualThreatLevel()
+    markUnsaved()
 }
 
 const selectDevice = (device: DeviceType) => {
@@ -423,6 +510,13 @@ const getCurrentAnswerValue = (questionId: string) => {
 const handleDeviceOptionChange = (questionId: string, value: string | number) => {
     if (!value) return
     quizStore.saveAnswer({ questionId, answer: String(value) })
+    markUnsaved()
+}
+
+const handleGeneralOptionChange = (questionId: string, value: string | number) => {
+    if (!value) return
+    quizStore.saveAnswer({ questionId, answer: String(value) })
+    markUnsaved()
 }
 
 const loadDashboard = () => {
@@ -485,6 +579,7 @@ const submitExport = async () => {
         const success = await quizStore.exportEncryptedData(passwordInput.value)
         if (!success) {
             exportPasswordError.value = 'Failed to export file. Please try again.'
+            showToast('Could not download your export file. Please try again.', 'warning')
             return
         }
         lastExportTime.value = Date.now()
@@ -516,6 +611,7 @@ const submitExportConfirm = async () => {
         const success = await quizStore.exportEncryptedData(passwordInput.value)
         if (!success) {
             exportPasswordError.value = 'Failed to export file. Please try again.'
+            showToast('Could not download your export file. Please try again.', 'warning')
             return
         }
         lastExportTime.value = Date.now()
@@ -574,8 +670,10 @@ const importData = () => {
 const submitPassword = async () => {
     if (!passwordInput.value || !pendingFile) return
 
+    isApplyingExternalData.value = true
     try {
         await quizStore.importEncryptedData(pendingFile, passwordInput.value)
+        lastExportTime.value = Date.now()
         showPasswordModal.value = false
         const message = isLoadAction ? 'Data loaded successfully!' : 'Data imported successfully!'
         showToast(message, 'success')
@@ -588,6 +686,8 @@ const submitPassword = async () => {
     } catch (error) {
         const err = error as Error
         passwordError.value = err.message
+    } finally {
+        isApplyingExternalData.value = false
     }
 }
 
@@ -771,6 +871,10 @@ const cancelDelete = () => {
     color: var(--text-secondary);
 }
 
+.score-panel .priority-actions {
+    margin-top: 1.5rem;
+}
+
 .threat-body {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -800,24 +904,6 @@ const cancelDelete = () => {
     background: var(--card-bg);
 }
 
-.device-switcher {
-    display: flex;
-    gap: 0.65rem;
-    flex-wrap: wrap;
-    margin: 1rem 0;
-}
-
-.device-switcher .base-button {
-    border-radius: 999px;
-    border: 1px solid var(--border-color);
-}
-
-.device-switcher .base-button.active {
-    background: var(--primary-color);
-    color: #fff;
-    border-color: var(--primary-color);
-}
-
 .device-setup {
     padding: 1.5rem;
     display: flex;
@@ -825,18 +911,10 @@ const cancelDelete = () => {
     gap: 1rem;
 }
 
-.setup-summary {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 1rem;
-}
-
 .device-table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 1rem;
+    margin-top: 0.25rem;
 }
 
 .device-table th,
@@ -844,6 +922,57 @@ const cancelDelete = () => {
     text-align: left;
     padding: 0.75rem;
     border-bottom: 1px solid var(--border-color);
+}
+
+.table-section {
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 1rem;
+    background: var(--card-bg);
+}
+
+.table-heading {
+    margin: 0;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.table-heading-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.general-service-rating {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.currently-using-cell {
+    background: #fff;
+}
+
+.device-specific-header {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: space-between;
+}
+
+.device-controls {
+    display: flex;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+}
+
+.device-rating {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
 }
 
 .badge {
@@ -948,10 +1077,10 @@ const cancelDelete = () => {
         grid-template-columns: 1fr;
     }
 
-    .device-switcher,
-    .setup-summary,
+    .device-specific-header,
     .answers-list {
         flex-direction: column;
+        align-items: flex-start;
     }
 
     .answer-row {
