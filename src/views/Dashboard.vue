@@ -44,68 +44,105 @@
             </div>
 
             <div class="dashboard-metrics">
-                <section class="threat-model-panel card">
-                    <div class="panel-heading">
-                        <div class="heading-main">
-                            <div class="heading-title">
-                                <h2 class="panel-title">Threat Model · {{ displayThreatSpectrumLabel }}</h2>
-                                <span class="manual-tag">{{ manualTagLabel }}</span>
+                <div class="left-panels">
+                    <section class="threat-model-panel card">
+                        <div class="panel-heading">
+                            <div class="heading-main">
+                                <div class="heading-title">
+                                    <h2 class="panel-title">Threat Model · {{ displayThreatSpectrumLabel }}</h2>
+                                    <span class="manual-tag">{{ manualTagLabel }}</span>
+                                </div>
+                                <div class="heading-controls">
+                                    <BaseDropdown
+                                        id="threat-level-select"
+                                        :model-value="displayThreatLevel"
+                                        :options="threatLevelDropdownOptions"
+                                        @update:modelValue="handleThreatLevelChange"
+                                    />
+                                    <BaseButton variant="ghost" size="small" @click="resetThreatLevel" :disabled="!manualOverride">
+                                        reset
+                                    </BaseButton>
+                                </div>
                             </div>
-                            <div class="heading-controls">
-                                <BaseDropdown
-                                    id="threat-level-select"
-                                    :model-value="displayThreatLevel"
-                                    :options="threatLevelDropdownOptions"
-                                    @update:modelValue="handleThreatLevelChange"
+                            <p class="subtext">{{ displayThreatSpectrumDescription }}</p>
+                            <p class="meta">Computed level · {{ quizStore.computedThreatLevel }} · {{ computedThreatSpectrumInfo.label }}</p>
+                        </div>
+                        <div class="threat-body">
+                            <div class="tierlist-column">
+                                <BaseTierlist
+                                    :tiers="tierDefinitions"
+                                    :items="threatTierItems"
+                                    :assignments="threatTierAssignments"
+                                    :show-available-zone="false"
+                                    @update:assignments="updateTierAssignments"
                                 />
-                                <BaseButton variant="ghost" size="small" @click="resetThreatLevel" :disabled="!manualOverride">
-                                    reset
-                                </BaseButton>
                             </div>
                         </div>
-                        <p class="subtext">{{ displayThreatSpectrumDescription }}</p>
-                        <p class="meta">Computed level · {{ quizStore.computedThreatLevel }} · {{ computedThreatSpectrumInfo.label }}</p>
-                    </div>
-                    <div class="threat-body">
-                        <div class="tierlist-column">
-                            <BaseTierlist
-                                :tiers="tierDefinitions"
-                                :items="threatTierItems"
-                                :assignments="threatTierAssignments"
-                                :show-available-zone="false"
-                                @update:assignments="updateTierAssignments"
-                            />
-                        </div>
-                    </div>
-                </section>
+                    </section>
 
-                <section class="score-panel card">
-                    <div class="panel-heading">
-                        <h2>Privacy Score · {{ privacyScoreDisplay }}</h2>
-                        <p class="subtext">Average of your device ratings so the score reflects device-specific privacy.</p>
-                    </div>
-                    <div class="score-display compact">
-                        <div class="score-value">{{ privacyScoreDisplay }}</div>
-                        <div class="score-denominator">/ 4</div>
-                    </div>
-                    <p class="score-description">{{ scoreDescription }}</p>
-                    <div class="priority-actions">
-                        <h3>Priority actions</h3>
-                        <ul>
-                            <li v-for="recItem in actionableRecommendations" :key="recItem.name">
-                                <div class="priority-label">
-                                    <span class="icon">{{ recItem.icon }}</span>
-                                    <div>
+                    <section class="save-data-panel card">
+                        <div class="panel-heading">
+                            <h2>Save Your Data</h2>
+                            <p class="subtext">Export your encrypted quiz results to keep track of your privacy journey.</p>
+                        </div>
+                        <div class="action-buttons">
+                            <BaseButton variant="primary" @click="exportData">
+                                💾 Export Encrypted Data
+                            </BaseButton>
+                            <BaseButton variant="outline" @click="importData">
+                                📥 Import Data
+                            </BaseButton>
+                            <BaseButton variant="outline" @click="resetData">
+                                🔄 Retake Quiz
+                            </BaseButton>
+                            <BaseButton variant="danger" @click="showDeleteConfirm = true">
+                                🗑️ Delete All Data
+                            </BaseButton>
+                        </div>
+                    </section>
+                </div>
+
+                <div class="right-panels">
+                    <section class="score-panel card">
+                        <div class="panel-heading">
+                            <h2>Privacy Score</h2>
+                            <p class="subtext">Average of your device ratings</p>
+                        </div>
+                        <div class="score-display compact">
+                            <div class="score-value">{{ privacyScoreDisplay }}</div>
+                            <div class="score-denominator">/ 4</div>
+                        </div>
+                        <p class="score-description">{{ scoreDescription }}</p>
+                    </section>
+
+                    <section class="priority-panel card">
+                        <div class="panel-heading">
+                            <h2>Priority Actions</h2>
+                            <p class="subtext">Top improvements for your threat level</p>
+                        </div>
+                        <ul class="priority-list">
+                            <li 
+                                v-for="recItem in actionableRecommendations" 
+                                :key="recItem.name"
+                                class="priority-item"
+                                :class="getPriorityClass(recItem)"
+                            >
+                                <div class="priority-header">
+                                    <span class="priority-icon">{{ recItem.icon }}</span>
+                                    <div class="priority-info">
                                         <strong>{{ recItem.name }}</strong>
                                         <small>{{ recItem.currentApp }}</small>
                                     </div>
                                 </div>
-                                <p class="recommendation">{{ recItem.recommendations[0] }}</p>
+                                <p class="priority-recommendation">{{ recItem.recommendations[0] }}</p>
                             </li>
-                            <li v-if="!actionableRecommendations.length" class="muted">You've already matched every core app to your threat model.</li>
+                            <li v-if="!actionableRecommendations.length" class="priority-item success">
+                                <span class="priority-icon">✓</span>
+                                <span class="priority-success-text">You've matched every core app to your threat model.</span>
+                            </li>
                         </ul>
-                    </div>
-                </section>
+                    </section>
+                </div>
             </div>
 
             <section class="device-setup card">
@@ -245,27 +282,6 @@
                     </table>
                 </div>
                 <p class="muted table-note">Privacy score is the average of each device rating ({{ privacyScoreDisplay }}/4).</p>
-            </section>
-
-            <section class="actions-section">
-                <div class="card">
-                    <h2>Save Your Data</h2>
-                    <p>Export your encrypted quiz results to keep track of your privacy journey.</p>
-                    <div class="action-buttons">
-                        <BaseButton variant="primary" @click="exportData">
-                            💾 Export Encrypted Data
-                        </BaseButton>
-                        <BaseButton variant="outline" @click="importData">
-                            📥 Import Data
-                        </BaseButton>
-                        <BaseButton variant="outline" @click="resetData">
-                            🔄 Retake Quiz
-                        </BaseButton>
-                        <BaseButton variant="danger" @click="showDeleteConfirm = true">
-                            🗑️ Delete All Data
-                        </BaseButton>
-                    </div>
-                </div>
             </section>
         </div>
 
@@ -441,6 +457,15 @@ const actionableRecommendations = computed(() => {
         .sort((a, b) => a.scoreValue - b.scoreValue)
         .slice(0, 3)
 })
+
+// Get priority class based on score (matches wiki rating colors)
+const getPriorityClass = (item: { scoreValue: number; scoreClass: string }) => {
+    // scoreClass is 'good', 'medium', 'poor' - map to avoid/caution/good
+    if (item.scoreClass === 'poor') return 'avoid'      // red - needs urgent action
+    if (item.scoreClass === 'medium') return 'caution'  // orange - needs improvement
+    return 'good'                                         // green - already good
+}
+
 const tierDefinitions = THREAT_TIER_ORDER.map((tier) => ({
     id: tier,
     label: THREAT_TIER_LABELS[tier]
@@ -829,17 +854,154 @@ const cancelDelete = () => {
 
 .dashboard-metrics {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    grid-template-columns: 2fr 1fr;
     gap: 1.5rem;
     margin-bottom: 1.5rem;
 }
 
+.left-panels {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.right-panels {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
 .threat-model-panel,
-.score-panel {
+.score-panel,
+.priority-panel,
+.save-data-panel {
     padding: 1.5rem;
     display: flex;
     flex-direction: column;
     gap: 1rem;
+}
+
+/* Priority Panel Styles */
+.priority-panel .panel-heading h2 {
+    margin: 0.25rem 0;
+    color: var(--primary-color);
+}
+
+.priority-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.priority-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-left: 4px solid var(--warning, #f59e0b);
+    border-radius: 8px;
+    padding: 1rem;
+    background: var(--card-bg);
+    transition: all 0.2s ease;
+}
+
+.priority-item:hover {
+    transform: translateX(2px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.priority-item.avoid {
+    border-left-color: #ef4444;
+}
+
+.priority-item.caution {
+    border-left-color: #f97316;
+}
+
+.priority-item.good {
+    border-left-color: #22c55e;
+}
+
+.priority-item.success {
+    border-left-color: #22c55e;
+    color: var(--text-muted);
+    font-style: italic;
+    text-align: center;
+    padding: 1.5rem;
+}
+
+.priority-item.success .priority-icon {
+    font-size: 1.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.priority-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.priority-icon {
+    font-size: 1.25rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.priority-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.priority-info strong {
+    display: block;
+    font-size: 0.9375rem;
+    color: var(--text-primary);
+}
+
+.priority-info small {
+    display: block;
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    margin-top: 0.125rem;
+}
+
+.priority-recommendation {
+    margin: 0;
+    padding: 0.75rem;
+    background: var(--bg-secondary, #f8f9fa);
+    border-radius: 6px;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+/* Save Data Panel */
+.save-data-panel .panel-heading h2 {
+    margin: 0.25rem 0;
+    color: var(--primary-color);
+}
+
+.save-data-panel .action-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+@media (max-width: 900px) {
+    .dashboard-metrics {
+        grid-template-columns: 1fr;
+    }
+    
+    .right-panels {
+        order: -1;
+    }
+    
+    .left-panels {
+        order: 1;
+    }
 }
 
 .panel-heading h2 {
@@ -932,19 +1094,6 @@ const cancelDelete = () => {
     color: var(--text-secondary);
 }
 
-.score-panel .priority-actions {
-    margin-top: 1.5rem;
-    padding-top: 1.5rem;
-    border-top: 1px solid var(--border-color);
-}
-
-.priority-actions h3 {
-    margin: 0 0 1rem;
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--text-primary);
-}
-
 .threat-body {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -956,70 +1105,6 @@ const cancelDelete = () => {
     border-radius: 14px;
     padding: 1rem;
     background: var(--card-bg);
-}
-
-.priority-actions ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-}
-
-.priority-actions li {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 0.75rem 1rem;
-    align-items: start;
-    border: 1px solid var(--border-color);
-    border-left: 4px solid var(--warning, #f59e0b);
-    border-radius: 8px;
-    padding: 1rem;
-    background: var(--card-bg);
-}
-
-.priority-actions li.muted {
-    border-left-color: var(--success, #22c55e);
-    color: var(--text-muted);
-    font-style: italic;
-    display: block;
-}
-
-.priority-label {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    grid-column: 1 / -1;
-}
-
-.priority-label .icon {
-    font-size: 1.25rem;
-    line-height: 1;
-}
-
-.priority-label strong {
-    display: block;
-    font-size: 0.9375rem;
-    color: var(--text-primary);
-}
-
-.priority-label small {
-    display: block;
-    font-size: 0.8125rem;
-    color: var(--text-muted);
-    margin-top: 0.125rem;
-}
-
-.priority-actions .recommendation {
-    grid-column: 1 / -1;
-    margin: 0;
-    padding: 0.75rem;
-    background: var(--bg-secondary, #f8f9fa);
-    border-radius: 6px;
-    font-size: 0.875rem;
-    color: var(--text-secondary);
-    line-height: 1.5;
 }
 
 .device-setup {
