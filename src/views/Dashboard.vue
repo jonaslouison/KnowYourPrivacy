@@ -492,11 +492,6 @@ const privacyScoreDisplay = computed(() => privacyScoreNormalized.value.toFixed(
 const deviceRows = computed(() => quizStore.getDeviceSetup(selectedDevice.value))
 const deviceSpecificRows = computed(() => deviceRows.value.filter((row) => !(GENERAL_SERVICE_QUESTION_IDS as readonly string[]).includes(row.questionId)))
 const selectedDeviceRating = computed(() => quizStore.getDeviceRatingNormalized(selectedDevice.value))
-const deviceLabel = computed(() => {
-    if (selectedDevice.value === 'pc') return 'Desktop'
-    if (selectedDevice.value === 'phone') return 'Phone'
-    return 'Tablet'
-})
 const scoreDescription = computed(() => {
     if (!hasAnswers.value) {
         return 'Complete the quiz to unlock the personalized score and device breakdown.'
