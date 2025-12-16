@@ -13,14 +13,35 @@ export interface WikiService {
   logo?: string
   homepage?: string
   privacyPolicy?: string
-  /** Privacy rating: 'recommended' | 'acceptable' | 'caution' | 'avoid' */
-  privacyRating: 'recommended' | 'acceptable' | 'caution' | 'avoid'
+  /** Privacy rating: 'good' | 'acceptable' | 'caution' | 'avoid' */
+  privacyRating: 'good' | 'acceptable' | 'caution' | 'avoid'
   /** Why this rating */
   privacyNote: string
   /** Key privacy concerns or benefits */
   privacyDetails: string[]
   /** Is this recommended by Privacy Guides? */
   privacyGuidesRecommended: boolean
+  /** 
+   * Difficulty/complexity level for recommendations:
+   * 1 = Easy (good for beginners/Normie) - user-friendly, works out of the box
+   * 2 = Medium (Aware users) - may require some setup or learning
+   * 3 = Advanced (Ghost/Activist) - maximum privacy but requires technical knowledge
+   * Only services with rating 'good' should have this field set
+   */
+  difficulty?: 1 | 2 | 3
+}
+
+export interface WikiIntroSection {
+  title: string
+  description: string
+  concerns: {
+    heading: string
+    points: string[]
+  }
+  benefits: {
+    heading: string
+    points: string[]
+  }
 }
 
 export interface WikiCategory {
@@ -32,32 +53,36 @@ export interface WikiCategory {
   /** Link to Privacy Guides page for this category */
   privacyGuidesUrl: string
   services: WikiService[]
-  content: string
+  /** Structured intro content (replaces markdown) */
+  intro: WikiIntroSection
 }
 
 // =============================================================================
 // EMAIL SERVICES
 // =============================================================================
 
-const emailContent = `
-## Email Providers
-
-Your email is the central hub of your digital identity - used for account recovery, 
-sensitive communications, and personal correspondence.
-
-### Privacy Concerns with Mainstream Email
-
-Standard email providers like Gmail scan your messages for advertising purposes, 
-build detailed profiles about you, and store your data indefinitely. They comply 
-with government requests and may share data with third parties.
-
-### What Privacy-Focused Providers Offer
-
-- **End-to-end encryption**: Only you and your recipient can read messages
-- **Zero-access encryption**: Provider cannot read your stored emails
-- **No advertising profiles**: Your data isn't used for ads
-- **Privacy-friendly jurisdiction**: Protection from mass surveillance
-`
+const emailIntro: WikiIntroSection = {
+  title: 'Email Providers',
+  description: 'Your email is the central hub of your digital identity - used for account recovery, sensitive communications, and personal correspondence.',
+  concerns: {
+    heading: 'Privacy Concerns with Mainstream Email',
+    points: [
+      'Standard providers scan messages for advertising',
+      'Build detailed profiles about your behavior',
+      'Store your data indefinitely',
+      'Comply with government surveillance requests'
+    ]
+  },
+  benefits: {
+    heading: 'What Privacy-Focused Providers Offer',
+    points: [
+      'End-to-end encryption - only you and recipient can read',
+      'Zero-access encryption - provider cannot read stored emails',
+      'No advertising profiles - your data is not monetized',
+      'Privacy-friendly jurisdiction - protection from mass surveillance'
+    ]
+  }
+}
 
 const emailServices: WikiService[] = [
   // Mainstream Services (Caution/Avoid)
@@ -131,7 +156,7 @@ const emailServices: WikiService[] = [
     name: 'Proton Mail',
     description: 'Swiss-based encrypted email with end-to-end encryption. The most popular privacy-focused email provider with free and paid tiers.',
     homepage: 'https://proton.me/mail',
-    privacyRating: 'recommended',
+    privacyRating: 'good',
     privacyNote: 'End-to-end encrypted email with zero-access encryption',
     privacyDetails: [
       'End-to-end encryption for all emails to other Proton users',
@@ -140,14 +165,15 @@ const emailServices: WikiService[] = [
       'Open source apps and independently audited',
       'Free tier available with 1GB storage'
     ],
-    privacyGuidesRecommended: true
+    privacyGuidesRecommended: true,
+    difficulty: 1
   },
   {
     id: 'tuta',
     name: 'Tuta (Tutanota)',
     description: 'German encrypted email service with built-in calendar. Focuses on ease of use with strong encryption.',
     homepage: 'https://tuta.com',
-    privacyRating: 'recommended',
+    privacyRating: 'good',
     privacyNote: 'End-to-end encrypted email with quantum-resistant encryption',
     privacyDetails: [
       'End-to-end encryption by default',
@@ -156,14 +182,15 @@ const emailServices: WikiService[] = [
       'Based in Germany with strong privacy laws',
       'Open source and independently audited'
     ],
-    privacyGuidesRecommended: true
+    privacyGuidesRecommended: true,
+    difficulty: 2
   },
   {
     id: 'mailbox-org',
     name: 'Mailbox.org',
     description: 'German email provider focused on privacy and sustainability. Supports standard protocols like IMAP/POP3.',
     homepage: 'https://mailbox.org',
-    privacyRating: 'recommended',
+    privacyRating: 'good',
     privacyNote: 'Privacy-focused with standard email protocol support',
     privacyDetails: [
       'PGP encryption support',
@@ -172,7 +199,8 @@ const emailServices: WikiService[] = [
       'Based in Germany',
       'No free tier but affordable'
     ],
-    privacyGuidesRecommended: true
+    privacyGuidesRecommended: true,
+    difficulty: 3
   }
 ]
 
@@ -180,25 +208,28 @@ const emailServices: WikiService[] = [
 // CLOUD STORAGE
 // =============================================================================
 
-const cloudContent = `
-## Cloud Storage
-
-Cloud storage lets you access your files from anywhere, but most providers can 
-read your files and may share them with governments or third parties.
-
-### Privacy Concerns with Mainstream Cloud Storage
-
-Major providers like Google Drive, iCloud, and OneDrive store your files unencrypted 
-on their servers. They can scan your files, share them with law enforcement, or 
-use them for AI training.
-
-### What Privacy-Focused Providers Offer
-
-- **End-to-end encryption**: Files encrypted before leaving your device
-- **Zero-knowledge architecture**: Provider cannot access your data
-- **No file scanning**: Your files remain private
-- **Secure sharing**: Share files without compromising encryption
-`
+const cloudIntro: WikiIntroSection = {
+  title: 'Cloud Storage',
+  description: 'Cloud storage lets you access your files from anywhere, but most providers can read your files and may share them with governments or third parties.',
+  concerns: {
+    heading: 'Privacy Concerns with Mainstream Cloud',
+    points: [
+      'Files stored unencrypted on provider servers',
+      'Providers can scan and access your files',
+      'Data shared with law enforcement on request',
+      'Files may be used for AI training'
+    ]
+  },
+  benefits: {
+    heading: 'What Privacy-Focused Providers Offer',
+    points: [
+      'End-to-end encryption before files leave your device',
+      'Zero-knowledge architecture - provider cannot access',
+      'No file scanning or content analysis',
+      'Secure sharing without compromising encryption'
+    ]
+  }
+}
 
 const cloudServices: WikiService[] = [
   // Mainstream Services
@@ -272,7 +303,7 @@ const cloudServices: WikiService[] = [
     name: 'Proton Drive',
     description: 'End-to-end encrypted cloud storage from the makers of Proton Mail. Integrates with Proton ecosystem.',
     homepage: 'https://proton.me/drive',
-    privacyRating: 'recommended',
+    privacyRating: 'good',
     privacyNote: 'True end-to-end encryption with zero-access architecture',
     privacyDetails: [
       'End-to-end encrypted - Proton cannot access files',
@@ -281,14 +312,15 @@ const cloudServices: WikiService[] = [
       'Open source and audited',
       'Free tier with 1GB (more with Proton plans)'
     ],
-    privacyGuidesRecommended: true
+    privacyGuidesRecommended: true,
+    difficulty: 1
   },
   {
     id: 'tresorit',
     name: 'Tresorit',
     description: 'Swiss-Hungarian enterprise-grade encrypted cloud storage with strong compliance features.',
     homepage: 'https://tresorit.com',
-    privacyRating: 'recommended',
+    privacyRating: 'good',
     privacyNote: 'End-to-end encrypted with independent security audits',
     privacyDetails: [
       'End-to-end encryption',
@@ -297,14 +329,15 @@ const cloudServices: WikiService[] = [
       'GDPR compliant',
       'No free tier but strong security'
     ],
-    privacyGuidesRecommended: true
+    privacyGuidesRecommended: true,
+    difficulty: 2
   },
   {
     id: 'cryptomator',
     name: 'Cryptomator',
     description: 'Open-source encryption for any cloud storage. Encrypt files before uploading to Google Drive, Dropbox, etc.',
     homepage: 'https://cryptomator.org',
-    privacyRating: 'recommended',
+    privacyRating: 'good',
     privacyNote: 'Add encryption to any existing cloud storage',
     privacyDetails: [
       'Client-side encryption',
@@ -313,7 +346,8 @@ const cloudServices: WikiService[] = [
       'Free for desktop',
       'One-time purchase for mobile'
     ],
-    privacyGuidesRecommended: true
+    privacyGuidesRecommended: true,
+    difficulty: 3
   }
 ]
 
@@ -321,26 +355,28 @@ const cloudServices: WikiService[] = [
 // PASSWORD MANAGERS
 // =============================================================================
 
-const passwordContent = `
-## Password Managers
-
-Password managers store all your passwords securely, encrypted with a master password.
-Using unique, strong passwords for every account is the most effective protection against data breaches.
-
-### Why You Need a Password Manager
-
-- Remember one master password instead of hundreds
-- Generate strong, unique passwords for every account
-- Protect against phishing with autofill
-- Securely share passwords when needed
-
-### What to Look For
-
-- **End-to-end encryption**: Your passwords encrypted with your master password
-- **Zero-knowledge**: Provider cannot access your vault
-- **Security audits**: Independent verification of claims
-- **Cross-platform**: Access passwords on all devices
-`
+const passwordIntro: WikiIntroSection = {
+  title: 'Password Managers',
+  description: 'Password managers store all your passwords securely, encrypted with a master password. Using unique, strong passwords for every account is the most effective protection against data breaches.',
+  concerns: {
+    heading: 'Why You Need a Password Manager',
+    points: [
+      'Remember one master password instead of hundreds',
+      'Generate strong, unique passwords for every account',
+      'Protect against phishing with autofill',
+      'Securely share passwords when needed'
+    ]
+  },
+  benefits: {
+    heading: 'What to Look For',
+    points: [
+      'End-to-end encryption with your master password',
+      'Zero-knowledge - provider cannot access your vault',
+      'Regular independent security audits',
+      'Cross-platform access on all devices'
+    ]
+  }
+}
 
 const passwordServices: WikiService[] = [
   // Mainstream / Built-in Options
@@ -395,26 +431,27 @@ const passwordServices: WikiService[] = [
   // Privacy-Focused Recommendations
   {
     id: 'bitwarden',
-    name: 'Bitwarden',
-    description: 'Open-source password manager with free and premium tiers. Can be self-hosted.',
+    name: 'Bitwarden (Self-Hosted)',
+    description: 'Open-source password manager with free and premium tiers. Self-hosting gives maximum control.',
     homepage: 'https://bitwarden.com',
-    privacyRating: 'recommended',
-    privacyNote: 'Open source, audited, and can be self-hosted',
+    privacyRating: 'good',
+    privacyNote: 'Open source, audited - self-hosting for maximum control',
     privacyDetails: [
       'Fully open source client and server',
       'End-to-end encrypted',
       'Regular security audits',
-      'Can be self-hosted for full control',
-      'Generous free tier'
+      'Self-hosted for full data control',
+      'Recommended for advanced users'
     ],
-    privacyGuidesRecommended: true
+    privacyGuidesRecommended: true,
+    difficulty: 3
   },
   {
     id: '1password',
     name: '1Password',
     description: 'Premium password manager known for security and user experience. Popular with businesses.',
     homepage: 'https://1password.com',
-    privacyRating: 'recommended',
+    privacyRating: 'good',
     privacyNote: 'Strong security with excellent user experience',
     privacyDetails: [
       'End-to-end encrypted with Secret Key',
@@ -423,14 +460,15 @@ const passwordServices: WikiService[] = [
       'Watchtower alerts for breaches',
       'Travel Mode for border crossings'
     ],
-    privacyGuidesRecommended: true
+    privacyGuidesRecommended: true,
+    difficulty: 2
   },
   {
     id: 'proton-pass',
     name: 'Proton Pass',
     description: 'Password manager from Proton with integrated email aliases. Part of Proton ecosystem.',
     homepage: 'https://proton.me/pass',
-    privacyRating: 'recommended',
+    privacyRating: 'good',
     privacyNote: 'End-to-end encrypted with email alias integration',
     privacyDetails: [
       'End-to-end encrypted',
@@ -439,14 +477,15 @@ const passwordServices: WikiService[] = [
       'Part of Proton ecosystem',
       'Free tier available'
     ],
-    privacyGuidesRecommended: true
+    privacyGuidesRecommended: true,
+    difficulty: 1
   },
   {
     id: 'keepassxc',
     name: 'KeePassXC',
     description: 'Offline password manager. Database stored locally and encrypted. Fully open source.',
     homepage: 'https://keepassxc.org',
-    privacyRating: 'recommended',
+    privacyRating: 'good',
     privacyNote: 'Fully offline - you control the encrypted database file',
     privacyDetails: [
       'Completely offline - no cloud dependency',
@@ -455,7 +494,8 @@ const passwordServices: WikiService[] = [
       'Fully open source',
       'Free forever'
     ],
-    privacyGuidesRecommended: true
+    privacyGuidesRecommended: true,
+    difficulty: 2
   }
 ]
 
@@ -463,26 +503,28 @@ const passwordServices: WikiService[] = [
 // VPN SERVICES
 // =============================================================================
 
-const vpnContent = `
-## VPN Services
-
-A VPN encrypts your internet connection and hides your IP address from websites.
-It protects you on public WiFi and can help bypass geographic restrictions.
-
-### When You Need a VPN
-
-- On public WiFi networks
-- Hiding your IP from websites
-- Bypassing censorship or geo-restrictions
-- Preventing ISP from seeing your browsing
-
-### What to Look For
-
-- **No-logs policy**: Provider doesn't store your activity
-- **Independent audits**: Third-party verification of claims
-- **Strong encryption**: WireGuard or OpenVPN protocols
-- **Owned infrastructure**: Provider controls their servers
-`
+const vpnIntro: WikiIntroSection = {
+  title: 'VPN Services',
+  description: 'A VPN encrypts your internet connection and hides your IP address from websites. It protects you on public WiFi and can help bypass geographic restrictions.',
+  concerns: {
+    heading: 'When You Need a VPN',
+    points: [
+      'On public WiFi networks',
+      'Hiding your IP address from websites',
+      'Bypassing censorship or geo-restrictions',
+      'Preventing ISP from seeing your browsing'
+    ]
+  },
+  benefits: {
+    heading: 'What to Look For',
+    points: [
+      'No-logs policy - provider does not store activity',
+      'Independent audits - third-party verification',
+      'Strong encryption with WireGuard or OpenVPN',
+      'Owned infrastructure - provider controls servers'
+    ]
+  }
+}
 
 const vpnServices: WikiService[] = [
   // Consumer VPNs with Privacy Concerns
@@ -540,7 +582,7 @@ const vpnServices: WikiService[] = [
     name: 'Proton VPN',
     description: 'Swiss VPN from Proton with a free tier. Strong focus on privacy and transparency.',
     homepage: 'https://protonvpn.com',
-    privacyRating: 'recommended',
+    privacyRating: 'good',
     privacyNote: 'Transparent, audited, with a functional free tier',
     privacyDetails: [
       'No-logs policy independently audited',
@@ -549,14 +591,15 @@ const vpnServices: WikiService[] = [
       'Free tier with no data limits',
       'Part of trusted Proton ecosystem'
     ],
-    privacyGuidesRecommended: true
+    privacyGuidesRecommended: true,
+    difficulty: 1
   },
   {
     id: 'mullvad',
     name: 'Mullvad VPN',
     description: 'Swedish VPN with anonymous accounts. No email or personal info required.',
     homepage: 'https://mullvad.net',
-    privacyRating: 'recommended',
+    privacyRating: 'good',
     privacyNote: 'Maximum anonymity with account numbers instead of emails',
     privacyDetails: [
       'Account numbers instead of personal info',
@@ -565,14 +608,15 @@ const vpnServices: WikiService[] = [
       'Own server infrastructure',
       'Regular third-party audits'
     ],
-    privacyGuidesRecommended: true
+    privacyGuidesRecommended: true,
+    difficulty: 3
   },
   {
     id: 'ivpn',
     name: 'IVPN',
     description: 'Premium privacy-focused VPN. Transparent about limitations of VPNs.',
     homepage: 'https://ivpn.net',
-    privacyRating: 'recommended',
+    privacyRating: 'good',
     privacyNote: 'Honest and transparent about what VPNs can and cannot do',
     privacyDetails: [
       'Transparent about VPN limitations',
@@ -581,7 +625,8 @@ const vpnServices: WikiService[] = [
       'No email required for signup',
       'Based in Gibraltar'
     ],
-    privacyGuidesRecommended: true
+    privacyGuidesRecommended: true,
+    difficulty: 2
   }
 ]
 
@@ -589,23 +634,28 @@ const vpnServices: WikiService[] = [
 // MESSAGING APPS
 // =============================================================================
 
-const messagingContent = `
-## Messaging Apps
-
-Your private conversations should stay private. Many popular messaging apps 
-don't offer end-to-end encryption by default, meaning the company can read your messages.
-
-### Understanding Encryption
-
-- **End-to-end encrypted**: Only you and recipient can read messages
-- **Encrypted in transit**: Company can still read messages on their servers
-- **Not encrypted**: Anyone with access to servers can read messages
-
-### Metadata Concerns
-
-Even with encryption, metadata (who you talk to, when, how often) can reveal a lot.
-The best messengers minimize metadata collection.
-`
+const messagingIntro: WikiIntroSection = {
+  title: 'Messaging Apps',
+  description: 'Your private conversations should stay private. Many popular messaging apps do not offer end-to-end encryption by default, meaning the company can read your messages.',
+  concerns: {
+    heading: 'Understanding Encryption',
+    points: [
+      'End-to-end encrypted - only you and recipient can read',
+      'Encrypted in transit - company can still read on servers',
+      'Not encrypted - anyone with server access can read',
+      'Metadata (who, when, how often) also reveals a lot'
+    ]
+  },
+  benefits: {
+    heading: 'What to Look For',
+    points: [
+      'End-to-end encryption enabled by default',
+      'Minimal metadata collection',
+      'Open source and independently audited',
+      'No phone number required (optional)'
+    ]
+  }
+}
 
 const messagingServices: WikiService[] = [
   // Mainstream Messaging Apps
@@ -711,7 +761,7 @@ const messagingServices: WikiService[] = [
     name: 'Signal',
     description: 'Gold standard for private messaging. Open source, non-profit, minimal metadata.',
     homepage: 'https://signal.org',
-    privacyRating: 'recommended',
+    privacyRating: 'good',
     privacyNote: 'Best combination of security, privacy, and usability',
     privacyDetails: [
       'End-to-end encrypted by default',
@@ -720,14 +770,15 @@ const messagingServices: WikiService[] = [
       'Open source and audited',
       'Non-profit organization'
     ],
-    privacyGuidesRecommended: true
+    privacyGuidesRecommended: true,
+    difficulty: 1
   },
   {
     id: 'simplex',
     name: 'SimpleX Chat',
     description: 'No user identifiers. Doesn\'t use phone numbers, usernames, or any IDs.',
     homepage: 'https://simplex.chat',
-    privacyRating: 'recommended',
+    privacyRating: 'good',
     privacyNote: 'Maximum privacy with no user identifiers at all',
     privacyDetails: [
       'No phone number or user ID required',
@@ -736,14 +787,15 @@ const messagingServices: WikiService[] = [
       'Open source',
       'Can run your own server'
     ],
-    privacyGuidesRecommended: true
+    privacyGuidesRecommended: true,
+    difficulty: 3
   },
   {
     id: 'session',
     name: 'Session',
     description: 'Decentralized messenger. No phone number required.',
     homepage: 'https://getsession.org',
-    privacyRating: 'recommended',
+    privacyRating: 'good',
     privacyNote: 'Onion-routed messages with no phone number required',
     privacyDetails: [
       'No phone number needed',
@@ -752,7 +804,8 @@ const messagingServices: WikiService[] = [
       'Open source',
       'Session IDs instead of usernames'
     ],
-    privacyGuidesRecommended: true
+    privacyGuidesRecommended: true,
+    difficulty: 2
   }
 ]
 
@@ -760,27 +813,28 @@ const messagingServices: WikiService[] = [
 // DESKTOP BROWSERS
 // =============================================================================
 
-const desktopBrowserContent = `
-## Desktop Browsers
-
-Your browser is your window to the internet - and potentially your biggest privacy risk.
-Mainstream browsers track your activity for advertising purposes.
-
-### The Tracking Problem
-
-Every website you visit, every search you make, and every click can be tracked.
-Mainstream browsers like Chrome actively facilitate this tracking through:
-- Third-party cookies
-- Browser fingerprinting
-- Telemetry to the vendor
-
-### What to Look For
-
-- **Built-in tracking protection**: Blocks trackers by default
-- **Anti-fingerprinting**: Makes you look like other users
-- **Privacy-focused defaults**: Secure out of the box
-- **Open source**: Transparent and auditable
-`
+const desktopBrowserIntro: WikiIntroSection = {
+  title: 'Desktop Browsers',
+  description: 'Your browser is your window to the internet - and potentially your biggest privacy risk. Mainstream browsers track your activity for advertising purposes.',
+  concerns: {
+    heading: 'The Tracking Problem',
+    points: [
+      'Third-party cookies track you across sites',
+      'Browser fingerprinting identifies you uniquely',
+      'Telemetry data sent to browser vendor',
+      'Every click and search can be logged'
+    ]
+  },
+  benefits: {
+    heading: 'What to Look For',
+    points: [
+      'Built-in tracking protection that blocks by default',
+      'Anti-fingerprinting to look like other users',
+      'Privacy-focused defaults out of the box',
+      'Open source and auditable code'
+    ]
+  }
+}
 
 const desktopBrowserServices: WikiService[] = [
   // Mainstream Browsers
@@ -838,7 +892,7 @@ const desktopBrowserServices: WikiService[] = [
     name: 'Firefox',
     description: 'Independent browser from Mozilla. Open source with strong privacy features.',
     homepage: 'https://firefox.com',
-    privacyRating: 'recommended',
+    privacyRating: 'good',
     privacyNote: 'Best mainstream browser for privacy with customization options',
     privacyDetails: [
       'Enhanced Tracking Protection by default',
@@ -847,14 +901,15 @@ const desktopBrowserServices: WikiService[] = [
       'Independent from big tech',
       'Highly customizable privacy settings'
     ],
-    privacyGuidesRecommended: true
+    privacyGuidesRecommended: true,
+    difficulty: 1
   },
   {
     id: 'brave',
     name: 'Brave',
     description: 'Privacy-focused Chromium browser with built-in ad blocking.',
     homepage: 'https://brave.com',
-    privacyRating: 'recommended',
+    privacyRating: 'good',
     privacyNote: 'Strong privacy defaults with Chromium compatibility',
     privacyDetails: [
       'Aggressive tracker and ad blocking',
@@ -863,14 +918,15 @@ const desktopBrowserServices: WikiService[] = [
       'Optional crypto features (can be disabled)',
       'Shields provide easy privacy control'
     ],
-    privacyGuidesRecommended: true
+    privacyGuidesRecommended: true,
+    difficulty: 1
   },
   {
     id: 'mullvad-browser',
     name: 'Mullvad Browser',
     description: 'Tor Browser technology without Tor network. Maximum fingerprinting protection.',
     homepage: 'https://mullvad.net/browser',
-    privacyRating: 'recommended',
+    privacyRating: 'good',
     privacyNote: 'Tor Browser anti-fingerprinting without the Tor network',
     privacyDetails: [
       'Based on Tor Browser',
@@ -879,14 +935,15 @@ const desktopBrowserServices: WikiService[] = [
       'Partnership with Tor Project',
       'No account or login required'
     ],
-    privacyGuidesRecommended: true
+    privacyGuidesRecommended: true,
+    difficulty: 2
   },
   {
     id: 'tor-browser',
     name: 'Tor Browser',
     description: 'The only truly anonymous browser. Routes traffic through the Tor network.',
     homepage: 'https://torproject.org',
-    privacyRating: 'recommended',
+    privacyRating: 'good',
     privacyNote: 'Maximum anonymity through Tor network routing',
     privacyDetails: [
       'Routes all traffic through Tor network',
@@ -895,7 +952,8 @@ const desktopBrowserServices: WikiService[] = [
       'Essential for high-risk users',
       'Slower than regular browsers'
     ],
-    privacyGuidesRecommended: true
+    privacyGuidesRecommended: true,
+    difficulty: 3
   }
 ]
 
@@ -903,23 +961,28 @@ const desktopBrowserServices: WikiService[] = [
 // MOBILE BROWSERS
 // =============================================================================
 
-const mobileBrowserContent = `
-## Mobile Browsers
-
-Mobile browsers face unique challenges including platform restrictions (especially iOS)
-and deep integration with location services.
-
-### iOS Limitations
-
-On iOS, all browsers must use Apple's WebKit engine. This means Safari, Chrome, Firefox,
-and Brave on iOS are all essentially Safari with different interfaces. Privacy differences
-are limited to UI features and defaults.
-
-### Android Advantages
-
-Android allows full browser engines, so Firefox and Brave can provide their full
-privacy features on Android.
-`
+const mobileBrowserIntro: WikiIntroSection = {
+  title: 'Mobile Browsers',
+  description: 'Mobile browsers face unique challenges including platform restrictions (especially iOS) and deep integration with location services.',
+  concerns: {
+    heading: 'iOS Limitations',
+    points: [
+      'All iOS browsers must use Apple WebKit engine',
+      'Safari, Chrome, Firefox, Brave on iOS are all WebKit-based',
+      'Privacy differences limited to UI and defaults',
+      'Full browser features only available on Android'
+    ]
+  },
+  benefits: {
+    heading: 'Android Advantages',
+    points: [
+      'Android allows full browser engines',
+      'Firefox and Brave provide full privacy features',
+      'Extension support on Firefox for Android',
+      'More control over browser behavior'
+    ]
+  }
+}
 
 const mobileBrowserServices: WikiService[] = [
   // Mainstream Mobile Browsers
@@ -961,7 +1024,7 @@ const mobileBrowserServices: WikiService[] = [
     name: 'Brave (Mobile)',
     description: 'Privacy-focused mobile browser. Full features on Android, WebKit-based on iOS.',
     homepage: 'https://brave.com',
-    privacyRating: 'recommended',
+    privacyRating: 'good',
     privacyNote: 'Best privacy on Android; good defaults on iOS',
     privacyDetails: [
       'Built-in ad and tracker blocking',
@@ -970,14 +1033,15 @@ const mobileBrowserServices: WikiService[] = [
       'Easy-to-use Shields toggle',
       'Available on both platforms'
     ],
-    privacyGuidesRecommended: true
+    privacyGuidesRecommended: true,
+    difficulty: 1
   },
   {
     id: 'firefox-mobile',
     name: 'Firefox (Mobile)',
     description: 'Mozilla\'s mobile browser. Full engine on Android with extension support.',
     homepage: 'https://mozilla.org/firefox/mobile',
-    privacyRating: 'recommended',
+    privacyRating: 'good',
     privacyNote: 'Full Firefox on Android with uBlock Origin support',
     privacyDetails: [
       'Extension support on Android (uBlock Origin)',
@@ -986,14 +1050,15 @@ const mobileBrowserServices: WikiService[] = [
       'WebKit on iOS (Apple requirement)',
       'Open source'
     ],
-    privacyGuidesRecommended: true
+    privacyGuidesRecommended: true,
+    difficulty: 1
   },
   {
     id: 'duckduckgo-browser',
     name: 'DuckDuckGo Browser',
     description: 'Privacy-focused browser from DuckDuckGo. Simple and effective.',
     homepage: 'https://duckduckgo.com/app',
-    privacyRating: 'recommended',
+    privacyRating: 'good',
     privacyNote: 'Simple privacy browser with fire button to clear data',
     privacyDetails: [
       'Tracker blocking built-in',
@@ -1002,14 +1067,15 @@ const mobileBrowserServices: WikiService[] = [
       'Simple and user-friendly',
       'Good for privacy beginners'
     ],
-    privacyGuidesRecommended: true
+    privacyGuidesRecommended: true,
+    difficulty: 1
   },
   {
     id: 'cromite',
     name: 'Cromite (Android)',
     description: 'Chromium fork with ad blocking and privacy enhancements. Android only.',
     homepage: 'https://github.com/nicofrom/nicofrom/releases',
-    privacyRating: 'recommended',
+    privacyRating: 'good',
     privacyNote: 'Hardened Chromium with built-in ad blocking',
     privacyDetails: [
       'Based on Chromium',
@@ -1018,7 +1084,8 @@ const mobileBrowserServices: WikiService[] = [
       'Android only',
       'Open source'
     ],
-    privacyGuidesRecommended: true
+    privacyGuidesRecommended: true,
+    difficulty: 2
   }
 ]
 
@@ -1026,27 +1093,28 @@ const mobileBrowserServices: WikiService[] = [
 // SEARCH ENGINES
 // =============================================================================
 
-const searchContent = `
-## Search Engines
-
-Your search queries reveal your interests, concerns, health issues, and deepest questions.
-Mainstream search engines log every search tied to your identity.
-
-### The Google Problem
-
-Google Search:
-- Logs every search you make
-- Links searches to your Google account
-- Builds detailed profiles for advertising
-- Tracks you across the web with Google Analytics
-
-### Privacy Alternatives
-
-Privacy-focused search engines either:
-- Don't log searches at all
-- Use their own independent index
-- Proxy results from Google without tracking
-`
+const searchIntro: WikiIntroSection = {
+  title: 'Search Engines',
+  description: 'Your search queries reveal your interests, concerns, health issues, and deepest questions. Mainstream search engines log every search tied to your identity.',
+  concerns: {
+    heading: 'The Google Problem',
+    points: [
+      'Logs every search query you make',
+      'Links searches to your Google account',
+      'Builds detailed profiles for advertising',
+      'Tracks you across the web with Google Analytics'
+    ]
+  },
+  benefits: {
+    heading: 'Privacy Alternatives',
+    points: [
+      'Do not log searches at all',
+      'Use independent search index (not Google/Bing)',
+      'Proxy results from Google without tracking',
+      'No advertising profiles built from your searches'
+    ]
+  }
+}
 
 const searchServices: WikiService[] = [
   // Mainstream Search Engines
@@ -1088,7 +1156,7 @@ const searchServices: WikiService[] = [
     name: 'DuckDuckGo',
     description: 'Popular private search engine. Doesn\'t track you or build profiles.',
     homepage: 'https://duckduckgo.com',
-    privacyRating: 'recommended',
+    privacyRating: 'good',
     privacyNote: 'Doesn\'t track you; good results using Bing index',
     privacyDetails: [
       'Doesn\'t log searches',
@@ -1097,14 +1165,15 @@ const searchServices: WikiService[] = [
       'Bangs for quick site searches',
       'Based in US but strong privacy focus'
     ],
-    privacyGuidesRecommended: true
+    privacyGuidesRecommended: true,
+    difficulty: 1
   },
   {
     id: 'brave-search',
     name: 'Brave Search',
     description: 'Independent search index. Doesn\'t track and has its own web index.',
     homepage: 'https://search.brave.com',
-    privacyRating: 'recommended',
+    privacyRating: 'good',
     privacyNote: 'Independent index without tracking',
     privacyDetails: [
       'Own independent search index',
@@ -1113,14 +1182,15 @@ const searchServices: WikiService[] = [
       'Goggles for custom ranking',
       'Growing in quality'
     ],
-    privacyGuidesRecommended: true
+    privacyGuidesRecommended: true,
+    difficulty: 1
   },
   {
     id: 'startpage',
     name: 'Startpage',
     description: 'Google results without tracking. Anonymous View for browsing sites privately.',
     homepage: 'https://startpage.com',
-    privacyRating: 'recommended',
+    privacyRating: 'good',
     privacyNote: 'Google results without the tracking',
     privacyDetails: [
       'Proxies Google results anonymously',
@@ -1129,14 +1199,15 @@ const searchServices: WikiService[] = [
       'Based in Netherlands (GDPR)',
       'Google-quality results privately'
     ],
-    privacyGuidesRecommended: true
+    privacyGuidesRecommended: true,
+    difficulty: 1
   },
   {
     id: 'searxng',
     name: 'SearXNG',
     description: 'Open-source metasearch engine. Can be self-hosted.',
     homepage: 'https://docs.searxng.org',
-    privacyRating: 'recommended',
+    privacyRating: 'good',
     privacyNote: 'Open source and self-hostable metasearch',
     privacyDetails: [
       'Aggregates results from multiple engines',
@@ -1145,7 +1216,8 @@ const searchServices: WikiService[] = [
       'No tracking',
       'Many public instances available'
     ],
-    privacyGuidesRecommended: true
+    privacyGuidesRecommended: true,
+    difficulty: 3
   }
 ]
 
@@ -1162,7 +1234,7 @@ export const WIKI_CATEGORIES: WikiCategory[] = [
     description: 'Compare email providers from Gmail to Proton Mail',
     privacyGuidesUrl: `${PRIVACY_GUIDES_BASE}/email/`,
     services: emailServices,
-    content: emailContent
+    intro: emailIntro
   },
   {
     id: 'cloud',
@@ -1172,7 +1244,7 @@ export const WIKI_CATEGORIES: WikiCategory[] = [
     description: 'Compare cloud storage from Google Drive to Proton Drive',
     privacyGuidesUrl: `${PRIVACY_GUIDES_BASE}/cloud/`,
     services: cloudServices,
-    content: cloudContent
+    intro: cloudIntro
   },
   {
     id: 'passwords',
@@ -1182,7 +1254,7 @@ export const WIKI_CATEGORIES: WikiCategory[] = [
     description: 'Compare password managers from Chrome to Bitwarden',
     privacyGuidesUrl: `${PRIVACY_GUIDES_BASE}/passwords/`,
     services: passwordServices,
-    content: passwordContent
+    intro: passwordIntro
   },
   {
     id: 'vpn',
@@ -1192,7 +1264,7 @@ export const WIKI_CATEGORIES: WikiCategory[] = [
     description: 'Compare VPN services from NordVPN to Mullvad',
     privacyGuidesUrl: `${PRIVACY_GUIDES_BASE}/vpn/`,
     services: vpnServices,
-    content: vpnContent
+    intro: vpnIntro
   },
   {
     id: 'messaging',
@@ -1202,7 +1274,7 @@ export const WIKI_CATEGORIES: WikiCategory[] = [
     description: 'Compare messaging from WhatsApp to Signal',
     privacyGuidesUrl: `${PRIVACY_GUIDES_BASE}/real-time-communication/`,
     services: messagingServices,
-    content: messagingContent
+    intro: messagingIntro
   },
   {
     id: 'desktop-browsers',
@@ -1212,7 +1284,7 @@ export const WIKI_CATEGORIES: WikiCategory[] = [
     description: 'Compare browsers from Chrome to Firefox',
     privacyGuidesUrl: `${PRIVACY_GUIDES_BASE}/desktop-browsers/`,
     services: desktopBrowserServices,
-    content: desktopBrowserContent
+    intro: desktopBrowserIntro
   },
   {
     id: 'mobile-browsers',
@@ -1222,7 +1294,7 @@ export const WIKI_CATEGORIES: WikiCategory[] = [
     description: 'Compare mobile browsers for iOS and Android',
     privacyGuidesUrl: `${PRIVACY_GUIDES_BASE}/mobile-browsers/`,
     services: mobileBrowserServices,
-    content: mobileBrowserContent
+    intro: mobileBrowserIntro
   },
   {
     id: 'search-engines',
@@ -1232,7 +1304,7 @@ export const WIKI_CATEGORIES: WikiCategory[] = [
     description: 'Compare search engines from Google to DuckDuckGo',
     privacyGuidesUrl: `${PRIVACY_GUIDES_BASE}/search-engines/`,
     services: searchServices,
-    content: searchContent
+    intro: searchIntro
   }
 ]
 
@@ -1333,7 +1405,7 @@ function findServiceAnchor(category: WikiCategory, answerValue: string): string 
  */
 export function getPrivacyRatingColor(rating: WikiService['privacyRating']): string {
   switch (rating) {
-    case 'recommended': return '#22c55e' // green
+    case 'good': return '#22c55e' // green
     case 'acceptable': return '#eab308'  // yellow
     case 'caution': return '#f97316'     // orange
     case 'avoid': return '#ef4444'       // red
@@ -1346,10 +1418,101 @@ export function getPrivacyRatingColor(rating: WikiService['privacyRating']): str
  */
 export function getPrivacyRatingLabel(rating: WikiService['privacyRating']): string {
   switch (rating) {
-    case 'recommended': return '✓ Recommended'
+    case 'good': return '✓ Good'
     case 'acceptable': return 'Acceptable'
     case 'caution': return '⚠ Caution'
     case 'avoid': return '✗ Avoid'
     default: return 'Unknown'
+  }
+}
+
+/**
+ * Get service by answer value from a category
+ * This enables unified lookup across Quiz, Dashboard, and Wiki
+ */
+export function getServiceByAnswerValue(categoryId: string, answerValue: string): WikiService | undefined {
+  const category = getWikiCategory(categoryId)
+  if (!category || !answerValue) return undefined
+  
+  const lowerAnswer = answerValue.toLowerCase()
+  
+  // Try exact ID match first
+  const exactMatch = category.services.find(s => s.id.toLowerCase() === lowerAnswer)
+  if (exactMatch) return exactMatch
+  
+  // Try partial ID match (e.g., 'protonmail' matches 'proton-mail')
+  const normalizedAnswer = lowerAnswer.replace(/[-_\s]/g, '')
+  const idMatch = category.services.find(s => {
+    const normalizedId = s.id.toLowerCase().replace(/[-_\s]/g, '')
+    return normalizedId === normalizedAnswer || normalizedId.includes(normalizedAnswer) || normalizedAnswer.includes(normalizedId)
+  })
+  if (idMatch) return idMatch
+  
+  // Try name match - only match significant parts (4+ chars to avoid false positives)
+  for (const service of category.services) {
+    const normalizedName = service.name.toLowerCase().replace(/[-_\s()]/g, '')
+    if (normalizedName.includes(normalizedAnswer) || normalizedAnswer.includes(normalizedName.slice(0, 6))) {
+      return service
+    }
+  }
+  
+  return undefined
+}
+
+/**
+ * Map quiz score to scoreClass (used in Dashboard tables)
+ * This ensures consistency between Quiz scores and visual display
+ */
+export function mapScoreToClass(score: number): 'good' | 'medium' | 'poor' {
+  if (score >= 80) return 'good'
+  if (score >= 60) return 'medium'
+  return 'poor'
+}
+
+/**
+ * Map privacy rating to scoreClass (used to unify Wiki and Dashboard)
+ */
+export function mapPrivacyRatingToScoreClass(rating: WikiService['privacyRating']): 'good' | 'medium' | 'poor' {
+  switch (rating) {
+    case 'good': return 'good'
+    case 'acceptable': return 'medium'
+    case 'caution': return 'poor'
+    case 'avoid': return 'poor'
+    default: return 'poor'
+  }
+}
+
+/**
+ * Map quiz score to privacy rating
+ * This enables unified display across all pages
+ */
+export function mapScoreToPrivacyRating(score: number): WikiService['privacyRating'] {
+  if (score >= 80) return 'good'
+  if (score >= 60) return 'acceptable'
+  if (score >= 40) return 'caution'
+  return 'avoid'
+}
+
+/**
+ * Get unified service info from answer value
+ * Returns rating, scoreClass, and other info for Dashboard/Wiki consistency
+ */
+export function getUnifiedServiceInfo(questionId: string, answerValue: string): {
+  name: string
+  rating: WikiService['privacyRating']
+  scoreClass: 'good' | 'medium' | 'poor'
+  privacyNote: string
+} | null {
+  const categoryId = getCategoryIdFromQuestionId(questionId)
+  if (!categoryId) return null
+  
+  const service = getServiceByAnswerValue(categoryId, answerValue)
+  if (!service) return null
+  
+  return {
+    name: service.name,
+    rating: service.privacyRating,
+    scoreClass: mapPrivacyRatingToScoreClass(service.privacyRating),
+    privacyNote: service.privacyNote
   }
 }

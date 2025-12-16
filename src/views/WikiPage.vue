@@ -54,91 +54,112 @@
       <aside class="wiki-sidebar card">
         <h3>Services</h3>
         <nav class="service-nav">
-          <a
-            v-for="service in category?.services"
+          <BaseButton
+            v-for="service in sortedServices"
             :key="service.id"
-            :href="`#${service.id}`"
-            class="service-nav-item"
-            :class="{ active: activeServiceId === service.id }"
-            @click.prevent="scrollToService(service.id)"
+            :variant="activeServiceId === service.id ? 'primary' : 'ghost'"
+            size="small"
+            class="service-nav-button"
+            :class="{ 
+              active: activeServiceId === service.id,
+              [`rating-${service.privacyRating}`]: true
+            }"
+            @click="scrollToService(service.id)"
           >
+            <span class="service-nav-indicator" :class="`rating-${service.privacyRating}`"></span>
             {{ service.name }}
-          </a>
+          </BaseButton>
         </nav>
       </aside>
 
       <main class="wiki-articles">
-        <section class="intro-section card">
-          <div class="markdown-content" v-html="renderedIntroContent"></div>
-          <a 
-            v-if="category?.privacyGuidesUrl"
-            :href="category.privacyGuidesUrl" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            class="privacy-guides-link"
-          >
-            📘 Read more on Privacy Guides →
-          </a>
+        <section class="intro-section card" v-if="category?.intro">
+          <div class="intro-header">
+            <div class="intro-text">
+              <h2 class="intro-title">{{ category.intro.title }}</h2>
+              <p class="intro-description">{{ category.intro.description }}</p>
+            </div>
+            <BaseButton
+              v-if="category?.privacyGuidesUrl"
+              variant="outline"
+              size="small"
+              :href="category.privacyGuidesUrl"
+              target="_blank"
+              class="privacy-guides-btn"
+            >
+              📘 Privacy Guides →
+            </BaseButton>
+          </div>
+          
+          <div class="intro-grid">
+            <div class="intro-block concerns">
+              <h4>{{ category.intro.concerns.heading }}</h4>
+              <ul>
+                <li v-for="point in category.intro.concerns.points" :key="point">{{ point }}</li>
+              </ul>
+            </div>
+            <div class="intro-block benefits">
+              <h4>{{ category.intro.benefits.heading }}</h4>
+              <ul>
+                <li v-for="point in category.intro.benefits.points" :key="point">{{ point }}</li>
+              </ul>
+            </div>
+          </div>
         </section>
 
-        <section
-          v-for="service in category?.services"
+        <article
+          v-for="service in sortedServices"
           :key="service.id"
           :id="service.id"
           class="service-article card"
-          :class="[`rating-${service.privacyRating}`]"
+          :class="[
+            `rating-${service.privacyRating}`,
+            { 'is-recommended': service.id === recommendedService?.id }
+          ]"
         >
           <div class="article-header">
             <div class="header-left">
               <h2 class="service-title">{{ service.name }}</h2>
+              <span v-if="service.id === recommendedService?.id" class="rec-badge">⭐ Recommended</span>
               <span 
                 class="privacy-badge" 
                 :style="{ backgroundColor: getPrivacyRatingColor(service.privacyRating) }"
               >
                 {{ getPrivacyRatingLabel(service.privacyRating) }}
               </span>
-              <span v-if="service.privacyGuidesRecommended" class="pg-badge" title="Recommended by Privacy Guides">
-                📘 Privacy Guides
-              </span>
+              <span v-if="service.privacyGuidesRecommended" class="pg-badge" title="Recommended by Privacy Guides">📘</span>
             </div>
-            <div class="article-actions">
-              <a
+            <div class="header-right">
+              <BaseButton
+                v-if="!isCurrentlyUsing(service.id)"
+                variant="ghost"
+                size="small"
+                @click="setCurrentService(service.id, service.name)"
+              >
+                I use this
+              </BaseButton>
+              <span v-else class="using-badge">✓ Using</span>
+              <BaseButton
                 v-if="service.homepage"
+                variant="outline"
+                size="small"
                 :href="service.homepage"
                 target="_blank"
-                rel="noopener noreferrer"
-                class="external-link"
               >
                 🔗 Website
-              </a>
+              </BaseButton>
             </div>
           </div>
           
           <p class="service-description">{{ service.description }}</p>
           
-          <div class="privacy-note">
-            <strong>Privacy:</strong> {{ service.privacyNote }}
-          </div>
-          
           <details class="privacy-details">
-            <summary>Privacy Details</summary>
+            <summary><strong>Privacy:</strong> {{ service.privacyNote }}</summary>
             <ul>
               <li v-for="detail in service.privacyDetails" :key="detail">{{ detail }}</li>
             </ul>
           </details>
-          
-          <div class="service-actions">
-            <BaseButton
-              v-if="!isCurrentlyUsing(service.id)"
-              variant="primary"
-              size="small"
-              @click="setCurrentService(service.id, service.name)"
-            >
-              I use this
-            </BaseButton>
-            <span v-else class="using-badge">✓ Currently using</span>
-          </div>
-        </section>
+        </article>
       </main>
     </div>
   </div>
@@ -199,21 +220,84 @@ const handleServiceChange = (value: string | number) => {
 }
 
 // Recommended service based on threat level
+// ONLY recommends privacy-respecting services (rating: 'recommended')
+// Matches difficulty level to threat model:
+// - Level 1 (Normie): difficulty 1 (easy to use) - e.g., Proton Pass
+// - Level 2 (Aware): difficulty 1-2 (balanced) - e.g., 1Password
+// - Level 3 (Activist): difficulty 2 (balanced security) - e.g., KeePassXC
+// - Level 4 (Ghost): difficulty 3 (maximum security) - e.g., Bitwarden self-hosted
 const recommendedService = computed<WikiService | null>(() => {
   if (!category.value) return null
   const threatLevel = displayThreatLevel.value
-  // Higher threat levels get higher-ranked services (first in list = best)
-  // For now, recommend the first service as our top pick
-  const services = category.value.services
-  if (threatLevel >= 3) {
-    // Ghost/Activist - recommend first (most private) option
-    return services[0] || null
+  
+  // ONLY consider services that are privacy-respecting (good rating)
+  const privacyServices = category.value.services.filter(
+    service => service.privacyRating === 'good' && service.difficulty !== undefined
+  )
+  
+  if (privacyServices.length === 0) return null
+  
+  // Determine target difficulty based on threat level
+  // Higher threat = prefer higher difficulty (more secure options)
+  let targetDifficulty: number
+  if (threatLevel >= 4) {
+    // Ghost - maximum security, prefer difficulty 3
+    targetDifficulty = 3
+  } else if (threatLevel === 3) {
+    // Activist - balanced advanced, prefer difficulty 2
+    targetDifficulty = 2
   } else if (threatLevel === 2) {
-    // Aware - still recommend top options
-    return services[0] || null
+    // Aware - balanced, prefer difficulty 1-2
+    targetDifficulty = 2
+  } else {
+    // Normie - easiest options
+    targetDifficulty = 1
   }
-  // Normie - recommend easier options (second in list if available)
-  return services[1] || services[0] || null
+  
+  // Find service matching target difficulty, or closest lower difficulty
+  const exactMatch = privacyServices.find(s => s.difficulty === targetDifficulty)
+  if (exactMatch) return exactMatch
+  
+  // Find closest match (prefer higher difficulty for higher threat levels)
+  const sortedByDifficulty = [...privacyServices].sort((a, b) => {
+    const aDiff = Math.abs((a.difficulty || 1) - targetDifficulty)
+    const bDiff = Math.abs((b.difficulty || 1) - targetDifficulty)
+    if (aDiff !== bDiff) return aDiff - bDiff
+    // For equal distance, prefer higher difficulty for higher threat levels
+    if (threatLevel >= 3) return (b.difficulty || 1) - (a.difficulty || 1)
+    return (a.difficulty || 1) - (b.difficulty || 1)
+  })
+  
+  return sortedByDifficulty[0] || null
+})
+
+// Sorted services: recommendation first, then all green (good), then orange (acceptable/caution), then red (avoid)
+const RATING_ORDER: Record<string, number> = {
+  'good': 0,         // green
+  'acceptable': 1,   // yellow/orange
+  'caution': 1,      // orange (same tier as acceptable)
+  'avoid': 2         // red
+}
+
+const sortedServices = computed(() => {
+  if (!category.value) return []
+  
+  const services = [...category.value.services]
+  const recId = recommendedService.value?.id
+  
+  return services.sort((a, b) => {
+    // Personal recommendation always first
+    if (a.id === recId) return -1
+    if (b.id === recId) return 1
+    
+    // Then sort by rating tier
+    const aOrder = RATING_ORDER[a.privacyRating] ?? 99
+    const bOrder = RATING_ORDER[b.privacyRating] ?? 99
+    if (aOrder !== bOrder) return aOrder - bOrder
+    
+    // Within same tier, sort alphabetically
+    return a.name.localeCompare(b.name)
+  })
 })
 
 // Check if a service is currently being used
@@ -239,26 +323,6 @@ const setCurrentService = (serviceId: string, serviceName: string) => {
     quizStore.saveAnswer({ questionId: category.value.questionId, answer: matchingOption.value })
   }
 }
-
-// Render markdown content (simple implementation)
-const renderedIntroContent = computed(() => {
-  if (!category.value) return ''
-  // Simple markdown to HTML conversion
-  return category.value.content
-    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-    .replace(/^### (.+)$/gm, '<h3>$1</h3>')
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/^\- (.+)$/gm, '<li>$1</li>')
-    .replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>')
-    .replace(/\n\n/g, '</p><p>')
-    .replace(/^(?!<[h|u|l])/gm, '<p>')
-    .replace(/(?<![>])$/gm, '</p>')
-    .replace(/<p><\/p>/g, '')
-    .replace(/<p><h/g, '<h')
-    .replace(/<\/h(\d)><\/p>/g, '</h$1>')
-    .replace(/<p><ul>/g, '<ul>')
-    .replace(/<\/ul><\/p>/g, '</ul>')
-})
 
 // Scroll to service section
 const scrollToService = (serviceId: string) => {
@@ -405,66 +469,197 @@ watch(category, (cat) => {
   gap: 0.25rem;
 }
 
-.service-nav-item {
+.service-nav-button {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.5rem;
+  width: 100%;
+  text-align: left;
+  font-size: 0.875rem;
   padding: 0.5rem 0.75rem;
   border-radius: 6px;
-  color: var(--color-text);
-  text-decoration: none;
-  font-size: 0.875rem;
-  transition: background-color 0.15s ease;
+  transition: all 0.15s ease;
 }
 
-.service-nav-item:hover {
-  background: var(--color-bg-hover);
+.service-nav-button:not(.active):hover {
+  background: var(--color-bg-hover, rgba(99, 102, 241, 0.1));
 }
 
-.service-nav-item.active {
-  background: var(--color-primary);
-  color: white;
+.service-nav-button.active {
+  font-weight: 600;
+}
+
+.service-nav-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.service-nav-indicator.rating-good {
+  background-color: #22c55e;
+}
+
+.service-nav-indicator.rating-acceptable {
+  background-color: #eab308;
+}
+
+.service-nav-indicator.rating-caution {
+  background-color: #f97316;
+}
+
+.service-nav-indicator.rating-avoid {
+  background-color: #ef4444;
 }
 
 .wiki-articles {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1rem;
 }
 
 .intro-section {
-  padding: 1.5rem;
+  padding: 1.25rem;
 }
 
-.markdown-content h2 {
-  margin: 0 0 1rem;
-  font-size: 1.5rem;
+.intro-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1rem;
 }
 
-.markdown-content h3 {
-  margin: 1.5rem 0 0.75rem;
-  font-size: 1.125rem;
+.intro-text {
+  flex: 1;
 }
 
-.markdown-content p {
-  margin: 0 0 1rem;
-  line-height: 1.6;
+.intro-title {
+  margin: 0 0 0.25rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary, #111827);
 }
 
-.markdown-content ul {
-  margin: 0 0 1rem;
-  padding-left: 1.5rem;
-}
-
-.markdown-content li {
-  margin-bottom: 0.5rem;
+.intro-description {
+  margin: 0;
+  font-size: 0.9rem;
   line-height: 1.5;
+  color: var(--text-secondary, #6b7280);
+}
+
+.privacy-guides-btn {
+  flex-shrink: 0;
+}
+
+.intro-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.intro-block {
+  padding: 1rem;
+  border-radius: 10px;
+}
+
+.intro-block.concerns {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.08), rgba(239, 68, 68, 0.03));
+  border: 1px solid rgba(239, 68, 68, 0.15);
+}
+
+.intro-block.benefits {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.08), rgba(34, 197, 94, 0.03));
+  border: 1px solid rgba(34, 197, 94, 0.15);
+}
+
+.intro-block h4 {
+  margin: 0 0 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.intro-block.concerns h4 {
+  color: #dc2626;
+}
+
+.intro-block.benefits h4 {
+  color: #16a34a;
+}
+
+.intro-block ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.intro-block li {
+  position: relative;
+  padding-left: 1rem;
+  margin-bottom: 0.25rem;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--text-secondary, #6b7280);
+}
+
+.intro-block li:last-child {
+  margin-bottom: 0;
+}
+
+.intro-block li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.5rem;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.intro-block.concerns li::before {
+  background-color: #ef4444;
+}
+
+.intro-block.benefits li::before {
+  background-color: #22c55e;
 }
 
 .service-article {
-  padding: 1.5rem;
-  scroll-margin-top: 1rem;
+  padding: 1rem 1.25rem;
+  scroll-margin-top: 6rem;
   border-left: 4px solid transparent;
+  transition: all 0.2s ease;
 }
 
-.service-article.rating-recommended {
+.service-article.is-recommended {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(99, 102, 241, 0.02));
+  border-radius: 12px;
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  border-left: 4px solid var(--color-primary, #6366f1);
+}
+
+.rec-badge {
+  display: inline-flex;
+  align-items: center;
+  background: linear-gradient(135deg, var(--color-primary, #6366f1), #8b5cf6);
+  color: white;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.service-article.rating-good:not(.is-recommended) {
   border-left-color: #22c55e;
 }
 
@@ -483,22 +678,23 @@ watch(category, (cat) => {
 .article-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 1rem;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  gap: 0.75rem;
 }
 
 .header-left {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
   flex-wrap: wrap;
+  min-width: 0;
 }
 
 .service-title {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: 1.1rem;
+  white-space: nowrap;
 }
 
 .privacy-badge {
@@ -522,88 +718,56 @@ watch(category, (cat) => {
   color: white;
 }
 
-.privacy-note {
-  margin: 1rem 0;
-  padding: 0.75rem;
-  background: var(--color-bg-secondary, #f3f4f6);
-  border-radius: 6px;
-  font-size: 0.9rem;
-}
-
 .privacy-details {
-  margin: 1rem 0;
-  padding: 0.5rem 0;
+  margin: 0.5rem 0 0;
+  padding: 0;
 }
 
 .privacy-details summary {
   cursor: pointer;
-  font-weight: 500;
-  color: var(--color-primary);
-  padding: 0.5rem 0;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  padding: 0.25rem 0;
 }
 
 .privacy-details summary:hover {
-  text-decoration: underline;
+  color: var(--color-primary);
+}
+
+.privacy-details summary strong {
+  color: var(--color-text);
+}
+
+.privacy-details[open] summary {
+  margin-bottom: 0.5rem;
 }
 
 .privacy-details ul {
-  margin: 0.75rem 0 0;
+  margin: 0;
   padding-left: 1.25rem;
 }
 
 .privacy-details li {
-  margin-bottom: 0.375rem;
-  font-size: 0.9rem;
+  margin-bottom: 0.25rem;
+  font-size: 0.8rem;
   color: var(--color-text-muted);
 }
 
-.privacy-guides-link {
-  display: inline-block;
-  margin-top: 1rem;
-  padding: 0.75rem 1rem;
-  background: var(--color-primary);
-  color: white;
-  border-radius: 6px;
-  text-decoration: none;
-  font-weight: 500;
-  transition: opacity 0.15s;
-}
-
-.privacy-guides-link:hover {
-  opacity: 0.9;
-}
-
-.external-link {
-  font-size: 0.875rem;
-  color: var(--color-primary);
-  text-decoration: none;
-}
-
-.external-link:hover {
-  text-decoration: underline;
-}
-
 .service-description {
-  margin: 0 0 1rem;
-  line-height: 1.6;
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
   color: var(--color-text);
-}
-
-.service-actions {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
 }
 
 .using-badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-  padding: 0.375rem 0.75rem;
-  background: var(--color-success-bg, #d4edda);
-  color: var(--color-success, #155724);
+  padding: 0.25rem 0.5rem;
+  background: var(--color-success-bg, #dcfce7);
+  color: var(--color-success, #166534);
   border-radius: 4px;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   font-weight: 500;
 }
 
