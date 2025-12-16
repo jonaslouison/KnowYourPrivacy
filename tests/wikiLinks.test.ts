@@ -4,7 +4,17 @@
  */
 
 import { describe, it, expect } from 'vitest'
-import { getAllExternalLinks, WIKI_CATEGORIES, getPrivacyRatingColor, getPrivacyRatingLabel } from '../src/data/wiki'
+import { 
+    getAllExternalLinks, 
+    WIKI_CATEGORIES, 
+    getPrivacyRatingColor, 
+    getPrivacyRatingLabel,
+    mapScoreToClass,
+    mapScoreToPrivacyRating,
+    mapPrivacyRatingToScoreClass,
+    getServiceByAnswerValue,
+    getUnifiedServiceInfo
+} from '../src/data/wiki'
 
 describe('Wiki Data Structure', () => {
     it('should have all required categories', () => {
@@ -91,6 +101,66 @@ describe('Helper Functions', () => {
     })
 })
 
+describe('Recommendation Logic', () => {
+    it('all recommended services should have difficulty field', () => {
+        for (const category of WIKI_CATEGORIES) {
+            const recommendedServices = category.services.filter(
+                s => s.privacyRating === 'recommended'
+            )
+            
+            for (const service of recommendedServices) {
+                expect(service.difficulty, 
+                    `Service ${service.name} in ${category.id} is missing difficulty field`
+                ).toBeDefined()
+                expect([1, 2, 3]).toContain(service.difficulty)
+            }
+        }
+    })
+
+    it('non-recommended services should NOT have difficulty field', () => {
+        for (const category of WIKI_CATEGORIES) {
+            const nonRecommendedServices = category.services.filter(
+                s => s.privacyRating !== 'recommended'
+            )
+            
+            for (const service of nonRecommendedServices) {
+                expect(service.difficulty, 
+                    `Non-recommended service ${service.name} should not have difficulty`
+                ).toBeUndefined()
+            }
+        }
+    })
+
+    it('each category should have at least one difficulty 1 service', () => {
+        for (const category of WIKI_CATEGORIES) {
+            const easyServices = category.services.filter(
+                s => s.privacyRating === 'recommended' && s.difficulty === 1
+            )
+            
+            expect(easyServices.length, 
+                `Category ${category.id} has no easy (difficulty 1) recommended services`
+            ).toBeGreaterThan(0)
+        }
+    })
+
+    it('mainstream services should have caution or avoid rating', () => {
+        const mainstreamNames = ['gmail', 'outlook', 'google drive', 'dropbox', 'chrome', 'whatsapp', 'google search']
+        
+        for (const category of WIKI_CATEGORIES) {
+            for (const service of category.services) {
+                const isMainstream = mainstreamNames.some(
+                    name => service.name.toLowerCase().includes(name)
+                )
+                
+                if (isMainstream) {
+                    expect(['caution', 'avoid']).toContain(service.privacyRating)
+                    expect(service.difficulty).toBeUndefined()
+                }
+            }
+        }
+    })
+})
+
 describe('External Link Validation', () => {
     // This test can be slow, skip in normal test runs
     // Run with: npx vitest run tests/wikiLinks.test.ts --testNamePattern="should be valid URLs"
@@ -104,6 +174,91 @@ describe('External Link Validation', () => {
                 new URL(url)
             } catch {
                 throw new Error(`Invalid URL for ${description}: ${url}`)
+            }
+        }
+    })
+})
+
+describe('Unified Rating System', () => {
+    it('mapScoreToClass should map scores correctly', () => {
+        expect(mapScoreToClass(100)).toBe('good')
+        expect(mapScoreToClass(80)).toBe('good')
+        expect(mapScoreToClass(79)).toBe('medium')
+        expect(mapScoreToClass(60)).toBe('medium')
+        expect(mapScoreToClass(59)).toBe('poor')
+        expect(mapScoreToClass(0)).toBe('poor')
+    })
+
+    it('mapScoreToPrivacyRating should map scores correctly', () => {
+        expect(mapScoreToPrivacyRating(100)).toBe('recommended')
+        expect(mapScoreToPrivacyRating(80)).toBe('recommended')
+        expect(mapScoreToPrivacyRating(79)).toBe('acceptable')
+        expect(mapScoreToPrivacyRating(60)).toBe('acceptable')
+        expect(mapScoreToPrivacyRating(59)).toBe('caution')
+        expect(mapScoreToPrivacyRating(40)).toBe('caution')
+        expect(mapScoreToPrivacyRating(39)).toBe('avoid')
+        expect(mapScoreToPrivacyRating(0)).toBe('avoid')
+    })
+
+    it('mapPrivacyRatingToScoreClass should map ratings correctly', () => {
+        expect(mapPrivacyRatingToScoreClass('recommended')).toBe('good')
+        expect(mapPrivacyRatingToScoreClass('acceptable')).toBe('medium')
+        expect(mapPrivacyRatingToScoreClass('caution')).toBe('poor')
+        expect(mapPrivacyRatingToScoreClass('avoid')).toBe('poor')
+    })
+
+    it('getServiceByAnswerValue should find services by quiz answer values', () => {
+        // Test email lookup
+        const gmail = getServiceByAnswerValue('email', 'gmail')
+        expect(gmail).toBeDefined()
+        expect(gmail?.name).toBe('Gmail')
+        
+        const proton = getServiceByAnswerValue('email', 'protonmail')
+        expect(proton).toBeDefined()
+        expect(proton?.name).toBe('Proton Mail')
+        
+        // Test browser lookup
+        const chrome = getServiceByAnswerValue('desktop-browsers', 'chrome')
+        expect(chrome).toBeDefined()
+        expect(chrome?.privacyRating).toBe('avoid')
+        
+        const firefox = getServiceByAnswerValue('desktop-browsers', 'firefox')
+        expect(firefox).toBeDefined()
+        expect(firefox?.privacyRating).toBe('recommended')
+    })
+
+    it('getUnifiedServiceInfo should return unified service info', () => {
+        const gmailInfo = getUnifiedServiceInfo('email-provider', 'gmail')
+        expect(gmailInfo).toBeDefined()
+        expect(gmailInfo?.rating).toBe('avoid')
+        expect(gmailInfo?.scoreClass).toBe('poor')
+        
+        const protonInfo = getUnifiedServiceInfo('email-provider', 'protonmail')
+        expect(protonInfo).toBeDefined()
+        expect(protonInfo?.rating).toBe('recommended')
+        expect(protonInfo?.scoreClass).toBe('good')
+    })
+
+    it('quiz score classes should align with wiki privacy ratings', () => {
+        // Verify the scoring thresholds align:
+        // Quiz: score >= 80 = 'good', 60-79 = 'medium', <60 = 'poor'
+        // Wiki: recommended = 'good', acceptable = 'medium', caution/avoid = 'poor'
+        
+        // High privacy score services should have 'recommended' rating
+        for (const category of WIKI_CATEGORIES) {
+            const recommendedServices = category.services.filter(s => s.privacyRating === 'recommended')
+            for (const service of recommendedServices) {
+                const scoreClass = mapPrivacyRatingToScoreClass(service.privacyRating)
+                expect(scoreClass).toBe('good')
+            }
+        }
+        
+        // Low privacy services should map to 'poor' scoreClass
+        for (const category of WIKI_CATEGORIES) {
+            const avoidServices = category.services.filter(s => s.privacyRating === 'avoid')
+            for (const service of avoidServices) {
+                const scoreClass = mapPrivacyRatingToScoreClass(service.privacyRating)
+                expect(scoreClass).toBe('poor')
             }
         }
     })

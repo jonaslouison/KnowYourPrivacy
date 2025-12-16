@@ -1,12 +1,16 @@
 <template>
-    <button
-        :type="buttonType"
+    <component
+        :is="href ? 'a' : 'button'"
+        :type="!href ? buttonType : undefined"
+        :href="href"
+        :target="href ? target : undefined"
+        :rel="href && target === '_blank' ? 'noopener noreferrer' : undefined"
         :class="buttonClasses"
-        :disabled="disabled"
+        :disabled="disabled && !href"
         @click="$emit('click', $event)"
     >
         <slot />
-    </button>
+    </component>
 </template>
 
 <script setup lang="ts">
@@ -25,6 +29,14 @@ const props = defineProps({
     type: {
         type: String as PropType<'button' | 'submit' | 'reset'>,
         default: 'button'
+    },
+    href: {
+        type: String,
+        default: undefined
+    },
+    target: {
+        type: String,
+        default: undefined
     }
 })
 
