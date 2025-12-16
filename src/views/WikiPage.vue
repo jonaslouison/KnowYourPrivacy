@@ -70,6 +70,15 @@
       <main class="wiki-articles">
         <section class="intro-section card">
           <div class="markdown-content" v-html="renderedIntroContent"></div>
+          <a 
+            v-if="category?.privacyGuidesUrl"
+            :href="category.privacyGuidesUrl" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            class="privacy-guides-link"
+          >
+            📘 Read more on Privacy Guides →
+          </a>
         </section>
 
         <section
@@ -77,9 +86,21 @@
           :key="service.id"
           :id="service.id"
           class="service-article card"
+          :class="[`rating-${service.privacyRating}`]"
         >
           <div class="article-header">
-            <h2 class="service-title">{{ service.name }}</h2>
+            <div class="header-left">
+              <h2 class="service-title">{{ service.name }}</h2>
+              <span 
+                class="privacy-badge" 
+                :style="{ backgroundColor: getPrivacyRatingColor(service.privacyRating) }"
+              >
+                {{ getPrivacyRatingLabel(service.privacyRating) }}
+              </span>
+              <span v-if="service.privacyGuidesRecommended" class="pg-badge" title="Recommended by Privacy Guides">
+                📘 Privacy Guides
+              </span>
+            </div>
             <div class="article-actions">
               <a
                 v-if="service.homepage"
@@ -88,11 +109,24 @@
                 rel="noopener noreferrer"
                 class="external-link"
               >
-                🔗 Homepage
+                🔗 Website
               </a>
             </div>
           </div>
+          
           <p class="service-description">{{ service.description }}</p>
+          
+          <div class="privacy-note">
+            <strong>Privacy:</strong> {{ service.privacyNote }}
+          </div>
+          
+          <details class="privacy-details">
+            <summary>Privacy Details</summary>
+            <ul>
+              <li v-for="detail in service.privacyDetails" :key="detail">{{ detail }}</li>
+            </ul>
+          </details>
+          
           <div class="service-actions">
             <BaseButton
               v-if="!isCurrentlyUsing(service.id)"
@@ -100,7 +134,7 @@
               size="small"
               @click="setCurrentService(service.id, service.name)"
             >
-              Set as current
+              I use this
             </BaseButton>
             <span v-else class="using-badge">✓ Currently using</span>
           </div>
@@ -116,7 +150,7 @@ import { useRoute, useRouter } from 'vue-router'
 import BaseButton from '../components/BaseButton.vue'
 import BaseDropdown from '../components/BaseDropdown.vue'
 import { useQuizStore } from '../stores/quiz'
-import { getWikiCategory, type WikiCategory, type WikiService } from '../data/wiki'
+import { getWikiCategory, getPrivacyRatingColor, getPrivacyRatingLabel, type WikiCategory, type WikiService } from '../data/wiki'
 
 const route = useRoute()
 const router = useRouter()
@@ -427,18 +461,116 @@ watch(category, (cat) => {
 .service-article {
   padding: 1.5rem;
   scroll-margin-top: 1rem;
+  border-left: 4px solid transparent;
+}
+
+.service-article.rating-recommended {
+  border-left-color: #22c55e;
+}
+
+.service-article.rating-acceptable {
+  border-left-color: #eab308;
+}
+
+.service-article.rating-caution {
+  border-left-color: #f97316;
+}
+
+.service-article.rating-avoid {
+  border-left-color: #ef4444;
 }
 
 .article-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
 .service-title {
   margin: 0;
   font-size: 1.25rem;
+}
+
+.privacy-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: white;
+}
+
+.pg-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.5rem;
+  background: #3b82f6;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: white;
+}
+
+.privacy-note {
+  margin: 1rem 0;
+  padding: 0.75rem;
+  background: var(--color-bg-secondary, #f3f4f6);
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.privacy-details {
+  margin: 1rem 0;
+  padding: 0.5rem 0;
+}
+
+.privacy-details summary {
+  cursor: pointer;
+  font-weight: 500;
+  color: var(--color-primary);
+  padding: 0.5rem 0;
+}
+
+.privacy-details summary:hover {
+  text-decoration: underline;
+}
+
+.privacy-details ul {
+  margin: 0.75rem 0 0;
+  padding-left: 1.25rem;
+}
+
+.privacy-details li {
+  margin-bottom: 0.375rem;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}
+
+.privacy-guides-link {
+  display: inline-block;
+  margin-top: 1rem;
+  padding: 0.75rem 1rem;
+  background: var(--color-primary);
+  color: white;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: 500;
+  transition: opacity 0.15s;
+}
+
+.privacy-guides-link:hover {
+  opacity: 0.9;
 }
 
 .external-link {
