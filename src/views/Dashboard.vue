@@ -135,14 +135,30 @@
                         </thead>
                         <tbody>
                             <tr v-for="service in generalServicesRows" :key="service.questionId">
-                                <td>{{ service.label }}</td>
+                                <td class="category-cell">
+                                    <router-link 
+                                        :to="`/wiki/${getCategoryIdFromQuestionId(service.questionId)}`"
+                                        class="category-link"
+                                    >
+                                        {{ service.label }}
+                                        <span class="link-icon">→</span>
+                                    </router-link>
+                                </td>
                                 <td class="currently-using-cell">
-                                    <BaseDropdown
-                                        :model-value="getCurrentAnswerValue(service.questionId)"
-                                        :options="getDropdownOptions(service.questionId)"
-                                        placeholder="Awaiting response"
-                                        @update:modelValue="(value) => handleGeneralOptionChange(service.questionId, value)"
-                                    />
+                                    <div class="dropdown-with-link">
+                                        <BaseDropdown
+                                            :model-value="getCurrentAnswerValue(service.questionId)"
+                                            :options="getDropdownOptions(service.questionId)"
+                                            placeholder="Awaiting response"
+                                            @update:modelValue="(value) => handleGeneralOptionChange(service.questionId, value)"
+                                        />
+                                        <router-link
+                                            v-if="getServiceWikiLink(service.questionId)"
+                                            :to="getServiceWikiLink(service.questionId)!"
+                                            class="service-hash-link"
+                                            title="View service details"
+                                        >#</router-link>
+                                    </div>
                                 </td>
                                 <td>
                                     <span class="badge" :class="service.scoreClass">{{ service.scoreLabel }}</span>
@@ -189,14 +205,30 @@
                         </thead>
                         <tbody>
                             <tr v-for="row in deviceSpecificRows" :key="row.questionId">
-                                <td>{{ row.label }}</td>
+                                <td class="category-cell">
+                                    <router-link 
+                                        :to="getDeviceWikiPath(row.questionId)"
+                                        class="category-link"
+                                    >
+                                        {{ row.label }}
+                                        <span class="link-icon">→</span>
+                                    </router-link>
+                                </td>
                                 <td class="currently-using-cell">
-                                    <BaseDropdown
-                                        :model-value="getCurrentAnswerValue(row.questionId)"
-                                        :options="getDropdownOptions(row.questionId)"
-                                        placeholder="Awaiting response"
-                                        @update:modelValue="(value) => handleDeviceOptionChange(row.questionId, value)"
-                                    />
+                                    <div class="dropdown-with-link">
+                                        <BaseDropdown
+                                            :model-value="getCurrentAnswerValue(row.questionId)"
+                                            :options="getDropdownOptions(row.questionId)"
+                                            placeholder="Awaiting response"
+                                            @update:modelValue="(value) => handleDeviceOptionChange(row.questionId, value)"
+                                        />
+                                        <router-link
+                                            v-if="getDeviceServiceWikiLink(row.questionId)"
+                                            :to="getDeviceServiceWikiLink(row.questionId)!"
+                                            class="service-hash-link"
+                                            title="View service details"
+                                        >#</router-link>
+                                    </div>
                                 </td>
                                 <td>
                                     <span class="badge" :class="row.scoreClass">{{ row.scoreLabel }}</span>
@@ -335,6 +367,7 @@ import BaseModal from '../components/BaseModal.vue'
 import BaseTierlist from '../components/BaseTierlist.vue'
 import BaseDropdown from '../components/BaseDropdown.vue'
 import type { DeviceType } from '../data/devices'
+import { getCategoryIdFromQuestionId, getServiceAnchorFromAnswer, getServiceAnchorFromCategoryId } from '../data/wiki'
 import {
     formatThreatTierEntry,
     parseThreatTierAnswerValue,
@@ -457,7 +490,7 @@ const threatLevelDropdownOptions = computed(() =>
 const privacyScoreNormalized = computed(() => quizStore.privacyScoreNormalized)
 const privacyScoreDisplay = computed(() => privacyScoreNormalized.value.toFixed(1))
 const deviceRows = computed(() => quizStore.getDeviceSetup(selectedDevice.value))
-const deviceSpecificRows = computed(() => deviceRows.value.filter((row) => !GENERAL_SERVICE_QUESTION_IDS.includes(row.questionId)))
+const deviceSpecificRows = computed(() => deviceRows.value.filter((row) => !(GENERAL_SERVICE_QUESTION_IDS as readonly string[]).includes(row.questionId)))
 const selectedDeviceRating = computed(() => quizStore.getDeviceRatingNormalized(selectedDevice.value))
 const deviceLabel = computed(() => {
     if (selectedDevice.value === 'pc') return 'Desktop'
@@ -491,6 +524,39 @@ const resetThreatLevel = () => {
 
 const selectDevice = (device: DeviceType) => {
     selectedDevice.value = device
+}
+
+const getDeviceWikiPath = (questionId: string): string => {
+    // Map device-specific question IDs to appropriate wiki categories
+    if (questionId.includes('os-desktop')) return '/wiki/os-desktop'
+    if (questionId.includes('os-mobile') || questionId.includes('os-tablet')) return '/wiki/os-mobile'
+    if (questionId.includes('browser-desktop')) return '/wiki/desktop-browsers'
+    if (questionId.includes('browser-mobile')) return '/wiki/mobile-browsers'
+    if (questionId.includes('search-engine')) return '/wiki/search-engines'
+    // Fallback to generic category lookup
+    const categoryId = getCategoryIdFromQuestionId(questionId)
+    return categoryId ? `/wiki/${categoryId}` : '/dashboard'
+}
+
+const getServiceWikiLink = (questionId: string): string | null => {
+    const answerValue = getCurrentAnswerValue(questionId)
+    if (!answerValue) return null
+    const categoryId = getCategoryIdFromQuestionId(questionId)
+    if (!categoryId) return null
+    const serviceAnchor = getServiceAnchorFromAnswer(questionId, answerValue)
+    if (!serviceAnchor) return `/wiki/${categoryId}`
+    return `/wiki/${categoryId}#${serviceAnchor}`
+}
+
+const getDeviceServiceWikiLink = (questionId: string): string | null => {
+    const answerValue = getCurrentAnswerValue(questionId)
+    if (!answerValue) return null
+    const wikiPath = getDeviceWikiPath(questionId)
+    // Extract categoryId from path for service lookup
+    const categoryId = wikiPath.replace('/wiki/', '')
+    const serviceAnchor = getServiceAnchorFromCategoryId(categoryId, answerValue)
+    if (!serviceAnchor) return wikiPath
+    return `${wikiPath}#${serviceAnchor}`
 }
 
 const getQuestionOptions = (questionId: string) => {
@@ -873,6 +939,15 @@ const cancelDelete = () => {
 
 .score-panel .priority-actions {
     margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.priority-actions h3 {
+    margin: 0 0 1rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
 }
 
 .threat-body {
@@ -898,10 +973,58 @@ const cancelDelete = () => {
 }
 
 .priority-actions li {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.75rem 1rem;
+    align-items: start;
     border: 1px solid var(--border-color);
-    border-radius: 12px;
+    border-left: 4px solid var(--warning, #f59e0b);
+    border-radius: 8px;
     padding: 1rem;
     background: var(--card-bg);
+}
+
+.priority-actions li.muted {
+    border-left-color: var(--success, #22c55e);
+    color: var(--text-muted);
+    font-style: italic;
+    display: block;
+}
+
+.priority-label {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    grid-column: 1 / -1;
+}
+
+.priority-label .icon {
+    font-size: 1.25rem;
+    line-height: 1;
+}
+
+.priority-label strong {
+    display: block;
+    font-size: 0.9375rem;
+    color: var(--text-primary);
+}
+
+.priority-label small {
+    display: block;
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    margin-top: 0.125rem;
+}
+
+.priority-actions .recommendation {
+    grid-column: 1 / -1;
+    margin: 0;
+    padding: 0.75rem;
+    background: var(--bg-secondary, #f8f9fa);
+    border-radius: 6px;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
 }
 
 .device-setup {
@@ -922,6 +1045,64 @@ const cancelDelete = () => {
     text-align: left;
     padding: 0.75rem;
     border-bottom: 1px solid var(--border-color);
+}
+
+.category-cell {
+    min-width: 140px;
+}
+
+.category-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    color: var(--primary, #6366f1);
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.15s ease;
+}
+
+.category-link:hover {
+    color: var(--primary-hover, #4f46e5);
+    text-decoration: underline;
+}
+
+.category-link .link-icon {
+    opacity: 0.6;
+    transform: translateX(0);
+    transition: opacity 0.15s ease, transform 0.15s ease;
+    font-size: 0.875rem;
+}
+
+.category-link:hover .link-icon {
+    opacity: 1;
+    transform: translateX(2px);
+}
+
+.dropdown-with-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.service-hash-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 6px;
+    background: transparent;
+    border: 2px solid var(--primary, #6366f1);
+    color: var(--primary, #6366f1);
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 0.875rem;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.service-hash-link:hover {
+    background: var(--primary, #6366f1);
+    color: white;
 }
 
 .table-section {
