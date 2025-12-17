@@ -1222,6 +1222,430 @@ const searchServices: WikiService[] = [
 ]
 
 // =============================================================================
+// DESKTOP OPERATING SYSTEMS
+// =============================================================================
+
+const desktopOsIntro: WikiIntroSection = {
+  title: 'Desktop Operating Systems',
+  description: 'Your operating system is the foundation of your digital privacy. It controls what data is collected, how apps behave, and what telemetry is sent to the vendor.',
+  concerns: {
+    heading: 'Privacy Concerns with Mainstream Operating Systems',
+    points: [
+      'Built-in telemetry sends usage data to vendors',
+      'Default settings often prioritize convenience over privacy',
+      'Integration with cloud services can expose personal data',
+      'Advertising IDs and tracking mechanisms built into the system'
+    ]
+  },
+  benefits: {
+    heading: 'What Privacy-Focused Operating Systems Offer',
+    points: [
+      'Minimal or no telemetry - your usage stays private',
+      'Open source code - independently verifiable security',
+      'User control - you decide what data leaves your device',
+      'Strong isolation - compartmentalization of apps and data'
+    ]
+  }
+}
+
+const desktopOsServices: WikiService[] = [
+  // Windows
+  {
+    id: 'windows',
+    name: 'Windows 11/10',
+    description: 'Microsoft\'s mainstream operating system, widely used for gaming, productivity, and general computing.',
+    homepage: 'https://www.microsoft.com/windows',
+    privacyRating: 'caution',
+    privacyNote: 'Extensive telemetry and data collection enabled by default',
+    privacyDetails: [
+      'Telemetry cannot be fully disabled in Home edition',
+      'Advertising ID used for targeted advertising',
+      'Cortana and Bing integration collect usage data',
+      'OneDrive backup enabled by default on new installations',
+      'Recall feature can screenshot everything you see',
+      'Privacy can be improved with Group Policy settings (Pro/Enterprise)'
+    ],
+    privacyGuidesRecommended: false
+  },
+  // macOS
+  {
+    id: 'macos',
+    name: 'macOS',
+    description: 'Apple\'s desktop operating system for Mac computers, offering strong hardware-software integration and security features.',
+    homepage: 'https://www.apple.com/macos',
+    privacyRating: 'acceptable',
+    privacyNote: 'Better than Windows but still has telemetry concerns',
+    privacyDetails: [
+      'App revocation checks (OCSP) reveal which apps you open',
+      'iCloud integration stores data on Apple servers by default',
+      'Siri and Spotlight can send data to Apple',
+      'Advanced Data Protection encrypts most iCloud data E2E',
+      'FileVault provides strong disk encryption',
+      'Gatekeeper and XProtect provide malware protection'
+    ],
+    privacyGuidesRecommended: false
+  },
+  // Linux - General
+  {
+    id: 'linux',
+    name: 'Linux (Ubuntu, Fedora, etc.)',
+    description: 'Open-source operating system family with many distributions, offering maximum user control and privacy.',
+    homepage: 'https://kernel.org',
+    privacyRating: 'good',
+    privacyNote: 'Open source with minimal telemetry and maximum user control',
+    privacyDetails: [
+      'Most distributions have no telemetry',
+      'Open source - fully auditable code',
+      'Full disk encryption with LUKS',
+      'User controls all aspects of the system',
+      'Flatpak provides app sandboxing',
+      'Rolling release distros get faster security updates'
+    ],
+    privacyGuidesRecommended: true,
+    difficulty: 2
+  },
+  // Fedora
+  {
+    id: 'fedora',
+    name: 'Fedora Workstation',
+    description: 'A cutting-edge Linux distribution sponsored by Red Hat, known for security and latest software.',
+    homepage: 'https://fedoraproject.org',
+    privacyRating: 'good',
+    privacyNote: 'Privacy-focused with SELinux and modern security features',
+    privacyDetails: [
+      'SELinux mandatory access control enabled by default',
+      'ZRAM instead of swap for sensitive memory data',
+      'Regular security updates',
+      'Wayland display server for better isolation',
+      'Microcode updates included by default',
+      'Strong community and Red Hat backing'
+    ],
+    privacyGuidesRecommended: true,
+    difficulty: 2
+  },
+  // Fedora Silverblue
+  {
+    id: 'fedora-silverblue',
+    name: 'Fedora Silverblue',
+    description: 'An immutable variant of Fedora with atomic updates and container-based app delivery.',
+    homepage: 'https://fedoraproject.org/silverblue',
+    privacyRating: 'good',
+    privacyNote: 'Immutable system with atomic updates for reliability and security',
+    privacyDetails: [
+      'Immutable base system prevents tampering',
+      'Atomic updates can be rolled back',
+      'Apps run in Flatpak containers',
+      'All Fedora security features included',
+      'OSTree-based updates',
+      'Great for security-conscious users'
+    ],
+    privacyGuidesRecommended: true,
+    difficulty: 3
+  },
+  // openSUSE Tumbleweed
+  {
+    id: 'opensuse-tumbleweed',
+    name: 'openSUSE Tumbleweed',
+    description: 'A rolling-release Linux distribution with advanced YaST configuration and Btrfs snapshots.',
+    homepage: 'https://www.opensuse.org/tumbleweed',
+    privacyRating: 'good',
+    privacyNote: 'Rolling release with strong security defaults',
+    privacyDetails: [
+      'SELinux or AppArmor available',
+      'Btrfs snapshots for system recovery',
+      'Rolling release for latest security fixes',
+      'YaST provides easy security configuration',
+      'Strong encryption options',
+      'Supported by SUSE'
+    ],
+    privacyGuidesRecommended: true,
+    difficulty: 2
+  },
+  // Qubes OS
+  {
+    id: 'qubes',
+    name: 'Qubes OS',
+    description: 'A security-focused operating system that isolates everything in separate virtual machines (qubes).',
+    homepage: 'https://www.qubes-os.org',
+    privacyRating: 'good',
+    privacyNote: 'Maximum security through compartmentalization',
+    privacyDetails: [
+      'Each app runs in isolated virtual machine',
+      'Compromised qube cannot affect others',
+      'Whonix integration for Tor routing',
+      'Color-coded security domains',
+      'Disposable qubes for untrusted activities',
+      'Recommended by security experts'
+    ],
+    privacyGuidesRecommended: true,
+    difficulty: 3
+  },
+  // Tails
+  {
+    id: 'tails',
+    name: 'Tails',
+    description: 'A portable operating system that routes all traffic through Tor and leaves no trace.',
+    homepage: 'https://tails.net',
+    privacyRating: 'good',
+    privacyNote: 'Amnesic live system for maximum anonymity',
+    privacyDetails: [
+      'Routes all traffic through Tor',
+      'Leaves no trace on host computer',
+      'Runs from USB drive',
+      'Amnesic - forgets everything on shutdown',
+      'Built-in encryption tools',
+      'Designed for high-risk users'
+    ],
+    privacyGuidesRecommended: true,
+    difficulty: 3
+  },
+  // Whonix
+  {
+    id: 'whonix',
+    name: 'Whonix',
+    description: 'A security-hardened Debian-based OS designed to run inside a VM with all traffic routed through Tor.',
+    homepage: 'https://www.whonix.org',
+    privacyRating: 'good',
+    privacyNote: 'Tor-based OS for anonymous computing',
+    privacyDetails: [
+      'All traffic forced through Tor',
+      'IP/DNS leak protection',
+      'Stream isolation',
+      'Can run inside Qubes OS',
+      'Debian-based stability',
+      'Protection against even malware revealing IP'
+    ],
+    privacyGuidesRecommended: true,
+    difficulty: 3
+  },
+  // Other desktop OS
+  {
+    id: 'other-desktop',
+    name: 'Other (BSD, self-built)',
+    description: 'Alternative operating systems like FreeBSD, OpenBSD, or custom-built systems.',
+    homepage: 'https://www.openbsd.org',
+    privacyRating: 'acceptable',
+    privacyNote: 'Privacy depends on specific OS and configuration',
+    privacyDetails: [
+      'BSD systems known for security focus',
+      'OpenBSD prioritizes correctness and security',
+      'FreeBSD offers strong security features',
+      'Self-built systems require expertise',
+      'May lack software compatibility',
+      'Often used by security professionals'
+    ],
+    privacyGuidesRecommended: false
+  }
+]
+
+// =============================================================================
+// MOBILE OPERATING SYSTEMS
+// =============================================================================
+
+const mobileOsIntro: WikiIntroSection = {
+  title: 'Mobile Operating Systems',
+  description: 'Your phone\'s operating system has constant access to your location, contacts, and daily activities. Choosing a privacy-respecting mobile OS is crucial.',
+  concerns: {
+    heading: 'Privacy Concerns with Mobile Operating Systems',
+    points: [
+      'Location tracking and movement history',
+      'App permissions often over-requested',
+      'Cloud sync can expose personal data',
+      'Advertising identifiers track you across apps'
+    ]
+  },
+  benefits: {
+    heading: 'What Privacy-Focused Mobile Systems Offer',
+    points: [
+      'Sandboxed Google Play for Android compatibility without Google tracking',
+      'Granular permission controls',
+      'Minimal data collection and telemetry',
+      'Regular security updates without forced account requirements'
+    ]
+  }
+}
+
+const mobileOsServices: WikiService[] = [
+  // Stock Android
+  {
+    id: 'android',
+    name: 'Android (Stock)',
+    description: 'Google\'s mobile operating system, used on most non-Apple smartphones worldwide.',
+    homepage: 'https://www.android.com',
+    privacyRating: 'caution',
+    privacyNote: 'Strong security but significant Google tracking on stock ROMs',
+    privacyDetails: [
+      'Google Play Services tracks location and usage',
+      'Advertising ID used across all apps',
+      'Strong app sandboxing and permissions',
+      'Verified boot ensures system integrity',
+      'Monthly security updates (for supported devices)',
+      'Privacy can be improved with custom ROMs'
+    ],
+    privacyGuidesRecommended: false
+  },
+  // iOS
+  {
+    id: 'ios',
+    name: 'iOS',
+    description: 'Apple\'s mobile operating system for iPhone, known for strong security and privacy features.',
+    homepage: 'https://www.apple.com/ios',
+    privacyRating: 'acceptable',
+    privacyNote: 'Good privacy defaults but limited user control',
+    privacyDetails: [
+      'App Tracking Transparency blocks cross-app tracking',
+      'Private Relay hides browsing from ISPs (iCloud+)',
+      'Strong hardware security with Secure Enclave',
+      'Activation Lock requires internet check with Apple',
+      'App Store is only source for apps',
+      'Telemetry sent even when analytics disabled'
+    ],
+    privacyGuidesRecommended: false
+  },
+  // GrapheneOS
+  {
+    id: 'grapheneos',
+    name: 'GrapheneOS',
+    description: 'A privacy and security focused mobile OS with Android app compatibility, designed for Pixel devices.',
+    homepage: 'https://grapheneos.org',
+    privacyRating: 'good',
+    privacyNote: 'Hardened Android with sandboxed Google Play option',
+    privacyDetails: [
+      'Sandboxed Google Play - use Android apps without Google tracking',
+      'Hardened memory allocator',
+      'Network and sensor permissions',
+      'Per-contact permissions',
+      'Exploit mitigations beyond stock Android',
+      'Regular security updates',
+      'No Google account required'
+    ],
+    privacyGuidesRecommended: true,
+    difficulty: 2
+  },
+  // DivestOS
+  {
+    id: 'divestos',
+    name: 'DivestOS',
+    description: 'A privacy-focused Android fork supporting older devices with extended security patches.',
+    homepage: 'https://divestos.org',
+    privacyRating: 'good',
+    privacyNote: 'Security patches for older Android devices',
+    privacyDetails: [
+      'Supports many older devices',
+      'Extended security support',
+      'Based on LineageOS',
+      'Includes F-Droid by default',
+      'Debloated from tracking',
+      'Good option for device reuse'
+    ],
+    privacyGuidesRecommended: true,
+    difficulty: 3
+  },
+  // Other mobile
+  {
+    id: 'other-mobile',
+    name: 'Other (feature phone, custom ROM)',
+    description: 'Feature phones, dumb phones, or other custom Android ROMs like LineageOS.',
+    homepage: 'https://lineageos.org',
+    privacyRating: 'acceptable',
+    privacyNote: 'Privacy varies widely depending on choice',
+    privacyDetails: [
+      'Feature phones have minimal tracking',
+      'LineageOS removes Google but lacks verified boot',
+      'Custom ROMs may weaken security',
+      '/e/OS provides degoogled Android',
+      'CalyxOS offers good balance',
+      'Research specific ROM security carefully'
+    ],
+    privacyGuidesRecommended: false
+  }
+]
+
+// =============================================================================
+// TABLET OPERATING SYSTEMS
+// =============================================================================
+
+const tabletOsIntro: WikiIntroSection = {
+  title: 'Tablet Operating Systems',
+  description: 'Tablets often serve as both entertainment and productivity devices, making their OS privacy important for protecting diverse activities.',
+  concerns: {
+    heading: 'Privacy Concerns with Tablet Operating Systems',
+    points: [
+      'Same tracking concerns as mobile devices',
+      'Often used on shared networks',
+      'Children may use family tablets',
+      'App permissions can be overly broad'
+    ]
+  },
+  benefits: {
+    heading: 'Privacy Improvements for Tablets',
+    points: [
+      'Apply same mobile OS privacy recommendations',
+      'Use privacy-focused browsers on tablets',
+      'Review app permissions regularly',
+      'Consider dedicated profiles for different users'
+    ]
+  }
+}
+
+const tabletOsServices: WikiService[] = [
+  // iPadOS
+  {
+    id: 'ipados',
+    name: 'iPadOS',
+    description: 'Apple\'s tablet operating system for iPad, sharing most privacy features with iOS.',
+    homepage: 'https://www.apple.com/ipados',
+    privacyRating: 'acceptable',
+    privacyNote: 'Similar to iOS with same privacy trade-offs',
+    privacyDetails: [
+      'App Tracking Transparency available',
+      'Private Relay with iCloud+',
+      'Strong hardware security',
+      'Advanced Data Protection for iCloud',
+      'Locked to Apple ecosystem',
+      'Better than Android tablets for average users'
+    ],
+    privacyGuidesRecommended: false
+  },
+  // Android Tablet
+  {
+    id: 'android-tablet',
+    name: 'Android Tablet',
+    description: 'Tablets running various Android versions from manufacturers like Samsung, Lenovo, and others.',
+    homepage: 'https://www.android.com',
+    privacyRating: 'caution',
+    privacyNote: 'Same privacy concerns as Android phones',
+    privacyDetails: [
+      'Google tracking through Play Services',
+      'Manufacturer bloatware may add tracking',
+      'Advertising ID enabled by default',
+      'App sandboxing provides some protection',
+      'Privacy settings vary by manufacturer',
+      'Consider GrapheneOS on Pixel Tablet'
+    ],
+    privacyGuidesRecommended: false
+  },
+  // Other tablet
+  {
+    id: 'other-tablet',
+    name: 'Other (dedicated OS or Linux)',
+    description: 'Tablets running alternative operating systems like Linux or specialized OSes.',
+    homepage: 'https://ubuntu.com/tablet',
+    privacyRating: 'acceptable',
+    privacyNote: 'Privacy depends on specific OS choice',
+    privacyDetails: [
+      'Linux tablets offer good privacy',
+      'PineTab and similar hardware available',
+      'May lack app ecosystem',
+      'Requires technical knowledge',
+      'Good for privacy enthusiasts',
+      'E-ink tablets often have minimal tracking'
+    ],
+    privacyGuidesRecommended: false
+  }
+]
+
+// =============================================================================
 // EXPORT ALL CATEGORIES
 // =============================================================================
 
@@ -1305,6 +1729,36 @@ export const WIKI_CATEGORIES: WikiCategory[] = [
     privacyGuidesUrl: `${PRIVACY_GUIDES_BASE}/search-engines/`,
     services: searchServices,
     intro: searchIntro
+  },
+  {
+    id: 'desktop-os',
+    label: 'Desktop Operating Systems',
+    questionId: 'os-desktop',
+    icon: '🖥️',
+    description: 'Compare desktop operating systems from Windows to Linux',
+    privacyGuidesUrl: `${PRIVACY_GUIDES_BASE}/desktop/`,
+    services: desktopOsServices,
+    intro: desktopOsIntro
+  },
+  {
+    id: 'mobile-os',
+    label: 'Mobile Operating Systems',
+    questionId: 'os-mobile',
+    icon: '📲',
+    description: 'Compare mobile operating systems from Android to GrapheneOS',
+    privacyGuidesUrl: `${PRIVACY_GUIDES_BASE}/android/distributions/`,
+    services: mobileOsServices,
+    intro: mobileOsIntro
+  },
+  {
+    id: 'tablet-os',
+    label: 'Tablet Operating Systems',
+    questionId: 'os-tablet',
+    icon: '📟',
+    description: 'Compare tablet operating systems for privacy',
+    privacyGuidesUrl: `${PRIVACY_GUIDES_BASE}/android/distributions/`,
+    services: tabletOsServices,
+    intro: tabletOsIntro
   }
 ]
 

@@ -110,6 +110,21 @@
               {{ cat.label }}
             </BaseButton>
           </div>
+          <div class="category-section">
+            <span class="section-label">Operating Systems</span>
+            <BaseButton
+              v-for="cat in osCategories"
+              :key="cat.id"
+              :variant="categoryId === cat.id ? 'primary' : 'ghost'"
+              size="small"
+              class="category-nav-button"
+              :class="{ active: categoryId === cat.id }"
+              @click="router.push(`/wiki/${cat.id}`)"
+            >
+              <span class="category-nav-icon">{{ cat.icon }}</span>
+              {{ cat.label }}
+            </BaseButton>
+          </div>
         </nav>
       </aside>
 
@@ -173,7 +188,7 @@
             <div class="header-right">
               <BaseButton
                 v-if="!isCurrentlyUsing(service.id)"
-                variant="ghost"
+                variant="secondary"
                 size="small"
                 @click="setCurrentService(service.id, service.name)"
               >
@@ -234,6 +249,7 @@ import { useRoute, useRouter } from 'vue-router'
 import BaseButton from '../components/BaseButton.vue'
 import BaseDropdown from '../components/BaseDropdown.vue'
 import { useQuizStore } from '../stores/quiz'
+import { showToast } from '../utils/toast'
 import { getWikiCategory, getPrivacyRatingColor, getPrivacyRatingLabel, WIKI_CATEGORIES, type WikiCategory, type WikiService } from '../data/wiki'
 
 const route = useRoute()
@@ -248,6 +264,7 @@ const category = computed<WikiCategory | undefined>(() => getWikiCategory(catego
 // Category navigation - ordered to match Dashboard tables
 const GENERAL_CATEGORY_IDS = ['email', 'cloud', 'passwords', 'vpn', 'messaging']
 const DEVICE_CATEGORY_IDS = ['desktop-browsers', 'mobile-browsers', 'search-engines']
+const OS_CATEGORY_IDS = ['desktop-os', 'mobile-os', 'tablet-os']
 
 const generalCategories = computed(() => 
   GENERAL_CATEGORY_IDS
@@ -257,6 +274,12 @@ const generalCategories = computed(() =>
 
 const deviceCategories = computed(() =>
   DEVICE_CATEGORY_IDS
+    .map(id => WIKI_CATEGORIES.find(c => c.id === id))
+    .filter((c): c is WikiCategory => c !== undefined)
+)
+
+const osCategories = computed(() =>
+  OS_CATEGORY_IDS
     .map(id => WIKI_CATEGORIES.find(c => c.id === id))
     .filter((c): c is WikiCategory => c !== undefined)
 )
@@ -352,12 +375,12 @@ const recommendedService = computed<WikiService | null>(() => {
   return sortedByDifficulty[0] || null
 })
 
-// Sorted services: recommendation first, then all green (good), then orange (acceptable/caution), then red (avoid)
+// Sorted services: recommendation first, then all green (good), then acceptable, then caution, then red (avoid)
 const RATING_ORDER: Record<string, number> = {
   'good': 0,         // green
-  'acceptable': 1,   // yellow/orange
-  'caution': 1,      // orange (same tier as acceptable)
-  'avoid': 2         // red
+  'acceptable': 1,   // yellow - acceptable before caution
+  'caution': 2,      // orange
+  'avoid': 3         // red
 }
 
 const sortedServices = computed(() => {
@@ -392,16 +415,44 @@ const setCurrentService = (serviceId: string, serviceName: string) => {
   if (!category.value) return
   // Find matching option value from the question options
   const question = quizStore.questions.find(q => q.id === category.value!.questionId)
-  if (!question) return
+  if (!question) {
+    showToast('Could not find matching question', 'warning')
+    return
+  }
   
-  // Try to find a matching option
-  const matchingOption = question.options.find(opt => 
-    opt.label.toLowerCase().includes(serviceName.toLowerCase().split(' ')[0]) ||
-    opt.value.toLowerCase().includes(serviceId.split('-')[0])
-  )
+  // Try to find a matching option with multiple strategies
+  const serviceIdLower = serviceId.toLowerCase()
+  const serviceNameLower = serviceName.toLowerCase()
+  const serviceFirstWord = serviceNameLower.split(' ')[0]
+  
+  const matchingOption = question.options.find(opt => {
+    const optLabel = opt.label.toLowerCase()
+    const optValue = opt.value.toLowerCase()
+    
+    // Exact match on value
+    if (optValue === serviceIdLower) return true
+    // Value contains service ID or first part
+    if (optValue.includes(serviceIdLower.split('-')[0])) return true
+    // Label contains service name or first word
+    if (optLabel.includes(serviceNameLower) || optLabel.includes(serviceFirstWord)) return true
+    // Service name contains option label
+    if (serviceNameLower.includes(optLabel)) return true
+    
+    return false
+  })
   
   if (matchingOption) {
     quizStore.saveAnswer({ questionId: category.value.questionId, answer: matchingOption.value })
+    showToast(`Set ${serviceName} as current`, 'success')
+  } else {
+    // If no match found, try to use the service name directly as "other"
+    const otherOption = question.options.find(opt => opt.value.toLowerCase().includes('other'))
+    if (otherOption) {
+      quizStore.saveAnswer({ questionId: category.value.questionId, answer: otherOption.value })
+      showToast(`Set ${serviceName} as current (as other)`, 'success')
+    } else {
+      showToast('Could not find matching option for this service', 'warning')
+    }
   }
 }
 

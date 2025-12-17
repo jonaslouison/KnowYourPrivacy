@@ -537,6 +537,10 @@ export const useQuizStore = defineStore({
      */
     completeQuiz(): void {
       this.isCompleted = true
+      // Sync manualThreatLevel with computedThreatLevel when quiz is completed
+      if (!this.manualOverride) {
+        this.manualThreatLevel = this.computedThreatLevel
+      }
     },
 
     /**
@@ -561,6 +565,11 @@ export const useQuizStore = defineStore({
         this.answers[existingIndex] = payload
       } else {
         this.answers.push(payload)
+      }
+
+      // Sync manualThreatLevel with computedThreatLevel when threat order changes
+      if (!this.manualOverride) {
+        this.manualThreatLevel = this.computedThreatLevel
       }
     },
 

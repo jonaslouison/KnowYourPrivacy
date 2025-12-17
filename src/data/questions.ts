@@ -94,14 +94,18 @@ export const quizQuestions: QuizQuestion[] = [
     id: 'messaging-app',
     category: 'App Usage - Messaging',
     question: 'What messaging app do you primarily use?',
-    device: 'mobile',
     options: [
       { label: 'WhatsApp', value: 'whatsapp', score: 40 },
       { label: 'Facebook Messenger', value: 'messenger', score: 20 },
-      { label: 'Telegram', value: 'telegram', score: 60 },
+      { label: 'Telegram', value: 'telegram', score: 50 },
       { label: 'Signal', value: 'signal', score: 100 },
       { label: 'iMessage', value: 'imessage', score: 70 },
-      { label: 'Other privacy-focused app', value: 'other-privacy', score: 80 }
+      { label: 'Discord', value: 'discord', score: 25 },
+      { label: 'SMS / Text Messages', value: 'sms', score: 15 },
+      { label: 'Session', value: 'session', score: 95 },
+      { label: 'SimpleX Chat', value: 'simplex', score: 98 },
+      { label: 'Threema', value: 'threema', score: 90 },
+      { label: 'Other', value: 'other', score: 50 }
     ]
   },
   {
@@ -275,12 +279,17 @@ export const recommendations: Recommendations = {
     'other-privacy': ['Great choice!']
   },
   'messaging-app': {
-    whatsapp: ['Signal', 'Session', 'Threema'],
-    messenger: ['Signal', 'Session', 'Threema'],
-    telegram: ['Signal - better encryption by default'],
+    whatsapp: ['Signal', 'Session', 'SimpleX Chat'],
+    messenger: ['Signal', 'Session', 'SimpleX Chat'],
+    telegram: ['Signal - E2E encrypted by default'],
     signal: ['Perfect choice!'],
     imessage: ['Good, but consider Signal for cross-platform'],
-    'other-privacy': ['Great choice!']
+    discord: ['Signal', 'Session', 'SimpleX Chat'],
+    sms: ['Signal', 'Session', 'Any encrypted messenger'],
+    session: ['Excellent choice!'],
+    simplex: ['Perfect choice! Maximum privacy'],
+    threema: ['Excellent choice!'],
+    other: ['Consider Signal or Session']
   },
   'cloud-storage': {
     gdrive: ['Nextcloud', 'ProtonDrive', 'Cryptomator + any cloud'],
