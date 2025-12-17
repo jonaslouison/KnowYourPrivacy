@@ -17,14 +17,26 @@
         </div>
 
         <div class="header-controls">
-          <div class="control-group">
+          <div class="control-group threat-model-control">
             <label class="control-label">Threat Model</label>
-            <BaseDropdown
-              id="wiki-threat-level"
-              :model-value="displayThreatLevel"
-              :options="threatLevelDropdownOptions"
-              @update:modelValue="handleThreatLevelChange"
-            />
+            <div class="threat-model-row">
+              <BaseDropdown
+                id="wiki-threat-level"
+                :model-value="displayThreatLevel"
+                :options="threatLevelDropdownOptions"
+                @update:modelValue="handleThreatLevelChange"
+              />
+              <span class="status-tag" :class="manualOverride ? 'manual' : 'computed'">{{ manualTagLabel }}</span>
+              <BaseButton 
+                v-if="manualOverride" 
+                variant="outline" 
+                size="small" 
+                class="reset-btn"
+                @click="resetThreatLevel"
+              >
+                ↺ Reset
+              </BaseButton>
+            </div>
           </div>
 
           <div class="control-group">
@@ -192,9 +204,15 @@ const threatLevelDropdownOptions = computed(() =>
     label: `Level ${option.level} · ${option.label}`
   }))
 )
+const manualOverride = computed(() => quizStore.manualOverride)
+const manualTagLabel = computed(() => (manualOverride.value ? 'Manual' : 'Computed'))
 
 const handleThreatLevelChange = (value: string | number) => {
   quizStore.setManualThreatLevel(Number(value))
+}
+
+const resetThreatLevel = () => {
+  quizStore.resetManualThreatLevel()
 }
 
 // Current service selection
@@ -412,6 +430,43 @@ watch(category, (cat) => {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+}
+
+.control-group.threat-model-control {
+  min-width: 280px;
+}
+
+.threat-model-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: nowrap;
+}
+
+.status-tag {
+  padding: 0.2rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.status-tag.computed {
+  background: rgba(34, 197, 94, 0.15);
+  color: #16a34a;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.status-tag.manual {
+  background: rgba(249, 115, 22, 0.15);
+  color: #ea580c;
+  border: 1px solid rgba(249, 115, 22, 0.3);
+}
+
+.reset-btn {
+  flex-shrink: 0;
 }
 
 .control-label {

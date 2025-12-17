@@ -50,6 +50,11 @@
                             <div class="heading-main">
                                 <div class="heading-title">
                                     <h2 class="panel-title">Threat Model</h2>
+                                    <BaseTooltip 
+                                        text="Your threat model defines who you're protecting your data from. Higher levels mean more privacy but may require more effort to maintain."
+                                        position="bottom"
+                                        aria-label="What is a threat model?"
+                                    />
                                     <BaseDropdown
                                         id="threat-level-select"
                                         :model-value="displayThreatLevel"
@@ -86,7 +91,14 @@
 
                     <section class="save-data-panel card">
                         <div class="panel-heading">
-                            <h2>Save Your Data</h2>
+                            <div class="panel-heading-row">
+                                <h2>Save Your Data</h2>
+                                <BaseTooltip 
+                                    text="Your quiz data is stored locally and encrypted. Export regularly to keep a backup you can import on other devices."
+                                    position="right"
+                                    aria-label="About saving your data"
+                                />
+                            </div>
                             <p class="subtext">Export your encrypted quiz results to keep track of your privacy journey.</p>
                         </div>
                         <div class="action-buttons">
@@ -109,7 +121,14 @@
                 <div class="right-panels">
                     <section class="score-panel card">
                         <div class="panel-heading">
-                            <h2>Privacy Score</h2>
+                            <div class="panel-heading-row">
+                                <h2>Privacy Score</h2>
+                                <BaseTooltip 
+                                    text="Your privacy score (0-4) reflects how well your current apps and services align with your threat model. Higher is better."
+                                    position="bottom"
+                                    aria-label="What is the privacy score?"
+                                />
+                            </div>
                             <p class="subtext">Average of your device ratings</p>
                         </div>
                         <div class="score-display compact">
@@ -121,7 +140,14 @@
 
                     <section class="priority-panel card">
                         <div class="panel-heading">
-                            <h2>Priority Actions</h2>
+                            <div class="panel-heading-row">
+                                <h2>Priority Actions</h2>
+                                <BaseTooltip 
+                                    text="These are the most impactful changes you can make right now. Focus on replacing red and orange rated services first."
+                                    position="bottom"
+                                    aria-label="What are priority actions?"
+                                />
+                            </div>
                             <p class="subtext">Top improvements for your threat level</p>
                         </div>
                         <div class="priority-list">
@@ -152,10 +178,14 @@
                                         <span class="mini-card-label">Switch to</span>
                                         <span class="mini-card-name">{{ recItem.recommendedApp }}</span>
                                     </RouterLink>
-                                    <div v-else class="mini-card recommended text-only">
-                                        <span class="mini-card-label">Suggestion</span>
+                                    <RouterLink 
+                                        v-else
+                                        :to="getWikiLink(recItem.questionId, '')"
+                                        class="mini-card recommended"
+                                    >
+                                        <span class="mini-card-label">Explore options</span>
                                         <span class="mini-card-name">{{ recItem.recommendations[0] }}</span>
-                                    </div>
+                                    </RouterLink>
                                 </div>
                             </div>
                             <div v-if="!actionableRecommendations.length" class="priority-item success">
@@ -404,6 +434,7 @@ import BaseInput from '../components/BaseInput.vue'
 import BaseModal from '../components/BaseModal.vue'
 import BaseTierlist from '../components/BaseTierlist.vue'
 import BaseDropdown from '../components/BaseDropdown.vue'
+import BaseTooltip from '../components/BaseTooltip.vue'
 import type { DeviceType } from '../data/devices'
 import { getCategoryIdFromQuestionId, getServiceAnchorFromAnswer, getServiceAnchorFromCategoryId } from '../data/wiki'
 import {
@@ -1040,15 +1071,6 @@ const cancelDelete = () => {
     border: 1px solid #22c55e;
 }
 
-.mini-card.recommended.text-only {
-    cursor: default;
-}
-
-.mini-card.recommended.text-only:hover {
-    transform: none;
-    box-shadow: none;
-}
-
 .mini-card-label {
     font-size: 0.65rem;
     text-transform: uppercase;
@@ -1134,6 +1156,12 @@ const cancelDelete = () => {
 .panel-heading h2 {
     margin: 0.25rem 0;
     color: var(--primary-color);
+}
+
+.panel-heading-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .heading-main {
