@@ -446,11 +446,13 @@ import {
     useQuizStore
 } from '../stores/quiz'
 import type { AppCategory, ThreatTierId } from '../stores/quiz'
+import { useTimerStore } from '../stores/timer'
 import { showToast } from '../utils/toast'
 import { validateExportFile } from '../utils/crypto'
 
 const router = useRouter()
 const quizStore = useQuizStore()
+const timerStore = useTimerStore()
 const showDeleteConfirm = ref(false)
 const showPasswordModal = ref(false)
 const showExportModal = ref(false)
@@ -674,6 +676,10 @@ const handleGeneralOptionChange = (questionId: string, value: string | number) =
 }
 
 const loadDashboard = () => {
+    // Reset and start load timer
+    timerStore.resetLoadTimer()
+    timerStore.startLoadTimer()
+
     const fileInput = document.createElement('input')
     fileInput.type = 'file'
     fileInput.accept = '.json'
@@ -829,6 +835,9 @@ const submitPassword = async () => {
         await quizStore.importEncryptedData(pendingFile, passwordInput.value)
         lastExportTime.value = Date.now()
         showPasswordModal.value = false
+        
+        // Stop load timer on successful import
+        timerStore.stopLoadTimer()
         const message = isLoadAction ? 'Data loaded successfully!' : 'Data imported successfully!'
         showToast(message, 'success')
         if (!quizStore.isCompleted) {
@@ -851,6 +860,8 @@ const cancelPasswordInput = () => {
     fileName.value = ''
     passwordInput.value = ''
     passwordError.value = ''
+    // Reset load timer on cancel
+    timerStore.resetLoadTimer()
 }
 
 const loadDifferentFile = () => {

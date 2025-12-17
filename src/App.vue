@@ -10,6 +10,18 @@
                     <router-link to="/quiz">Quiz</router-link>
                     <router-link to="/dashboard">Dashboard</router-link>
                 </div>
+                <div class="timer-display">
+                    <div v-if="timerStore.quizTimerActive" class="timer-item" :class="{ running: timerStore.quizTimerRunning, completed: timerStore.quizTimerCompleted }">
+                        <span class="timer-label">Quiz:</span>
+                        <span class="timer-value">{{ timerStore.quizElapsedFormatted }}</span>
+                        <button v-if="timerStore.quizTimerCompleted" class="copy-btn" @click="copyQuizTime" title="Copy to clipboard">📋</button>
+                    </div>
+                    <div v-if="timerStore.loadTimerActive" class="timer-item" :class="{ running: timerStore.loadTimerRunning, completed: timerStore.loadTimerCompleted }">
+                        <span class="timer-label">Load:</span>
+                        <span class="timer-value">{{ timerStore.loadElapsedFormatted }}</span>
+                        <button v-if="timerStore.loadTimerCompleted" class="copy-btn" @click="copyLoadTime" title="Copy to clipboard">📋</button>
+                    </div>
+                </div>
             </nav>
         </header>
 
@@ -69,6 +81,20 @@ import {
     unregisterReloadGuardListeners,
     useReloadGuard
 } from './composables/useReloadGuard'
+import { useTimerStore } from './stores/timer'
+import { showToast } from './utils/toast'
+
+const timerStore = useTimerStore()
+
+const copyQuizTime = async () => {
+    await timerStore.copyQuizTime()
+    showToast('Quiz time copied!', 'success')
+}
+
+const copyLoadTime = async () => {
+    await timerStore.copyLoadTime()
+    showToast('Load time copied!', 'success')
+}
 
 const reloadGuard = useReloadGuard()
 const {
@@ -130,6 +156,66 @@ onBeforeUnmount(unregisterReloadGuardListeners)
 .nav-links a:hover,
 .nav-links a.router-link-active {
     color: var(--primary-color);
+}
+
+.timer-display {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.timer-item {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-family: 'Monaco', 'Menlo', monospace;
+    background: var(--color-surface, #f3f4f6);
+    border: 1px solid var(--border-color);
+}
+
+.timer-item.running {
+    background: rgba(59, 130, 246, 0.1);
+    border-color: #3b82f6;
+    animation: pulse 1s infinite;
+}
+
+.timer-item.completed {
+    background: rgba(34, 197, 94, 0.1);
+    border-color: #22c55e;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+.timer-label {
+    font-weight: 600;
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+}
+
+.timer-value {
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.copy-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.15rem;
+    font-size: 0.85rem;
+    opacity: 0.7;
+    transition: opacity 0.15s;
+}
+
+.copy-btn:hover {
+    opacity: 1;
 }
 
 main {
