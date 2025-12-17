@@ -103,7 +103,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import BaseButton from '../components/BaseButton.vue'
 import BaseInput from '../components/BaseInput.vue'
@@ -122,6 +122,18 @@ const passwordInput = ref('')
 const passwordError = ref('')
 const passwordInputRef = ref<{ focus: () => void } | null>(null)
 let pendingFile: File | null = null
+
+// Reset load timer when modal is closed (e.g., by clicking outside)
+watch(showPasswordModal, (isVisible, wasVisible) => {
+    if (wasVisible && !isVisible && pendingFile) {
+        // Modal was closed without successful import
+        timerStore.resetLoadTimer()
+        pendingFile = null
+        fileName.value = ''
+        passwordInput.value = ''
+        passwordError.value = ''
+    }
+})
 
 const primaryCtaLabel = computed(() => {
     if (quizStore.isLoadedFromFile || quizStore.isCompleted) {
@@ -151,6 +163,11 @@ const loadDashboard = () => {
     const fileInput = document.createElement('input')
     fileInput.type = 'file'
     fileInput.accept = '.json'
+
+    // Reset timer when user cancels file selection dialog
+    fileInput.oncancel = () => {
+        timerStore.resetLoadTimer()
+    }
 
     fileInput.onchange = async (e: Event) => {
         const target = e.target as HTMLInputElement
