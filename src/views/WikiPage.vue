@@ -2,8 +2,11 @@
   <div class="wiki-page container">
     <div class="wiki-header card">
       <div class="header-nav">
-        <BaseButton variant="outline" size="small" @click="goBack">
+        <BaseButton v-if="hasQuizData" variant="outline" size="small" @click="goBack">
           ← Back to Dashboard
+        </BaseButton>
+        <BaseButton v-else variant="primary" size="small" @click="startQuiz">
+          🎯 Start Quiz
         </BaseButton>
       </div>
 
@@ -468,8 +471,14 @@ const scrollToService = (serviceId: string) => {
 }
 
 // Navigation
+const hasQuizData = computed(() => quizStore.isCompleted || quizStore.isLoadedFromFile || quizStore.answers.length > 0)
+
 const goBack = () => {
   router.push('/dashboard')
+}
+
+const startQuiz = () => {
+  router.push('/quiz')
 }
 
 // Handle initial hash on mount

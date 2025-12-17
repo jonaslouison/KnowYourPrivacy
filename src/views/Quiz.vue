@@ -17,6 +17,7 @@ import { useQuizStore,
 import { useTimerStore } from '../stores/timer'
 import { showToast } from '../utils/toast'
 import { useReloadGuard } from '../composables/useReloadGuard'
+import { THREAT_DESCRIPTIONS } from '../data/wiki'
 
 const router = useRouter()
 const route = useRoute()
@@ -54,6 +55,8 @@ const tierlistItems = computed(() =>
     THREAT_CATALOG.map((entry) => ({ id: entry.label, label: entry.label }))
 )
 const tierDefinitions = THREAT_TIER_ORDER.map((tier) => ({ id: tier, label: THREAT_TIER_LABELS[tier] }))
+const threatDescriptions = THREAT_DESCRIPTIONS
+const threatModelGuideUrl = 'https://www.privacyguides.org/en/basics/threat-modeling/'
 const buildTierAssignmentSnapshot = (source?: Record<ThreatTierId, string[]>) => {
     return THREAT_TIER_ORDER.reduce((acc, tier) => {
         const values = source?.[tier] ?? []
@@ -282,7 +285,10 @@ onMounted(() => {
             <div class="progress-bar">
                 <div class="progress-fill" :style="{ width: progressPercentage + '%' }"></div>
             </div>
-            <p class="progress-text">Question {{ currentFlowIndex + 1 }} of {{ flowLength }}</p>
+            <p class="progress-text">
+                <template v-if="isDeviceSelectionQuestion">Getting Started</template>
+                <template v-else>Question {{ currentFlowIndex + 1 }} of {{ flowLength }}</template>
+            </p>
         </div>
         <div v-if="quizCardVisible" class="context-card">
             <p class="context-title">{{ currentContextLabel }}</p>
@@ -321,6 +327,22 @@ onMounted(() => {
                 </div>
 
                 <div v-if="isThreatPriorityQuestion" class="tierlist-section">
+                    <div class="threat-info-panel">
+                        <h3>Understanding the Threats</h3>
+                        <p class="threat-info-intro">Drag each threat to the tier that matches your concern level. Here's what each threat means:</p>
+                        <div class="threat-descriptions">
+                            <div v-for="threat in threatDescriptions" :key="threat.id" class="threat-desc-item">
+                                <span class="threat-icon">{{ threat.icon }}</span>
+                                <div class="threat-desc-content">
+                                    <strong>{{ threat.label }}</strong>
+                                    <p>{{ threat.shortDescription }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <a :href="threatModelGuideUrl" target="_blank" rel="noopener noreferrer" class="learn-more-link">
+                            📚 Learn more about threat modeling →
+                        </a>
+                    </div>
                     <BaseTierlist
                         :tiers="tierDefinitions"
                         :items="tierlistItems"
@@ -562,6 +584,75 @@ onMounted(() => {
 
 .tierlist-section {
     margin-top: 1.5rem;
+}
+
+.threat-info-panel {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+
+.threat-info-panel h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.1rem;
+    color: var(--primary-color);
+}
+
+.threat-info-intro {
+    color: var(--text-secondary);
+    margin: 0 0 1rem 0;
+    font-size: 0.9rem;
+}
+
+.threat-descriptions {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.threat-desc-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background: var(--bg-color);
+    border-radius: 8px;
+}
+
+.threat-icon {
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+.threat-desc-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.threat-desc-content strong {
+    display: block;
+    margin-bottom: 0.25rem;
+    color: var(--text-primary);
+}
+
+.threat-desc-content p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+.learn-more-link {
+    display: inline-block;
+    margin-top: 1rem;
+    color: var(--primary-color);
+    font-size: 0.9rem;
+    text-decoration: none;
+}
+
+.learn-more-link:hover {
+    text-decoration: underline;
 }
 
 .completion-screen {
