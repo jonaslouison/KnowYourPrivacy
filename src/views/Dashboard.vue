@@ -49,23 +49,27 @@
                         <div class="panel-heading">
                             <div class="heading-main">
                                 <div class="heading-title">
-                                    <h2 class="panel-title">Threat Model · {{ displayThreatSpectrumLabel }}</h2>
-                                    <span class="manual-tag">{{ manualTagLabel }}</span>
-                                </div>
-                                <div class="heading-controls">
+                                    <h2 class="panel-title">Threat Model</h2>
                                     <BaseDropdown
                                         id="threat-level-select"
                                         :model-value="displayThreatLevel"
                                         :options="threatLevelDropdownOptions"
                                         @update:modelValue="handleThreatLevelChange"
                                     />
-                                    <BaseButton variant="ghost" size="small" @click="resetThreatLevel" :disabled="!manualOverride">
-                                        reset
+                                    <span class="status-tag" :class="manualOverride ? 'manual' : 'computed'">{{ manualTagLabel }}</span>
+                                    <BaseButton 
+                                        v-if="manualOverride" 
+                                        variant="outline" 
+                                        size="small" 
+                                        class="reset-btn"
+                                        @click="resetThreatLevel"
+                                    >
+                                        ↺ Reset
                                     </BaseButton>
                                 </div>
                             </div>
-                            <p class="subtext">{{ displayThreatSpectrumDescription }}</p>
-                            <p class="meta">Computed level · {{ quizStore.computedThreatLevel }} · {{ computedThreatSpectrumInfo.label }}</p>
+                            <p class="subtext">{{ displayThreatSpectrumLabel }} · {{ displayThreatSpectrumDescription }}</p>
+                            <p class="meta">Computed: Level {{ quizStore.computedThreatLevel }} · {{ computedThreatSpectrumInfo.label }}</p>
                         </div>
                         <div class="threat-body">
                             <div class="tierlist-column">
@@ -917,6 +921,7 @@ const cancelDelete = () => {
 .priority-panel {
     grid-column: 2;
     grid-row: 2 / 4;
+    min-height: 200px;
 }
 
 .threat-model-panel,
@@ -1017,6 +1022,7 @@ const cancelDelete = () => {
     flex-direction: column;
     gap: 0.125rem;
     min-width: 0;
+    max-width: 50%;
 }
 
 .mini-card:hover {
@@ -1055,7 +1061,7 @@ const cancelDelete = () => {
 }
 
 .mini-card-name {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     font-weight: 600;
     color: var(--text-primary);
     white-space: nowrap;
@@ -1134,22 +1140,43 @@ const cancelDelete = () => {
     display: flex;
     justify-content: space-between;
     gap: 1.5rem;
-    flex-wrap: wrap;
 }
 
 .heading-title {
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    flex-wrap: nowrap;
+    white-space: nowrap;
 }
 
-.manual-tag {
-    padding: 0.1rem 0.75rem;
-    background: var(--border-color);
+.heading-title .panel-title {
+    flex-shrink: 0;
+}
+
+.status-tag {
+    padding: 0.2rem 0.75rem;
     border-radius: 999px;
     font-size: 0.7rem;
+    font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.05em;
+}
+
+.status-tag.computed {
+    background: rgba(34, 197, 94, 0.15);
+    color: #16a34a;
+    border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.status-tag.manual {
+    background: rgba(249, 115, 22, 0.15);
+    color: #ea580c;
+    border: 1px solid rgba(249, 115, 22, 0.3);
+}
+
+.reset-btn {
+    margin-left: 0.5rem;
 }
 
 .heading-actions {
@@ -1239,6 +1266,7 @@ const cancelDelete = () => {
     width: 100%;
     border-collapse: collapse;
     margin-top: 0.25rem;
+    table-layout: fixed;
 }
 
 .device-table th,
@@ -1246,6 +1274,26 @@ const cancelDelete = () => {
     text-align: left;
     padding: 0.75rem;
     border-bottom: 1px solid var(--border-color);
+}
+
+.device-table th:nth-child(1),
+.device-table td:nth-child(1) {
+    width: 20%;
+}
+
+.device-table th:nth-child(2),
+.device-table td:nth-child(2) {
+    width: 30%;
+}
+
+.device-table th:nth-child(3),
+.device-table td:nth-child(3) {
+    width: 12%;
+}
+
+.device-table th:nth-child(4),
+.device-table td:nth-child(4) {
+    width: 38%;
 }
 
 .category-cell {
