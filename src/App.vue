@@ -57,14 +57,16 @@
         </BaseModal>
 
         <footer class="footer">
-            <div class="container">
-                <p>🔐 All data is encrypted and stored locally on your device. No tracking. Open source.</p>
-                <p>
-                    Made with ❤️ 
-                    <a href="https://github.com/Nepholis/KnowYourPrivacy" target="_blank" rel="noopener noreferrer">
-                        View on GitHub
-                    </a>
-                </p>
+            <div class="container footer-content">
+                <div class="footer-links">
+                    <router-link to="/#how-it-works">How It Works</router-link>
+                    <router-link to="/#philosophy">Philosophy</router-link>
+                    <router-link to="/#faq">FAQ</router-link>
+                    <router-link to="/wiki/email">Wiki</router-link>
+                    <a href="https://github.com/Nepholis/KnowYourPrivacy" target="_blank" rel="noopener noreferrer">GitHub</a>
+                </div>
+                <p class="footer-tagline">🔐 All data is encrypted and stored locally. No tracking. Open source.</p>
+                <p class="footer-credits">Made with ❤️ for privacy</p>
             </div>
         </footer>
     </div>
@@ -232,8 +234,40 @@ main {
     margin-top: 4rem;
 }
 
-.footer p {
-    margin: 0.5rem 0;
+.footer-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+.footer-links {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.footer-links a {
+    color: var(--text-primary);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s;
+}
+
+.footer-links a:hover {
+    color: var(--primary-color);
+}
+
+.footer-tagline {
+    margin: 0;
+    color: var(--text-secondary);
+}
+
+.footer-credits {
+    margin: 0;
+    color: var(--text-tertiary, #9ca3af);
+    font-size: 0.85rem;
 }
 
 .footer a {
