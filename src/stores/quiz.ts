@@ -80,7 +80,7 @@ const DEVICE_SETUP_CONFIG: Record<DeviceType, Array<{ questionId: string; label:
 const mapScoreLabel = (score: number): string => {
   if (score >= 80) return 'Excellent'
   if (score >= 60) return 'Good'
-  if (score > 0) return 'Needs Improvement'
+  if (score > 0) return 'Danger'
   return 'Pending'
 }
 
@@ -482,7 +482,7 @@ export const useQuizStore = defineStore({
           currentAppId: currentService?.id || answerValue || '',
           recommendedApp: recommended.name,
           recommendedAppId: recommended.id,
-          score: score >= 80 ? 'Excellent' : score >= 60 ? 'Good' : 'Needs Improvement',
+          score: score >= 80 ? 'Excellent' : score >= 60 ? 'Good' : 'Danger',
           scoreClass: score >= 80 ? 'good' : score >= 60 ? 'medium' : 'poor',
           scoreValue: score,
           recommendations: recommendationList
