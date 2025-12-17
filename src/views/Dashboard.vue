@@ -120,27 +120,45 @@
                             <h2>Priority Actions</h2>
                             <p class="subtext">Top improvements for your threat level</p>
                         </div>
-                        <ul class="priority-list">
-                            <li 
+                        <div class="priority-list">
+                            <div 
                                 v-for="recItem in actionableRecommendations" 
                                 :key="recItem.name"
                                 class="priority-item"
                                 :class="getPriorityClass(recItem)"
                             >
-                                <div class="priority-header">
+                                <div class="priority-category">
                                     <span class="priority-icon">{{ recItem.icon }}</span>
-                                    <div class="priority-info">
-                                        <strong>{{ recItem.name }}</strong>
-                                        <small>{{ recItem.currentApp }}</small>
+                                    <span class="priority-name">{{ recItem.name }}</span>
+                                </div>
+                                <div class="priority-flow">
+                                    <RouterLink 
+                                        :to="getWikiLink(recItem.questionId, recItem.currentAppId)"
+                                        class="mini-card current"
+                                    >
+                                        <span class="mini-card-label">Current</span>
+                                        <span class="mini-card-name">{{ recItem.currentApp }}</span>
+                                    </RouterLink>
+                                    <span class="priority-arrow">→</span>
+                                    <RouterLink 
+                                        v-if="recItem.recommendedApp"
+                                        :to="getWikiLink(recItem.questionId, recItem.recommendedAppId)"
+                                        class="mini-card recommended"
+                                    >
+                                        <span class="mini-card-label">Switch to</span>
+                                        <span class="mini-card-name">{{ recItem.recommendedApp }}</span>
+                                    </RouterLink>
+                                    <div v-else class="mini-card recommended text-only">
+                                        <span class="mini-card-label">Suggestion</span>
+                                        <span class="mini-card-name">{{ recItem.recommendations[0] }}</span>
                                     </div>
                                 </div>
-                                <p class="priority-recommendation">{{ recItem.recommendations[0] }}</p>
-                            </li>
-                            <li v-if="!actionableRecommendations.length" class="priority-item success">
+                            </div>
+                            <div v-if="!actionableRecommendations.length" class="priority-item success">
                                 <span class="priority-icon">✓</span>
                                 <span class="priority-success-text">You've matched every core app to your threat model.</span>
-                            </li>
-                        </ul>
+                            </div>
+                        </div>
                     </section>
                 </div>
             </div>
@@ -453,9 +471,15 @@ const generalServiceRating = computed(() => {
 })
 const actionableRecommendations = computed(() => {
     return appCategories.value
-        .filter((category) => category.recommendations.length > 0)
+        // Show items that have recommendations AND either:
+        // - have a recommended app (for poor/medium scores), OR
+        // - have a poor or medium score (red/orange - needs improvement)
+        .filter((category) => 
+            category.recommendations.length > 0 && 
+            (category.recommendedApp || category.scoreClass !== 'good')
+        )
         .sort((a, b) => a.scoreValue - b.scoreValue)
-        .slice(0, 3)
+        .slice(0, 2)
 })
 
 // Get priority class based on score (matches wiki rating colors)
@@ -464,6 +488,13 @@ const getPriorityClass = (item: { scoreValue: number; scoreClass: string }) => {
     if (item.scoreClass === 'poor') return 'avoid'      // red - needs urgent action
     if (item.scoreClass === 'medium') return 'caution'  // orange - needs improvement
     return 'good'                                         // green - already good
+}
+
+// Get wiki link for a service
+const getWikiLink = (questionId: string, serviceId: string): string => {
+    const categoryId = getCategoryIdFromQuestionId(questionId)
+    if (!categoryId) return '#'
+    return serviceId ? `/wiki/${categoryId}#${serviceId}` : `/wiki/${categoryId}`
 }
 
 const tierDefinitions = THREAT_TIER_ORDER.map((tier) => ({
@@ -855,20 +886,37 @@ const cancelDelete = () => {
 .dashboard-metrics {
     display: grid;
     grid-template-columns: 2fr 1fr;
+    grid-template-rows: auto auto auto;
     gap: 1.5rem;
     margin-bottom: 1.5rem;
 }
 
 .left-panels {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
+    display: contents;
 }
 
 .right-panels {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
+    display: contents;
+}
+
+.threat-model-panel {
+    grid-column: 1;
+    grid-row: 1 / 3;
+}
+
+.save-data-panel {
+    grid-column: 1;
+    grid-row: 3;
+}
+
+.score-panel {
+    grid-column: 2;
+    grid-row: 1;
+}
+
+.priority-panel {
+    grid-column: 2;
+    grid-row: 2 / 4;
 }
 
 .threat-model-panel,
@@ -888,12 +936,10 @@ const cancelDelete = () => {
 }
 
 .priority-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
+    flex: 1;
 }
 
 .priority-item {
@@ -903,14 +949,9 @@ const cancelDelete = () => {
     border: 1px solid var(--border-color);
     border-left: 4px solid var(--warning, #f59e0b);
     border-radius: 8px;
-    padding: 1rem;
+    padding: 0.75rem;
     background: var(--card-bg);
     transition: all 0.2s ease;
-}
-
-.priority-item:hover {
-    transform: translateX(2px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .priority-item.avoid {
@@ -931,51 +972,105 @@ const cancelDelete = () => {
     font-style: italic;
     text-align: center;
     padding: 1.5rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
 }
 
 .priority-item.success .priority-icon {
     font-size: 1.5rem;
-    margin-bottom: 0.25rem;
 }
 
-.priority-header {
+.priority-category {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    color: var(--text-muted);
 }
 
 .priority-icon {
-    font-size: 1.25rem;
+    font-size: 1rem;
     line-height: 1;
-    flex-shrink: 0;
 }
 
-.priority-info {
+.priority-name {
+    font-weight: 500;
+}
+
+.priority-flow {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.mini-card {
     flex: 1;
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
     min-width: 0;
 }
 
-.priority-info strong {
-    display: block;
-    font-size: 0.9375rem;
-    color: var(--text-primary);
+.mini-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
-.priority-info small {
-    display: block;
-    font-size: 0.8125rem;
-    color: var(--text-muted);
-    margin-top: 0.125rem;
-}
-
-.priority-recommendation {
-    margin: 0;
-    padding: 0.75rem;
+.mini-card.current {
     background: var(--bg-secondary, #f8f9fa);
-    border-radius: 6px;
-    font-size: 0.875rem;
-    color: var(--text-secondary);
-    line-height: 1.5;
+    border: 1px solid var(--border-color);
+}
+
+.mini-card.recommended {
+    background: linear-gradient(135deg, #dcfce7 0%, #d1fae5 100%);
+    border: 1px solid #22c55e;
+}
+
+.mini-card.recommended.text-only {
+    cursor: default;
+}
+
+.mini-card.recommended.text-only:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+.mini-card-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+}
+
+.mini-card.recommended .mini-card-label {
+    color: #166534;
+}
+
+.mini-card-name {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mini-card.recommended .mini-card-name {
+    color: #166534;
+}
+
+.priority-arrow {
+    font-size: 1.25rem;
+    color: var(--text-muted);
+    flex-shrink: 0;
 }
 
 /* Save Data Panel */
@@ -993,14 +1088,40 @@ const cancelDelete = () => {
 @media (max-width: 900px) {
     .dashboard-metrics {
         grid-template-columns: 1fr;
+        grid-template-rows: auto;
     }
     
-    .right-panels {
-        order: -1;
+    .score-panel {
+        grid-column: 1;
+        grid-row: 1;
     }
     
-    .left-panels {
-        order: 1;
+    .priority-panel {
+        grid-column: 1;
+        grid-row: 2;
+    }
+    
+    .threat-model-panel {
+        grid-column: 1;
+        grid-row: 3;
+    }
+    
+    .save-data-panel {
+        grid-column: 1;
+        grid-row: 4;
+    }
+    
+    .priority-flow {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .priority-arrow {
+        transform: rotate(90deg);
+    }
+    
+    .mini-card {
+        width: 100%;
     }
 }
 
