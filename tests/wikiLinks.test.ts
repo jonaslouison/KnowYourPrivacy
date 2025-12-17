@@ -43,15 +43,15 @@ describe('Wiki Data Structure', () => {
         }
     })
 
-    it('should have at least one recommended service per category', () => {
+    it('should have at least one good-rated service per category', () => {
         for (const category of WIKI_CATEGORIES) {
-            const recommended = category.services.filter(s => s.privacyRating === 'recommended')
-            expect(recommended.length, `Category ${category.id} has no recommended services`).toBeGreaterThan(0)
+            const goodRated = category.services.filter(s => s.privacyRating === 'good')
+            expect(goodRated.length, `Category ${category.id} has no good-rated services`).toBeGreaterThan(0)
         }
     })
 
     it('should have valid privacy ratings for all services', () => {
-        const validRatings = ['recommended', 'acceptable', 'caution', 'avoid']
+        const validRatings = ['good', 'acceptable', 'caution', 'avoid']
 
         for (const category of WIKI_CATEGORIES) {
             for (const service of category.services) {
@@ -73,14 +73,14 @@ describe('Wiki Data Structure', () => {
 
 describe('Helper Functions', () => {
     it('getPrivacyRatingColor should return valid colors', () => {
-        expect(getPrivacyRatingColor('recommended')).toBe('#22c55e')
+        expect(getPrivacyRatingColor('good')).toBe('#22c55e')
         expect(getPrivacyRatingColor('acceptable')).toBe('#eab308')
         expect(getPrivacyRatingColor('caution')).toBe('#f97316')
         expect(getPrivacyRatingColor('avoid')).toBe('#ef4444')
     })
 
     it('getPrivacyRatingLabel should return valid labels', () => {
-        expect(getPrivacyRatingLabel('recommended')).toBe('✓ Recommended')
+        expect(getPrivacyRatingLabel('good')).toBe('✓ Good')
         expect(getPrivacyRatingLabel('acceptable')).toBe('Acceptable')
         expect(getPrivacyRatingLabel('caution')).toBe('⚠ Caution')
         expect(getPrivacyRatingLabel('avoid')).toBe('✗ Avoid')
@@ -102,13 +102,13 @@ describe('Helper Functions', () => {
 })
 
 describe('Recommendation Logic', () => {
-    it('all recommended services should have difficulty field', () => {
+    it('all good-rated services should have difficulty field', () => {
         for (const category of WIKI_CATEGORIES) {
-            const recommendedServices = category.services.filter(
-                s => s.privacyRating === 'recommended'
+            const goodServices = category.services.filter(
+                s => s.privacyRating === 'good'
             )
             
-            for (const service of recommendedServices) {
+            for (const service of goodServices) {
                 expect(service.difficulty, 
                     `Service ${service.name} in ${category.id} is missing difficulty field`
                 ).toBeDefined()
@@ -117,15 +117,15 @@ describe('Recommendation Logic', () => {
         }
     })
 
-    it('non-recommended services should NOT have difficulty field', () => {
+    it('non-good-rated services should NOT have difficulty field', () => {
         for (const category of WIKI_CATEGORIES) {
-            const nonRecommendedServices = category.services.filter(
-                s => s.privacyRating !== 'recommended'
+            const nonGoodServices = category.services.filter(
+                s => s.privacyRating !== 'good'
             )
             
-            for (const service of nonRecommendedServices) {
+            for (const service of nonGoodServices) {
                 expect(service.difficulty, 
-                    `Non-recommended service ${service.name} should not have difficulty`
+                    `Non-good-rated service ${service.name} should not have difficulty`
                 ).toBeUndefined()
             }
         }
@@ -134,7 +134,7 @@ describe('Recommendation Logic', () => {
     it('each category should have at least one difficulty 1 service', () => {
         for (const category of WIKI_CATEGORIES) {
             const easyServices = category.services.filter(
-                s => s.privacyRating === 'recommended' && s.difficulty === 1
+                s => s.privacyRating === 'good' && s.difficulty === 1
             )
             
             expect(easyServices.length, 
@@ -190,8 +190,8 @@ describe('Unified Rating System', () => {
     })
 
     it('mapScoreToPrivacyRating should map scores correctly', () => {
-        expect(mapScoreToPrivacyRating(100)).toBe('recommended')
-        expect(mapScoreToPrivacyRating(80)).toBe('recommended')
+        expect(mapScoreToPrivacyRating(100)).toBe('good')
+        expect(mapScoreToPrivacyRating(80)).toBe('good')
         expect(mapScoreToPrivacyRating(79)).toBe('acceptable')
         expect(mapScoreToPrivacyRating(60)).toBe('acceptable')
         expect(mapScoreToPrivacyRating(59)).toBe('caution')
@@ -201,7 +201,7 @@ describe('Unified Rating System', () => {
     })
 
     it('mapPrivacyRatingToScoreClass should map ratings correctly', () => {
-        expect(mapPrivacyRatingToScoreClass('recommended')).toBe('good')
+        expect(mapPrivacyRatingToScoreClass('good')).toBe('good')
         expect(mapPrivacyRatingToScoreClass('acceptable')).toBe('medium')
         expect(mapPrivacyRatingToScoreClass('caution')).toBe('poor')
         expect(mapPrivacyRatingToScoreClass('avoid')).toBe('poor')
@@ -235,19 +235,19 @@ describe('Unified Rating System', () => {
         
         const protonInfo = getUnifiedServiceInfo('email-provider', 'protonmail')
         expect(protonInfo).toBeDefined()
-        expect(protonInfo?.rating).toBe('recommended')
+        expect(protonInfo?.rating).toBe('good')
         expect(protonInfo?.scoreClass).toBe('good')
     })
 
     it('quiz score classes should align with wiki privacy ratings', () => {
         // Verify the scoring thresholds align:
         // Quiz: score >= 80 = 'good', 60-79 = 'medium', <60 = 'poor'
-        // Wiki: recommended = 'good', acceptable = 'medium', caution/avoid = 'poor'
+        // Wiki: good = 'good', acceptable = 'medium', caution/avoid = 'poor'
         
-        // High privacy score services should have 'recommended' rating
+        // High privacy score services should have 'good' rating
         for (const category of WIKI_CATEGORIES) {
-            const recommendedServices = category.services.filter(s => s.privacyRating === 'recommended')
-            for (const service of recommendedServices) {
+            const goodServices = category.services.filter(s => s.privacyRating === 'good')
+            for (const service of goodServices) {
                 const scoreClass = mapPrivacyRatingToScoreClass(service.privacyRating)
                 expect(scoreClass).toBe('good')
             }

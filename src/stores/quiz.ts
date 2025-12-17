@@ -9,7 +9,6 @@ import {
   DEVICE_SELECTION_OPTIONS
 } from '../data/devices'
 import {
-  getWikiCategoryByQuestionId,
   getServiceByAnswerValue,
   getCategoryIdFromQuestionId
 } from '../data/wiki'
