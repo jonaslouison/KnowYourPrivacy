@@ -330,18 +330,23 @@ const previewLabel = computed(() => (draggedItem.value ? getItemLabel(draggedIte
 }
 
 .tier-zone.high {
-    border-color: rgba(255, 99, 132, 0.7);
-    background: rgba(255, 99, 132, 0.12);
+    border-color: rgba(239, 68, 68, 0.7);
+    background: rgba(239, 68, 68, 0.12);
 }
 
 .tier-zone.medium {
-    border-color: rgba(255, 193, 7, 0.8);
-    background: rgba(255, 193, 7, 0.15);
+    border-color: rgba(249, 115, 22, 0.8);
+    background: rgba(249, 115, 22, 0.15);
 }
 
 .tier-zone.low {
-    border-color: rgba(15, 157, 88, 0.8);
-    background: rgba(15, 157, 88, 0.1);
+    border-color: rgba(234, 179, 8, 0.8);
+    background: rgba(234, 179, 8, 0.15);
+}
+
+.tier-zone.none {
+    border-color: rgba(34, 197, 94, 0.8);
+    background: rgba(34, 197, 94, 0.1);
 }
 
 .drop-zone.preview {

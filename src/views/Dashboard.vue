@@ -548,6 +548,8 @@ const updateTierAssignments = (value: Record<ThreatTierId, string[]>) => {
         (value[tier] ?? []).map((label) => formatThreatTierEntry(tier, label))
     )
     quizStore.setThreatOrder(ordered)
+    // Reset manual override so the dropdown shows the newly computed level
+    quizStore.resetManualThreatLevel()
     markUnsaved()
 }
 
