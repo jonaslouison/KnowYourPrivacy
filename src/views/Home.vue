@@ -109,11 +109,13 @@ import BaseButton from '../components/BaseButton.vue'
 import BaseInput from '../components/BaseInput.vue'
 import BaseModal from '../components/BaseModal.vue'
 import { useQuizStore } from '../stores/quiz'
+import { useTimerStore } from '../stores/timer'
 import { showToast } from '../utils/toast'
 import { validateExportFile } from '../utils/crypto'
 
 const router = useRouter()
 const quizStore = useQuizStore()
+const timerStore = useTimerStore()
 const showPasswordModal = ref(false)
 const fileName = ref('')
 const passwordInput = ref('')
@@ -135,10 +137,17 @@ const goToQuiz = () => {
         return
     }
 
+    // Reset and start quiz timer when user begins the quiz
+    timerStore.resetQuizTimer()
+    timerStore.startQuizTimer()
     router.push('/quiz')
 }
 
 const loadDashboard = () => {
+    // Reset and start load timer when user initiates file loading
+    timerStore.resetLoadTimer()
+    timerStore.startLoadTimer()
+
     const fileInput = document.createElement('input')
     fileInput.type = 'file'
     fileInput.accept = '.json'
@@ -148,6 +157,7 @@ const loadDashboard = () => {
         const file = target.files?.[0]
         if (!file) {
             showToast('File selection cancelled', 'warning')
+            timerStore.resetLoadTimer()
             return
         }
 
@@ -179,6 +189,9 @@ const submitPassword = async () => {
     try {
         await quizStore.importEncryptedData(pendingFile, passwordInput.value)
         showPasswordModal.value = false
+        
+        // Stop load timer on successful import
+        timerStore.stopLoadTimer()
         showToast('Data loaded successfully!', 'success')
 
         // Route based on completion state so unfinished quizzes resume where left off
@@ -205,6 +218,8 @@ const cancelPasswordInput = () => {
     fileName.value = ''
     passwordInput.value = ''
     passwordError.value = ''
+    // Reset load timer when user cancels
+    timerStore.resetLoadTimer()
 }
 
 const loadDifferentFile = () => {
