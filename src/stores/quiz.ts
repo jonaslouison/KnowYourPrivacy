@@ -36,16 +36,18 @@ const THREAT_SPECTRUM = [
 
 const TIER_SCORE_MAP: Record<ThreatTierId, number> = {
   high: 100,
-  medium: 60,
-  low: 30
+  medium: 65,
+  low: 35,
+  none: 0
 }
 
-export const THREAT_TIER_ORDER = ['high', 'medium', 'low'] as const
+export const THREAT_TIER_ORDER = ['high', 'medium', 'low', 'none'] as const
 export type ThreatTierId = (typeof THREAT_TIER_ORDER)[number]
 export const THREAT_TIER_LABELS: Record<ThreatTierId, string> = {
   high: 'High Concern',
   medium: 'Moderate Concern',
-  low: 'Lower Concern'
+  low: 'Lower Concern',
+  none: 'No Concern'
 }
 
 export const THREAT_CATALOG: Array<{ id: string; label: string }> = THREAT_QUESTION_IDS.map((questionId) => {
@@ -336,7 +338,7 @@ const buildQuizFlow = (state: QuizState): QuizFlowItem[] => {
 const getThreatEntriesFromState = (state: QuizState): ThreatEntry[] => {
   const assignments = getThreatTierAssignments(state)
   const entries = THREAT_CATALOG.map((catalog) => {
-    const tier = THREAT_TIER_ORDER.find((tierId) => assignments[tierId].includes(catalog.label)) ?? 'low'
+    const tier = THREAT_TIER_ORDER.find((tierId) => assignments[tierId].includes(catalog.label)) ?? 'none'
     const score = TIER_SCORE_MAP[tier]
     return {
       questionId: catalog.id,

@@ -39,23 +39,36 @@
             </div>
           </div>
 
-          <div class="control-group">
-            <label class="control-label">Currently Using</label>
-            <BaseDropdown
-              :model-value="currentAnswer"
-              :options="currentServiceOptions"
-              placeholder="Not selected"
-              @update:modelValue="handleServiceChange"
-            />
-          </div>
-
-          <div class="control-group recommended-group">
-            <label class="control-label">Recommended</label>
-            <div class="recommended-service">
-              <span class="recommended-name">{{ recommendedService?.name || 'Complete quiz for recommendation' }}</span>
-              <span v-if="recommendedService" class="recommended-badge">
-                Based on {{ displayThreatLabel }}
-              </span>
+          <div class="control-group service-selection-group">
+            <label class="control-label">Your Selection</label>
+            <div class="service-flow">
+              <a 
+                v-if="currentServiceInfo"
+                :href="`#${currentServiceInfo.id}`"
+                class="mini-card current"
+                @click.prevent="scrollToService(currentServiceInfo.id)"
+              >
+                <span class="mini-card-label">Current</span>
+                <span class="mini-card-name">{{ currentServiceInfo.name }}</span>
+              </a>
+              <div v-else class="mini-card current empty">
+                <span class="mini-card-label">Current</span>
+                <span class="mini-card-name">Not selected</span>
+              </div>
+              <span class="service-arrow">→</span>
+              <a 
+                v-if="recommendedService"
+                :href="`#${recommendedService.id}`"
+                class="mini-card recommended"
+                @click.prevent="scrollToService(recommendedService.id)"
+              >
+                <span class="mini-card-label">Recommended</span>
+                <span class="mini-card-name">{{ recommendedService.name }}</span>
+              </a>
+              <div v-else class="mini-card recommended empty">
+                <span class="mini-card-label">Recommended</span>
+                <span class="mini-card-name">Complete quiz</span>
+              </div>
             </div>
           </div>
         </div>
@@ -63,24 +76,40 @@
     </div>
 
     <div class="wiki-content">
-      <aside class="wiki-sidebar card">
-        <h3>Services</h3>
-        <nav class="service-nav">
-          <BaseButton
-            v-for="service in sortedServices"
-            :key="service.id"
-            :variant="activeServiceId === service.id ? 'primary' : 'ghost'"
-            size="small"
-            class="service-nav-button"
-            :class="{ 
-              active: activeServiceId === service.id,
-              [`rating-${service.privacyRating}`]: true
-            }"
-            @click="scrollToService(service.id)"
-          >
-            <span class="service-nav-indicator" :class="`rating-${service.privacyRating}`"></span>
-            {{ service.name }}
-          </BaseButton>
+      <!-- Categories Sidebar (Left) -->
+      <aside class="categories-sidebar card">
+        <h3>Categories</h3>
+        <nav class="category-nav">
+          <div class="category-section">
+            <span class="section-label">General Services</span>
+            <BaseButton
+              v-for="cat in generalCategories"
+              :key="cat.id"
+              :variant="categoryId === cat.id ? 'primary' : 'ghost'"
+              size="small"
+              class="category-nav-button"
+              :class="{ active: categoryId === cat.id }"
+              @click="router.push(`/wiki/${cat.id}`)"
+            >
+              <span class="category-nav-icon">{{ cat.icon }}</span>
+              {{ cat.label }}
+            </BaseButton>
+          </div>
+          <div class="category-section">
+            <span class="section-label">Device Specific</span>
+            <BaseButton
+              v-for="cat in deviceCategories"
+              :key="cat.id"
+              :variant="categoryId === cat.id ? 'primary' : 'ghost'"
+              size="small"
+              class="category-nav-button"
+              :class="{ active: categoryId === cat.id }"
+              @click="router.push(`/wiki/${cat.id}`)"
+            >
+              <span class="category-nav-icon">{{ cat.icon }}</span>
+              {{ cat.label }}
+            </BaseButton>
+          </div>
         </nav>
       </aside>
 
@@ -173,6 +202,28 @@
           </details>
         </article>
       </main>
+
+      <!-- Services Sidebar (Right) -->
+      <aside class="services-sidebar card">
+        <h3>Services</h3>
+        <nav class="service-nav">
+          <BaseButton
+            v-for="service in sortedServices"
+            :key="service.id"
+            :variant="activeServiceId === service.id ? 'primary' : 'ghost'"
+            size="small"
+            class="service-nav-button"
+            :class="{ 
+              active: activeServiceId === service.id,
+              [`rating-${service.privacyRating}`]: true
+            }"
+            @click="scrollToService(service.id)"
+          >
+            <span class="service-nav-indicator" :class="`rating-${service.privacyRating}`"></span>
+            {{ service.name }}
+          </BaseButton>
+        </nav>
+      </aside>
     </div>
   </div>
 </template>
@@ -183,7 +234,7 @@ import { useRoute, useRouter } from 'vue-router'
 import BaseButton from '../components/BaseButton.vue'
 import BaseDropdown from '../components/BaseDropdown.vue'
 import { useQuizStore } from '../stores/quiz'
-import { getWikiCategory, getPrivacyRatingColor, getPrivacyRatingLabel, type WikiCategory, type WikiService } from '../data/wiki'
+import { getWikiCategory, getPrivacyRatingColor, getPrivacyRatingLabel, WIKI_CATEGORIES, type WikiCategory, type WikiService } from '../data/wiki'
 
 const route = useRoute()
 const router = useRouter()
@@ -194,9 +245,24 @@ const activeServiceId = ref<string | null>(null)
 const categoryId = computed(() => route.params.category as string)
 const category = computed<WikiCategory | undefined>(() => getWikiCategory(categoryId.value))
 
+// Category navigation - ordered to match Dashboard tables
+const GENERAL_CATEGORY_IDS = ['email', 'cloud', 'passwords', 'vpn', 'messaging']
+const DEVICE_CATEGORY_IDS = ['desktop-browsers', 'mobile-browsers', 'search-engines']
+
+const generalCategories = computed(() => 
+  GENERAL_CATEGORY_IDS
+    .map(id => WIKI_CATEGORIES.find(c => c.id === id))
+    .filter((c): c is WikiCategory => c !== undefined)
+)
+
+const deviceCategories = computed(() =>
+  DEVICE_CATEGORY_IDS
+    .map(id => WIKI_CATEGORIES.find(c => c.id === id))
+    .filter((c): c is WikiCategory => c !== undefined)
+)
+
 // Threat model
 const displayThreatLevel = computed(() => quizStore.displayThreatLevel)
-const displayThreatLabel = computed(() => quizStore.displayThreatSpectrumInfo.label)
 const threatLevelOptions = computed(() => quizStore.threatSpectrumOptions)
 const threatLevelDropdownOptions = computed(() =>
   threatLevelOptions.value.map((option) => ({
@@ -222,20 +288,17 @@ const currentAnswer = computed(() => {
   return Array.isArray(answer) ? answer[0] : (answer || '')
 })
 
-const currentServiceOptions = computed(() => {
-  if (!category.value) return []
-  const question = quizStore.questions.find(q => q.id === category.value!.questionId)
-  if (!question) return []
-  return question.options.map(opt => ({
-    value: opt.value,
-    label: opt.label
-  }))
+// Get the current service object based on user's answer
+const currentServiceInfo = computed(() => {
+  if (!category.value || !currentAnswer.value) return null
+  // Try to find the service in the category that matches the answer
+  const answer = currentAnswer.value.toLowerCase()
+  return category.value.services.find(service => 
+    service.id.toLowerCase().includes(answer.split('-')[0]) ||
+    answer.includes(service.id.toLowerCase().split('-')[0]) ||
+    service.name.toLowerCase().includes(answer.replace(/-/g, ' '))
+  ) || null
 })
-
-const handleServiceChange = (value: string | number) => {
-  if (!category.value) return
-  quizStore.saveAnswer({ questionId: category.value.questionId, answer: String(value) })
-}
 
 // Recommended service based on threat level
 // ONLY recommends privacy-respecting services (rating: 'recommended')
@@ -477,40 +540,148 @@ watch(category, (cat) => {
   color: var(--color-text-muted);
 }
 
-.recommended-group {
-  min-width: 200px;
+/* Service selection mini-card flow */
+.service-selection-group {
+  min-width: 300px;
 }
 
-.recommended-service {
+.service-flow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.mini-card {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.125rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  text-decoration: none;
+  transition: all 0.2s ease;
+  min-width: 100px;
+  cursor: pointer;
 }
 
-.recommended-name {
+.mini-card:hover:not(.empty) {
+  border-color: var(--color-primary);
+  background: var(--color-surface-hover);
+}
+
+.mini-card.empty {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.mini-card-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+}
+
+.mini-card-name {
+  font-size: 0.875rem;
   font-weight: 600;
   color: var(--color-text);
 }
 
-.recommended-badge {
-  font-size: 0.75rem;
+.mini-card.current .mini-card-label {
+  color: var(--color-caution);
+}
+
+.mini-card.recommended .mini-card-label {
   color: var(--color-primary);
+}
+
+.service-arrow {
+  color: var(--color-text-muted);
+  font-size: 1rem;
+  flex-shrink: 0;
 }
 
 .wiki-content {
   display: grid;
-  grid-template-columns: 220px 1fr;
+  grid-template-columns: 200px 1fr 200px;
   gap: 1.5rem;
   align-items: start;
 }
 
-.wiki-sidebar {
+/* Categories Sidebar (Left) */
+.categories-sidebar {
   position: sticky;
   top: 1rem;
   padding: 1rem;
 }
 
-.wiki-sidebar h3 {
+.categories-sidebar h3 {
+  margin: 0 0 1rem;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+}
+
+.category-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.category-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.section-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  padding: 0.25rem 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.category-nav-button {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.5rem;
+  width: 100%;
+  text-align: left;
+  font-size: 0.8rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.category-nav-button:not(.active):hover {
+  background: var(--color-bg-hover, rgba(99, 102, 241, 0.1));
+}
+
+.category-nav-button.active {
+  font-weight: 600;
+}
+
+.category-nav-icon {
+  font-size: 1rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+/* Services Sidebar (Right) */
+.services-sidebar {
+  position: sticky;
+  top: 1rem;
+  padding: 1rem;
+}
+
+.services-sidebar h3 {
   margin: 0 0 1rem;
   font-size: 0.875rem;
   text-transform: uppercase;
@@ -827,12 +998,23 @@ watch(category, (cat) => {
 }
 
 /* Responsive */
+@media (max-width: 1100px) {
+  .wiki-content {
+    grid-template-columns: 180px 1fr;
+  }
+
+  .services-sidebar {
+    display: none;
+  }
+}
+
 @media (max-width: 900px) {
   .wiki-content {
     grid-template-columns: 1fr;
   }
 
-  .wiki-sidebar {
+  .categories-sidebar,
+  .services-sidebar {
     position: static;
     display: none;
   }
