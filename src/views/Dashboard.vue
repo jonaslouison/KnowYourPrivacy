@@ -469,6 +469,20 @@ const isApplyingExternalData = ref(false)
 let pendingFile: File | null = null
 let isLoadAction = false
 
+// Reset load timer when password modal is closed (e.g., by clicking outside)
+watch(showPasswordModal, (isVisible, wasVisible) => {
+    if (wasVisible && !isVisible && pendingFile) {
+        // Modal was closed without successful import - reset timer only if it was a load action
+        if (isLoadAction || pendingFile) {
+            timerStore.resetLoadTimer()
+        }
+        pendingFile = null
+        fileName.value = ''
+        passwordInput.value = ''
+        passwordError.value = ''
+    }
+})
+
 const GENERAL_SERVICE_DEFINITIONS = [
     { questionId: 'email-provider', label: 'Email Provider' },
     { questionId: 'cloud-storage', label: 'Cloud Storage' },
@@ -684,6 +698,11 @@ const loadDashboard = () => {
     fileInput.type = 'file'
     fileInput.accept = '.json'
 
+    // Reset timer when user cancels file selection dialog
+    fileInput.oncancel = () => {
+        timerStore.resetLoadTimer()
+    }
+
     fileInput.onchange = async (e: Event) => {
         const target = e.target as HTMLInputElement
         const file = target.files?.[0]
@@ -794,15 +813,25 @@ const cancelExportConfirm = () => {
 }
 
 const importData = () => {
+    // Reset and start load timer for import
+    timerStore.resetLoadTimer()
+    timerStore.startLoadTimer()
+
     const fileInput = document.createElement('input')
     fileInput.type = 'file'
     fileInput.accept = '.json'
+
+    // Reset timer when user cancels file selection dialog
+    fileInput.oncancel = () => {
+        timerStore.resetLoadTimer()
+    }
 
     fileInput.onchange = async (e: Event) => {
         const target = e.target as HTMLInputElement
         const file = target.files?.[0]
         if (!file) {
             showToast('File selection cancelled', 'warning')
+            timerStore.resetLoadTimer()
             return
         }
 
