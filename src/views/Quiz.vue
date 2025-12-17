@@ -210,8 +210,9 @@ const cancelRestart = () => {
 
 const confirmDelete = () => {
     quizStore.resetQuiz()
-    // Reset quiz timer on delete
+    // Reset both timers on delete
     timerStore.resetQuizTimer()
+    timerStore.resetLoadTimer()
     showDeleteConfirm.value = false
     quizCompleted.value = false
     showQuiz.value = true

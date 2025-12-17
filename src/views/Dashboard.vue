@@ -20,27 +20,17 @@
         </div>
 
         <div v-else>
-            <div v-if="dashboardBannerType === 'warning'" class="warning-banner">
-                <div class="warning-content">
-                    <span class="warning-icon">⚠️</span>
-                    <div class="warning-text">
-                        <strong>Unsaved Data</strong>
-                        <p>Your quiz results are out of sync with {{ dashboardFileLabel }}. Export to keep the file updated.</p>
-                    </div>
-                    <BaseButton variant="primary" size="small" @click="exportData">
-                        💾 Export Now
-                    </BaseButton>
-                </div>
+            <div v-if="dashboardBannerType === 'warning'" class="dashboard-banner warning-banner">
+                <span class="banner-icon">⚠️</span>
+                <span class="banner-text"><strong>Unsaved changes</strong> — Export your data to save your progress.</span>
+                <BaseButton variant="primary" size="small" @click="exportData">
+                    💾 Export Now
+                </BaseButton>
             </div>
 
-            <div v-else-if="dashboardBannerType === 'success'" class="success-banner">
-                <div class="success-content">
-                    <span class="success-icon">✅</span>
-                    <div class="success-text">
-                        <strong>Data saved to {{ dashboardFileLabel }}</strong>
-                        <p>Your progress and results are securely stored.</p>
-                    </div>
-                </div>
+            <div v-else-if="dashboardBannerType === 'success'" class="dashboard-banner success-banner">
+                <span class="banner-icon">✅</span>
+                <span class="banner-text"><strong>Saved</strong> — Your data is securely stored in {{ dashboardFileLabel }}.</span>
             </div>
 
             <div class="dashboard-metrics">
@@ -427,7 +417,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, nextTick } from 'vue'
+import { computed, ref, watch, nextTick, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import BaseButton from '../components/BaseButton.vue'
 import BaseInput from '../components/BaseInput.vue'
@@ -498,7 +488,16 @@ const selectedDevice = ref<DeviceType>('pc')
 const hasAnswers = computed(() => quizStore.answers.length > 0)
 const isCompleted = computed(() => quizStore.isCompleted)
 const shouldContinueQuiz = computed(() => hasAnswers.value && !isCompleted.value)
-const hasUnsavedChanges = computed(() => hasAnswers.value && lastExportTime.value === null)
+const hasUnsavedChanges = ref(false)
+
+// Check on mount if there's unsaved quiz data (e.g., just completed quiz)
+onMounted(() => {
+    // If quiz is completed and no export time recorded, it means user just finished the quiz
+    if (isCompleted.value && lastExportTime.value === null && !quizStore.isLoadedFromFile) {
+        hasUnsavedChanges.value = true
+    }
+})
+
 const appCategories = computed<AppCategory[]>(() => quizStore.getAppCategories())
 const generalServicesRows = computed(() =>
     GENERAL_SERVICE_DEFINITIONS.map((definition) => {
@@ -571,6 +570,7 @@ const updateTierAssignments = (value: Record<ThreatTierId, string[]>) => {
 
 const markUnsaved = () => {
     lastExportTime.value = null
+    hasUnsavedChanges.value = true
 }
 
 watch(
@@ -612,10 +612,13 @@ const scoreDescription = computed(() => {
     return `Needs attention. The ${displayThreatSpectrumLabel.value} profile deserves more focused controls.`
 })
 const dashboardBannerType = computed<'warning' | 'success' | null>(() => {
-    if (!quizStore.isLoadedFromFile) return null
-    return hasUnsavedChanges.value ? 'warning' : 'success'
+    // Show warning if there are unsaved changes (after quiz, tierlist changes, etc.)
+    if (hasUnsavedChanges.value) return 'warning'
+    // Show success only if data was loaded from file and no changes since
+    if (quizStore.isLoadedFromFile && lastExportTime.value !== null) return 'success'
+    return null
 })
-const dashboardFileLabel = computed(() => fileName.value || 'loaded file')
+const dashboardFileLabel = computed(() => fileName.value || 'your data')
 const handleThreatLevelChange = (value: string | number) => {
     quizStore.setManualThreatLevel(Number(value))
     markUnsaved()
@@ -632,8 +635,9 @@ const selectDevice = (device: DeviceType) => {
 
 const getDeviceWikiPath = (questionId: string): string => {
     // Map device-specific question IDs to appropriate wiki categories
-    if (questionId.includes('os-desktop')) return '/wiki/os-desktop'
-    if (questionId.includes('os-mobile') || questionId.includes('os-tablet')) return '/wiki/os-mobile'
+    if (questionId.includes('os-desktop')) return '/wiki/desktop-os'
+    if (questionId.includes('os-mobile')) return '/wiki/mobile-os'
+    if (questionId.includes('os-tablet')) return '/wiki/tablet-os'
     if (questionId.includes('browser-desktop')) return '/wiki/desktop-browsers'
     if (questionId.includes('browser-mobile')) return '/wiki/mobile-browsers'
     if (questionId.includes('search-engine')) return '/wiki/search-engines'
@@ -762,6 +766,7 @@ const submitExport = async () => {
             return
         }
         lastExportTime.value = Date.now()
+        hasUnsavedChanges.value = false
         showExportModal.value = false
         showToast('Data exported successfully!', 'success')
         passwordInput.value = ''
@@ -794,6 +799,7 @@ const submitExportConfirm = async () => {
             return
         }
         lastExportTime.value = Date.now()
+        hasUnsavedChanges.value = false
         showExportConfirmModal.value = false
         showToast('Data exported successfully!', 'success')
         passwordInput.value = ''
@@ -863,6 +869,7 @@ const submitPassword = async () => {
     try {
         await quizStore.importEncryptedData(pendingFile, passwordInput.value)
         lastExportTime.value = Date.now()
+        hasUnsavedChanges.value = false
         showPasswordModal.value = false
         
         // Stop load timer on successful import
@@ -909,9 +916,12 @@ const resetData = () => {
 
 const confirmDelete = () => {
     quizStore.resetQuiz()
+    // Reset both timers on delete
+    timerStore.resetQuizTimer()
+    timerStore.resetLoadTimer()
     showDeleteConfirm.value = false
     showToast('All data deleted successfully', 'success')
-    router.push('/quiz')
+    router.push('/')
 }
 
 const cancelDelete = () => {
@@ -943,21 +953,41 @@ const cancelDelete = () => {
     margin-bottom: 2rem;
 }
 
-.warning-banner,
-.success-banner {
-    border-radius: 14px;
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
+.dashboard-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.65rem 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    position: sticky;
+    top: 60px; /* Below the app header */
+    z-index: 50;
+}
+
+.dashboard-banner .banner-icon {
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.dashboard-banner .banner-text {
+    flex: 1;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+}
+
+.dashboard-banner .banner-text strong {
+    font-weight: 600;
 }
 
 .warning-banner {
     background: linear-gradient(135deg, #fff3cd 0%, #fff8e1 100%);
-    border: 2px solid #ffc107;
+    border: 1px solid #ffc107;
 }
 
 .success-banner {
     background: linear-gradient(135deg, #d4edda 0%, #e8f5e9 100%);
-    border: 2px solid #28a745;
+    border: 1px solid #28a745;
 }
 
 .dashboard-metrics {
