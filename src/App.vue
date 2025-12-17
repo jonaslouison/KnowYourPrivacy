@@ -9,6 +9,7 @@
                     <router-link to="/">Home</router-link>
                     <router-link to="/quiz">Quiz</router-link>
                     <router-link to="/dashboard">Dashboard</router-link>
+                    <router-link to="/wiki/email">Wiki</router-link>
                 </div>
                 <div class="timer-display">
                     <div v-if="timerStore.quizTimerActive" class="timer-item" :class="{ running: timerStore.quizTimerRunning, completed: timerStore.quizTimerCompleted }">
@@ -128,12 +129,15 @@ onBeforeUnmount(unregisterReloadGuardListeners)
 
 .nav {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
     padding: 1rem 2rem;
+    position: relative;
 }
 
 .logo {
+    position: absolute;
+    left: 2rem;
     font-size: 1.5rem;
     font-weight: 700;
 }
@@ -161,6 +165,8 @@ onBeforeUnmount(unregisterReloadGuardListeners)
 }
 
 .timer-display {
+    position: absolute;
+    right: 2rem;
     display: flex;
     gap: 1rem;
     align-items: center;

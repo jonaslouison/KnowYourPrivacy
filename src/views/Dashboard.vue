@@ -1563,6 +1563,8 @@ const cancelDelete = () => {
     display: flex;
     flex-wrap: wrap;
     gap: 0.75rem;
+    justify-content: center;
+    margin-top: 1.5rem;
 }
 
 .muted {

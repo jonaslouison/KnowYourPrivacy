@@ -6,6 +6,101 @@
 // Privacy Guides base URL for external links
 const PRIVACY_GUIDES_BASE = 'https://www.privacyguides.org/en'
 
+// =============================================================================
+// THREAT DESCRIPTIONS
+// =============================================================================
+
+export interface ThreatInfo {
+  id: string
+  label: string
+  icon: string
+  shortDescription: string
+  fullDescription: string
+  examples: string[]
+  privacyGuidesUrl?: string
+}
+
+export const THREAT_DESCRIPTIONS: ThreatInfo[] = [
+  {
+    id: 'threat-surveillance',
+    label: 'Surveillance Capitalism',
+    icon: '👁️',
+    shortDescription: 'Companies tracking your online behavior to sell targeted ads and build profiles about you.',
+    fullDescription: 'Surveillance capitalism is an economic system where companies collect and monetize personal data. Tech giants like Google, Meta, and Amazon track your browsing, purchases, location, and more to build detailed profiles used for targeted advertising and sold to third parties.',
+    examples: [
+      'Personalized ads following you across websites',
+      'Product recommendations based on private conversations',
+      'Email scanning for advertising purposes',
+      'Location tracking even when apps are closed'
+    ],
+    privacyGuidesUrl: `${PRIVACY_GUIDES_BASE}/basics/threat-modeling/`
+  },
+  {
+    id: 'threat-fingerprinting',
+    label: 'Online Fingerprinting',
+    icon: '🔍',
+    shortDescription: 'Websites identifying you through unique browser and device characteristics, even without cookies.',
+    fullDescription: 'Browser fingerprinting creates a unique identifier from your device settings, installed fonts, screen resolution, browser plugins, and more. This allows tracking across websites even if you clear cookies or use incognito mode.',
+    examples: [
+      'Tracking across multiple browsers on the same device',
+      'Identifying you on new accounts',
+      'Bypassing cookie consent and ad blockers',
+      'Linking your identity across "anonymous" sessions'
+    ],
+    privacyGuidesUrl: `${PRIVACY_GUIDES_BASE}/basics/threat-modeling/`
+  },
+  {
+    id: 'threat-government',
+    label: 'Government Surveillance',
+    icon: '🏛️',
+    shortDescription: 'Mass surveillance programs and government access to your digital communications.',
+    fullDescription: 'Governments worldwide conduct mass surveillance through programs like PRISM, XKeyscore, and partnerships with tech companies. This includes monitoring communications, requiring data retention, and accessing encrypted data through legal demands or backdoors.',
+    examples: [
+      'Mass collection of phone metadata',
+      'Monitoring of international communications',
+      'Mandatory data retention laws',
+      'Compelled access to cloud storage'
+    ],
+    privacyGuidesUrl: `${PRIVACY_GUIDES_BASE}/basics/threat-modeling/`
+  },
+  {
+    id: 'threat-data-breaches',
+    label: 'Data Breaches',
+    icon: '💔',
+    shortDescription: 'Hackers stealing your personal information from companies that store your data.',
+    fullDescription: 'Data breaches occur when attackers gain unauthorized access to databases containing personal information. This can expose passwords, financial data, health records, and other sensitive information, leading to identity theft, fraud, and privacy violations.',
+    examples: [
+      'Leaked passwords from hacked websites',
+      'Exposed credit card numbers',
+      'Stolen medical records',
+      'Compromised social security numbers'
+    ],
+    privacyGuidesUrl: `${PRIVACY_GUIDES_BASE}/basics/threat-modeling/`
+  },
+  {
+    id: 'threat-identity-theft',
+    label: 'Identity Theft',
+    icon: '🎭',
+    shortDescription: 'Criminals using your personal information to impersonate you for financial gain.',
+    fullDescription: 'Identity theft occurs when someone uses your personal information—name, social security number, credit card details—to commit fraud. This can result in financial losses, damaged credit, legal problems, and significant time spent recovering your identity.',
+    examples: [
+      'Opening credit cards in your name',
+      'Filing fraudulent tax returns',
+      'Taking out loans using your identity',
+      'Accessing your existing accounts'
+    ],
+    privacyGuidesUrl: `${PRIVACY_GUIDES_BASE}/basics/threat-modeling/`
+  }
+]
+
+export function getThreatDescription(threatId: string): ThreatInfo | undefined {
+  return THREAT_DESCRIPTIONS.find(t => t.id === threatId)
+}
+
+export function getThreatByLabel(label: string): ThreatInfo | undefined {
+  return THREAT_DESCRIPTIONS.find(t => t.label === label)
+}
+
 export interface WikiService {
   id: string
   name: string
