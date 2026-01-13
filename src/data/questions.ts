@@ -47,21 +47,38 @@ export const quizQuestions: QuizQuestion[] = [
       { label: 'Firefox', value: 'firefox', score: 75 },
       { label: 'Brave', value: 'brave', score: 90 },
       { label: 'Tor Browser', value: 'tor', score: 100 },
-      { label: 'Other privacy-focused browser', value: 'other-privacy', score: 85 }
+      { label: 'Other privacy-focused browser', value: 'other-privacy', score: 85 },
+      { label: 'Other non-privacy-focused browser', value: 'other-non-privacy', score: 20 }
     ]
   },
   {
     id: 'browser-mobile',
     category: 'App Usage - Browser',
     question: 'What browser do you use on mobile?',
-    device: 'mobile',
+    device: 'phone',
     options: [
       { label: 'Google Chrome', value: 'chrome', score: 30 },
       { label: 'Safari', value: 'safari', score: 50 },
       { label: 'Firefox', value: 'firefox', score: 75 },
       { label: 'Brave', value: 'brave', score: 90 },
       { label: 'DuckDuckGo Browser', value: 'ddg', score: 85 },
-      { label: 'Other privacy-focused browser', value: 'other-privacy', score: 80 }
+      { label: 'Other privacy-focused browser', value: 'other-privacy', score: 80 },
+      { label: 'Other non-privacy-focused browser', value: 'other-non-privacy', score: 20 }
+    ]
+  },
+  {
+    id: 'browser-tablet',
+    category: 'App Usage - Browser',
+    question: 'What browser do you use on your tablet?',
+    device: 'tablet',
+    options: [
+      { label: 'Google Chrome', value: 'chrome', score: 30 },
+      { label: 'Safari', value: 'safari', score: 50 },
+      { label: 'Firefox', value: 'firefox', score: 75 },
+      { label: 'Brave', value: 'brave', score: 90 },
+      { label: 'DuckDuckGo Browser', value: 'ddg', score: 85 },
+      { label: 'Other privacy-focused browser', value: 'other-privacy', score: 80 },
+      { label: 'Other non-privacy-focused browser', value: 'other-non-privacy', score: 20 }
     ]
   },
   {
@@ -71,10 +88,12 @@ export const quizQuestions: QuizQuestion[] = [
     options: [
       { label: 'Gmail', value: 'gmail', score: 30 },
       { label: 'Outlook/Hotmail', value: 'outlook', score: 35 },
+      { label: 'iCloud Mail', value: 'icloud-mail', score: 50 },
       { label: 'Yahoo Mail', value: 'yahoo', score: 30 },
       { label: 'ProtonMail', value: 'protonmail', score: 95 },
       { label: 'Tutanota', value: 'tutanota', score: 95 },
-      { label: 'Other privacy-focused provider', value: 'other-privacy', score: 85 }
+      { label: 'Other privacy-focused provider', value: 'other-privacy', score: 85 },
+      { label: 'Other non-privacy-focused provider', value: 'other-non-privacy', score: 20 }
     ]
   },
   {
@@ -87,7 +106,8 @@ export const quizQuestions: QuizQuestion[] = [
       { label: 'DuckDuckGo', value: 'duckduckgo', score: 90 },
       { label: 'Startpage', value: 'startpage', score: 90 },
       { label: 'Brave Search', value: 'brave-search', score: 85 },
-      { label: 'Other privacy-focused search', value: 'other-privacy', score: 80 }
+      { label: 'Other privacy-focused search', value: 'other-privacy', score: 80 },
+      { label: 'Other non-privacy-focused search', value: 'other-non-privacy', score: 20 }
     ]
   },
   {
@@ -119,7 +139,8 @@ export const quizQuestions: QuizQuestion[] = [
       { label: 'iCloud', value: 'icloud', score: 50 },
       { label: 'Nextcloud (self-hosted)', value: 'nextcloud', score: 100 },
       { label: 'ProtonDrive', value: 'protondrive', score: 95 },
-      { label: 'Don\'t use cloud storage', value: 'none', score: 90 }
+      { label: 'Don\'t use cloud storage', value: 'none', score: 90 },
+      { label: 'Other privacy-focused cloud storage', value: 'other-privacy', score: 95 }
     ]
   },
   {
@@ -253,6 +274,8 @@ export const recommendations: Recommendations = {
     brave: ['Already excellent choice!'],
     tor: ['Perfect for maximum anonymity!'],
     'other-privacy': ['Great choice!']
+    ,
+    'other-non-privacy': ['Consider switching to Firefox, Brave, or Mullvad Browser']
   },
   'browser-mobile': {
     chrome: ['Firefox Focus', 'Brave', 'DuckDuckGo Browser'],
@@ -261,6 +284,17 @@ export const recommendations: Recommendations = {
     brave: ['Excellent choice!'],
     ddg: ['Great choice!'],
     'other-privacy': ['Great choice!']
+    ,
+    'other-non-privacy': ['Consider Firefox Focus, Brave, or DuckDuckGo Browser']
+  },
+  'browser-tablet': {
+    chrome: ['Firefox', 'Brave', 'DuckDuckGo Browser'],
+    safari: ['Firefox', 'Brave', 'DuckDuckGo Browser'],
+    firefox: ['Great choice for tablets!'],
+    brave: ['Excellent choice!'],
+    ddg: ['Great choice!'],
+    'other-privacy': ['Great choice!'],
+    'other-non-privacy': ['Consider Firefox, Brave, or DuckDuckGo Browser']
   },
   'email-provider': {
     gmail: ['ProtonMail', 'Tutanota', 'Mailbox.org'],
@@ -269,6 +303,9 @@ export const recommendations: Recommendations = {
     protonmail: ['Excellent choice!'],
     tutanota: ['Excellent choice!'],
     'other-privacy': ['Great choice!']
+    ,
+    'icloud-mail': ['Consider ProtonMail, Tutanota, or Mailbox.org'],
+    'other-non-privacy': ['Consider ProtonMail or Tutanota for better privacy']
   },
   'search-engine': {
     google: ['DuckDuckGo', 'Startpage', 'Brave Search'],
@@ -277,6 +314,8 @@ export const recommendations: Recommendations = {
     startpage: ['Excellent choice!'],
     'brave-search': ['Great choice!'],
     'other-privacy': ['Great choice!']
+    ,
+    'other-non-privacy': ['Consider DuckDuckGo, Startpage, or Brave Search']
   },
   'messaging-app': {
     whatsapp: ['Signal', 'Session', 'SimpleX Chat'],
@@ -298,7 +337,8 @@ export const recommendations: Recommendations = {
     icloud: ['Nextcloud', 'ProtonDrive', 'Consider encryption'],
     nextcloud: ['Perfect for self-hosting!'],
     protondrive: ['Excellent choice!'],
-    none: ['Good for privacy!']
+    none: ['Good for privacy!'],
+    'other-privacy': ['Great choice!']
   },
   'password-manager': {
     'none-reuse': ['URGENT: Use Bitwarden, KeePassXC, or 1Password'],
@@ -325,7 +365,8 @@ export const recommendations: Recommendations = {
   'os-mobile': {
     android: ['Use privacy forks (Graphene, /e/ OS) and audit app permissions'],
     ios: ['Disable analytics, limit ad tracking, and lock down Siri data'],
-    'other-mobile': ['Keep firmware patched and avoid untrusted stores']
+    'other-mobile': ['Keep firmware patched and avoid untrusted stores'],
+    grapheneos: ['Excellent choice! GrapheneOS is privacy-focused and hardened']
   },
   'os-tablet': {
     ipados: ['Lock iPadOS with screen time passcode and use Privacy Relay'],
