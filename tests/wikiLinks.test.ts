@@ -51,7 +51,7 @@ describe('Wiki Data Structure', () => {
     })
 
     it('should have valid privacy ratings for all services', () => {
-        const validRatings = ['good', 'acceptable', 'caution', 'avoid']
+        const validRatings = ['good', 'recommended', 'acceptable', 'caution', 'avoid']
 
         for (const category of WIKI_CATEGORIES) {
             for (const service of category.services) {
@@ -105,7 +105,7 @@ describe('Recommendation Logic', () => {
     it('all good-rated services should have difficulty field', () => {
         for (const category of WIKI_CATEGORIES) {
             const goodServices = category.services.filter(
-                s => s.privacyRating === 'good'
+                s => s.privacyRating === 'good' || s.privacyRating === 'recommended'
             )
             
             for (const service of goodServices) {
@@ -120,7 +120,7 @@ describe('Recommendation Logic', () => {
     it('non-good-rated services should NOT have difficulty field', () => {
         for (const category of WIKI_CATEGORIES) {
             const nonGoodServices = category.services.filter(
-                s => s.privacyRating !== 'good'
+                s => s.privacyRating !== 'good' && s.privacyRating !== 'recommended'
             )
             
             for (const service of nonGoodServices) {
@@ -134,7 +134,7 @@ describe('Recommendation Logic', () => {
     it('each category should have at least one difficulty 1 service', () => {
         for (const category of WIKI_CATEGORIES) {
             const easyServices = category.services.filter(
-                s => s.privacyRating === 'good' && s.difficulty === 1
+                s => (s.privacyRating === 'good' || s.privacyRating === 'recommended') && s.difficulty === 1
             )
             
             expect(easyServices.length, 

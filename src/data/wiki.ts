@@ -108,8 +108,8 @@ export interface WikiService {
   logo?: string
   homepage?: string
   privacyPolicy?: string
-  /** Privacy rating: 'good' | 'acceptable' | 'caution' | 'avoid' */
-  privacyRating: 'good' | 'acceptable' | 'caution' | 'avoid'
+  /** Privacy rating: 'good' | 'recommended' | 'acceptable' | 'caution' | 'avoid' */
+  privacyRating: 'good' | 'recommended' | 'acceptable' | 'caution' | 'avoid'
   /** Why this rating */
   privacyNote: string
   /** Key privacy concerns or benefits */
@@ -121,7 +121,7 @@ export interface WikiService {
    * 1 = Easy (good for beginners/Normie) - user-friendly, works out of the box
    * 2 = Medium (Aware users) - may require some setup or learning
    * 3 = Advanced (Ghost/Activist) - maximum privacy but requires technical knowledge
-   * Only services with rating 'good' should have this field set
+   * Only services with rating 'good' or 'recommended' should have this field set
    */
   difficulty?: 1 | 2 | 3
 }
@@ -987,7 +987,7 @@ const desktopBrowserServices: WikiService[] = [
     name: 'Firefox',
     description: 'Independent browser from Mozilla. Open source with strong privacy features.',
     homepage: 'https://firefox.com',
-    privacyRating: 'good',
+    privacyRating: 'recommended',
     privacyNote: 'Best mainstream browser for privacy with customization options',
     privacyDetails: [
       'Enhanced Tracking Protection by default',
@@ -1397,7 +1397,7 @@ const desktopOsServices: WikiService[] = [
       'Rolling release distros get faster security updates'
     ],
     privacyGuidesRecommended: true,
-    difficulty: 2
+    difficulty: 1
   },
   // Fedora
   {
@@ -1585,7 +1585,7 @@ const mobileOsServices: WikiService[] = [
     name: 'iOS',
     description: 'Apple\'s mobile operating system for iPhone, known for strong security and privacy features.',
     homepage: 'https://www.apple.com/ios',
-    privacyRating: 'acceptable',
+    privacyRating: 'good',
     privacyNote: 'Good privacy defaults but limited user control',
     privacyDetails: [
       'App Tracking Transparency blocks cross-app tracking',
@@ -1595,7 +1595,8 @@ const mobileOsServices: WikiService[] = [
       'App Store is only source for apps',
       'Telemetry sent even when analytics disabled'
     ],
-    privacyGuidesRecommended: false
+    privacyGuidesRecommended: true,
+    difficulty: 1
   },
   // GrapheneOS
   {
@@ -1690,7 +1691,7 @@ const tabletOsServices: WikiService[] = [
     name: 'iPadOS',
     description: 'Apple\'s tablet operating system for iPad, sharing most privacy features with iOS.',
     homepage: 'https://www.apple.com/ipados',
-    privacyRating: 'acceptable',
+    privacyRating: 'good',
     privacyNote: 'Similar to iOS with same privacy trade-offs',
     privacyDetails: [
       'App Tracking Transparency available',
@@ -1700,7 +1701,8 @@ const tabletOsServices: WikiService[] = [
       'Locked to Apple ecosystem',
       'Better than Android tablets for average users'
     ],
-    privacyGuidesRecommended: false
+    privacyGuidesRecommended: false,
+    difficulty: 1
   },
   // Android Tablet
   {
@@ -1955,6 +1957,7 @@ function findServiceAnchor(category: WikiCategory, answerValue: string): string 
 export function getPrivacyRatingColor(rating: WikiService['privacyRating']): string {
   switch (rating) {
     case 'good': return '#22c55e' // green
+    case 'recommended': return '#10b981' // emerald green
     case 'acceptable': return '#eab308'  // yellow
     case 'caution': return '#f97316'     // orange
     case 'avoid': return '#ef4444'       // red
@@ -1968,6 +1971,7 @@ export function getPrivacyRatingColor(rating: WikiService['privacyRating']): str
 export function getPrivacyRatingLabel(rating: WikiService['privacyRating']): string {
   switch (rating) {
     case 'good': return '✓ Good'
+    case 'recommended': return '★ Recommended'
     case 'acceptable': return 'Acceptable'
     case 'caution': return '⚠ Caution'
     case 'avoid': return '✗ Avoid'
@@ -2024,6 +2028,7 @@ export function mapScoreToClass(score: number): 'good' | 'medium' | 'poor' {
 export function mapPrivacyRatingToScoreClass(rating: WikiService['privacyRating']): 'good' | 'medium' | 'poor' {
   switch (rating) {
     case 'good': return 'good'
+    case 'recommended': return 'good'
     case 'acceptable': return 'medium'
     case 'caution': return 'poor'
     case 'avoid': return 'poor'
