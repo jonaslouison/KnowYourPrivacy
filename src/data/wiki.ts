@@ -117,6 +117,11 @@ export interface WikiService {
   /** Is this recommended by Privacy Guides? */
   privacyGuidesRecommended: boolean
   /** 
+   * Privacy Guides anchor ID for direct linking to the service section.
+   * e.g., 'bitwarden' links to privacyguides.org/en/passwords/#bitwarden
+   */
+  privacyGuidesId?: string
+  /** 
    * Difficulty/complexity level for recommendations:
    * 1 = Easy (good for beginners/Normie) - user-friendly, works out of the box
    * 2 = Medium (Aware users) - may require some setup or learning
@@ -261,6 +266,7 @@ const emailServices: WikiService[] = [
       'Free tier available with 1GB storage'
     ],
     privacyGuidesRecommended: true,
+    privacyGuidesId: 'proton-mail',
     difficulty: 1
   },
   {
@@ -278,6 +284,7 @@ const emailServices: WikiService[] = [
       'Open source and independently audited'
     ],
     privacyGuidesRecommended: true,
+    privacyGuidesId: 'tuta',
     difficulty: 2
   },
   {
@@ -295,6 +302,7 @@ const emailServices: WikiService[] = [
       'No free tier but affordable'
     ],
     privacyGuidesRecommended: true,
+    privacyGuidesId: 'mailbox-mail',
     difficulty: 3
   }
 ]
@@ -408,6 +416,7 @@ const cloudServices: WikiService[] = [
       'Free tier with 1GB (more with Proton plans)'
     ],
     privacyGuidesRecommended: true,
+    privacyGuidesId: 'proton-drive',
     difficulty: 1
   },
   {
@@ -425,7 +434,25 @@ const cloudServices: WikiService[] = [
       'No free tier but strong security'
     ],
     privacyGuidesRecommended: true,
+    privacyGuidesId: 'tresorit',
     difficulty: 2
+  },
+  {
+    id: 'nextcloud',
+    name: 'Nextcloud',
+    description: 'Self-hosted cloud storage platform. Full control over your data with optional end-to-end encryption.',
+    homepage: 'https://nextcloud.com',
+    privacyRating: 'good',
+    privacyNote: 'Self-hosted means complete data sovereignty',
+    privacyDetails: [
+      'Self-hosted - you control the server',
+      'Optional end-to-end encryption',
+      'Open source and auditable',
+      'Many apps for calendar, contacts, notes etc.',
+      'Requires technical setup or hosted provider'
+    ],
+    privacyGuidesRecommended: true,
+    difficulty: 3
   },
   {
     id: 'cryptomator',
@@ -539,6 +566,7 @@ const passwordServices: WikiService[] = [
       'Recommended for advanced users'
     ],
     privacyGuidesRecommended: true,
+    privacyGuidesId: 'bitwarden',
     difficulty: 3
   },
   {
@@ -556,6 +584,7 @@ const passwordServices: WikiService[] = [
       'Travel Mode for border crossings'
     ],
     privacyGuidesRecommended: true,
+    privacyGuidesId: '1password',
     difficulty: 2
   },
   {
@@ -573,6 +602,7 @@ const passwordServices: WikiService[] = [
       'Free tier available'
     ],
     privacyGuidesRecommended: true,
+    privacyGuidesId: 'proton-pass',
     difficulty: 1
   },
   {
@@ -590,6 +620,7 @@ const passwordServices: WikiService[] = [
       'Free forever'
     ],
     privacyGuidesRecommended: true,
+    privacyGuidesId: 'keepassxc',
     difficulty: 2
   }
 ]
@@ -687,6 +718,7 @@ const vpnServices: WikiService[] = [
       'Part of trusted Proton ecosystem'
     ],
     privacyGuidesRecommended: true,
+    privacyGuidesId: 'proton-vpn',
     difficulty: 1
   },
   {
@@ -704,6 +736,7 @@ const vpnServices: WikiService[] = [
       'Regular third-party audits'
     ],
     privacyGuidesRecommended: true,
+    privacyGuidesId: 'mullvad',
     difficulty: 3
   },
   {
@@ -721,6 +754,7 @@ const vpnServices: WikiService[] = [
       'Based in Gibraltar'
     ],
     privacyGuidesRecommended: true,
+    privacyGuidesId: 'ivpn',
     difficulty: 2
   }
 ]
@@ -866,6 +900,7 @@ const messagingServices: WikiService[] = [
       'Non-profit organization'
     ],
     privacyGuidesRecommended: true,
+    privacyGuidesId: 'signal',
     difficulty: 1
   },
   {
@@ -883,6 +918,7 @@ const messagingServices: WikiService[] = [
       'Can run your own server'
     ],
     privacyGuidesRecommended: true,
+    privacyGuidesId: 'simplex-chat',
     difficulty: 3
   },
   {
@@ -900,6 +936,7 @@ const messagingServices: WikiService[] = [
       'Session IDs instead of usernames'
     ],
     privacyGuidesRecommended: true,
+    privacyGuidesId: 'briar',
     difficulty: 2
   }
 ]
@@ -984,20 +1021,55 @@ const desktopBrowserServices: WikiService[] = [
   // Privacy-Focused Recommendations
   {
     id: 'firefox',
-    name: 'Firefox',
-    description: 'Independent browser from Mozilla. Open source with strong privacy features.',
+    name: 'Firefox (Default)',
+    description: 'Independent browser from Mozilla. Good privacy out of the box with room for improvement.',
     homepage: 'https://firefox.com',
-    privacyRating: 'recommended',
-    privacyNote: 'Best mainstream browser for privacy with customization options',
+    privacyRating: 'acceptable',
+    privacyNote: 'Good mainstream choice, better with tweaking',
     privacyDetails: [
       'Enhanced Tracking Protection by default',
       'Total Cookie Protection isolates sites',
       'Open source and auditable',
       'Independent from big tech',
-      'Highly customizable privacy settings'
+      'Some telemetry enabled by default'
+    ],
+    privacyGuidesRecommended: false
+  },
+  {
+    id: 'firefox-hardened',
+    name: 'Firefox (Hardened)',
+    description: 'Firefox with privacy-enhancing configurations like arkenfox user.js applied.',
+    homepage: 'https://github.com/arkenfox/user.js',
+    privacyRating: 'good',
+    privacyNote: 'Hardened Firefox with arkenfox for maximum privacy',
+    privacyDetails: [
+      'All telemetry disabled',
+      'Resist fingerprinting enabled',
+      'First-party isolation',
+      'Stricter security settings',
+      'Requires manual setup with arkenfox user.js'
     ],
     privacyGuidesRecommended: true,
-    difficulty: 1
+    privacyGuidesId: 'firefox',
+    difficulty: 3
+  },
+  {
+    id: 'librewolf',
+    name: 'LibreWolf',
+    description: 'Privacy-hardened Firefox fork with telemetry removed and privacy settings pre-configured.',
+    homepage: 'https://librewolf.net',
+    privacyRating: 'good',
+    privacyNote: 'Firefox but privacy-hardened out of the box',
+    privacyDetails: [
+      'All telemetry removed',
+      'uBlock Origin pre-installed',
+      'Resist fingerprinting enabled by default',
+      'No need for manual hardening',
+      'May break some websites'
+    ],
+    privacyGuidesRecommended: true,
+    privacyGuidesId: 'firefox',
+    difficulty: 2
   },
   {
     id: 'brave',
@@ -1014,6 +1086,7 @@ const desktopBrowserServices: WikiService[] = [
       'Shields provide easy privacy control'
     ],
     privacyGuidesRecommended: true,
+    privacyGuidesId: 'brave',
     difficulty: 1
   },
   {
@@ -1031,6 +1104,7 @@ const desktopBrowserServices: WikiService[] = [
       'No account or login required'
     ],
     privacyGuidesRecommended: true,
+    privacyGuidesId: 'mullvad-browser',
     difficulty: 2
   },
   {
@@ -1048,6 +1122,7 @@ const desktopBrowserServices: WikiService[] = [
       'Slower than regular browsers'
     ],
     privacyGuidesRecommended: true,
+    privacyGuidesId: 'tor-browser',
     difficulty: 3
   }
 ]
@@ -1129,6 +1204,7 @@ const mobileBrowserServices: WikiService[] = [
       'Available on both platforms'
     ],
     privacyGuidesRecommended: true,
+    privacyGuidesId: 'brave',
     difficulty: 1
   },
   {
@@ -1180,6 +1256,7 @@ const mobileBrowserServices: WikiService[] = [
       'Open source'
     ],
     privacyGuidesRecommended: true,
+    privacyGuidesId: 'cromite-android',
     difficulty: 2
   }
 ]
@@ -1261,6 +1338,7 @@ const searchServices: WikiService[] = [
       'Based in US but strong privacy focus'
     ],
     privacyGuidesRecommended: true,
+    privacyGuidesId: 'duckduckgo',
     difficulty: 1
   },
   {
@@ -1278,6 +1356,7 @@ const searchServices: WikiService[] = [
       'Growing in quality'
     ],
     privacyGuidesRecommended: true,
+    privacyGuidesId: 'brave-search',
     difficulty: 1
   },
   {
@@ -1295,6 +1374,7 @@ const searchServices: WikiService[] = [
       'Google-quality results privately'
     ],
     privacyGuidesRecommended: true,
+    privacyGuidesId: 'startpage',
     difficulty: 1
   },
   {
@@ -1312,6 +1392,7 @@ const searchServices: WikiService[] = [
       'Many public instances available'
     ],
     privacyGuidesRecommended: true,
+    privacyGuidesId: 'searxng',
     difficulty: 3
   }
 ]

@@ -44,33 +44,35 @@
 
           <div class="control-group service-selection-group">
             <label class="control-label">Your Selection</label>
-            <div class="service-flow">
-              <a 
-                v-if="currentServiceInfo"
-                :href="`#${currentServiceInfo.id}`"
-                class="mini-card current"
-                @click.prevent="scrollToService(currentServiceInfo.id)"
-              >
-                <span class="mini-card-label">Current</span>
-                <span class="mini-card-name">{{ currentServiceInfo.name }}</span>
-              </a>
-              <div v-else class="mini-card current empty">
-                <span class="mini-card-label">Current</span>
-                <span class="mini-card-name">Not selected</span>
-              </div>
-              <span class="service-arrow">→</span>
-              <a 
-                v-if="recommendedService"
-                :href="`#${recommendedService.id}`"
-                class="mini-card recommended"
-                @click.prevent="scrollToService(recommendedService.id)"
-              >
-                <span class="mini-card-label">Recommended</span>
-                <span class="mini-card-name">{{ recommendedService.name }}</span>
-              </a>
-              <div v-else class="mini-card recommended empty">
-                <span class="mini-card-label">Recommended</span>
-                <span class="mini-card-name">Complete quiz</span>
+            <div class="selection-item">
+              <div class="selection-flow">
+                <a 
+                  v-if="currentServiceInfo"
+                  :href="`#${currentServiceInfo.id}`"
+                  class="mini-card current"
+                  @click.prevent="scrollToService(currentServiceInfo.id)"
+                >
+                  <span class="mini-card-label">Current</span>
+                  <span class="mini-card-name">{{ currentServiceInfo.name }}</span>
+                </a>
+                <div v-else class="mini-card current empty">
+                  <span class="mini-card-label">Current</span>
+                  <span class="mini-card-name">Not selected</span>
+                </div>
+                <span class="selection-arrow">→</span>
+                <a 
+                  v-if="recommendedService"
+                  :href="`#${recommendedService.id}`"
+                  class="mini-card recommended"
+                  @click.prevent="scrollToService(recommendedService.id)"
+                >
+                  <span class="mini-card-label">Recommended</span>
+                  <span class="mini-card-name">{{ recommendedService.name }}</span>
+                </a>
+                <div v-else class="mini-card recommended empty">
+                  <span class="mini-card-label">Recommended</span>
+                  <span class="mini-card-name">Complete quiz</span>
+                </div>
               </div>
             </div>
           </div>
@@ -219,6 +221,16 @@
                 target="_blank"
               >
                 🔗 Website
+              </BaseButton>
+              <BaseButton
+                v-if="getPrivacyGuidesUrl(service)"
+                variant="outline"
+                size="small"
+                :href="getPrivacyGuidesUrl(service)!"
+                target="_blank"
+                class="pg-link-btn"
+              >
+                📘 Privacy Guides
               </BaseButton>
             </div>
           </div>
@@ -446,20 +458,34 @@ const setCurrentService = (serviceId: string, serviceName: string) => {
   // Try to find a matching option with multiple strategies
   const serviceIdLower = serviceId.toLowerCase()
   const serviceNameLower = serviceName.toLowerCase()
-  const serviceFirstWord = serviceNameLower.split(' ')[0]
+  const serviceFirstWord = serviceNameLower.split(' ')[0].replace(/[^a-z]/g, '')
+  
+  // Create normalized versions for matching
+  const normalizedServiceId = serviceIdLower.replace(/[-_]/g, '').replace(/hardened|default|mobile/g, '')
   
   const matchingOption = question.options.find(opt => {
     const optLabel = opt.label.toLowerCase()
     const optValue = opt.value.toLowerCase()
+    const normalizedOptValue = optValue.replace(/[-_]/g, '')
     
     // Exact match on value
     if (optValue === serviceIdLower) return true
-    // Value contains service ID or first part
-    if (optValue.includes(serviceIdLower.split('-')[0])) return true
+    // Normalized match (firefox-hardened matches firefox)
+    if (normalizedOptValue === normalizedServiceId) return true
+    if (normalizedServiceId.includes(normalizedOptValue)) return true
+    if (normalizedOptValue.includes(normalizedServiceId)) return true
+    // Value contains service ID base part
+    const serviceIdBase = serviceIdLower.split('-')[0]
+    if (optValue === serviceIdBase || optValue.includes(serviceIdBase)) return true
     // Label contains service name or first word
-    if (optLabel.includes(serviceNameLower) || optLabel.includes(serviceFirstWord)) return true
-    // Service name contains option label
-    if (serviceNameLower.includes(optLabel)) return true
+    if (optLabel.includes(serviceFirstWord) && serviceFirstWord.length > 2) return true
+    // Service first word matches option value
+    if (optValue.includes(serviceFirstWord) && serviceFirstWord.length > 2) return true
+    // Handle special mappings
+    if (serviceIdLower.includes('proton') && optValue.includes('proton')) return true
+    if (serviceIdLower.includes('nextcloud') && optValue.includes('nextcloud')) return true
+    if (serviceIdLower.includes('bitwarden') && optValue.includes('bitwarden')) return true
+    if (serviceIdLower.includes('librewolf') && optValue === 'firefox') return true
     
     return false
   })
@@ -468,13 +494,20 @@ const setCurrentService = (serviceId: string, serviceName: string) => {
     quizStore.saveAnswer({ questionId: category.value.questionId, answer: matchingOption.value })
     showToast(`Set ${serviceName} as current`, 'success')
   } else {
-    // If no match found, try to use the service name directly as "other"
-    const otherOption = question.options.find(opt => opt.value.toLowerCase().includes('other'))
-    if (otherOption) {
-      quizStore.saveAnswer({ questionId: category.value.questionId, answer: otherOption.value })
-      showToast(`Set ${serviceName} as current (as other)`, 'success')
+    // If no match found, try privacy-focused other option first
+    const privacyOtherOption = question.options.find(opt => opt.value.toLowerCase() === 'other-privacy')
+    if (privacyOtherOption) {
+      quizStore.saveAnswer({ questionId: category.value.questionId, answer: privacyOtherOption.value })
+      showToast(`Set ${serviceName} as current`, 'success')
     } else {
-      showToast('Could not find matching option for this service', 'warning')
+      // Fallback to any other option
+      const otherOption = question.options.find(opt => opt.value.toLowerCase().includes('other'))
+      if (otherOption) {
+        quizStore.saveAnswer({ questionId: category.value.questionId, answer: otherOption.value })
+        showToast(`Set ${serviceName} as current`, 'success')
+      } else {
+        showToast('Could not find matching option for this service', 'warning')
+      }
     }
   }
 }
@@ -499,6 +532,19 @@ const goBack = () => {
 
 const startQuiz = () => {
   router.push('/quiz')
+}
+
+// Generate Privacy Guides URL for a service with optional anchor
+const getPrivacyGuidesUrl = (service: WikiService): string | null => {
+  if (!category.value?.privacyGuidesUrl) return null
+  
+  // If service has a specific Privacy Guides ID, append it as anchor
+  if (service.privacyGuidesId) {
+    return `${category.value.privacyGuidesUrl}#${service.privacyGuidesId}`
+  }
+  
+  // Fall back to category URL without anchor
+  return category.value.privacyGuidesUrl
 }
 
 // Handle initial hash on mount
@@ -620,34 +666,45 @@ watch(category, (cat) => {
   color: var(--color-text-muted);
 }
 
-/* Service selection mini-card flow */
+/* Service selection matching Dashboard priority-item */
 .service-selection-group {
-  min-width: 300px;
+  min-width: 0;
+  width: 100%;
 }
 
-.service-flow {
+.selection-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border: 1px solid var(--border-color);
+  border-left: 4px solid var(--primary-color);
+  border-radius: 8px;
+  padding: 0.75rem;
+  background: var(--card-bg);
+}
+
+.selection-flow {
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
 
 .mini-card {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 0.125rem;
   padding: 0.5rem 0.75rem;
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
+  border-radius: 6px;
   text-decoration: none;
   transition: all 0.2s ease;
-  min-width: 100px;
+  min-width: 0;
   cursor: pointer;
 }
 
 .mini-card:hover:not(.empty) {
-  border-color: var(--color-primary);
-  background: var(--color-surface-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
 .mini-card.empty {
@@ -655,31 +712,44 @@ watch(category, (cat) => {
   cursor: default;
 }
 
+.mini-card.current {
+  background: var(--bg-secondary, #f8f9fa);
+  border: 1px solid var(--border-color);
+}
+
+.mini-card.recommended {
+  background: linear-gradient(135deg, #dcfce7 0%, #d1fae5 100%);
+  border: 1px solid #22c55e;
+}
+
 .mini-card-label {
   font-size: 0.65rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--color-text-muted);
-}
-
-.mini-card-name {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--color-text);
-}
-
-.mini-card.current .mini-card-label {
-  color: var(--color-caution);
+  color: var(--text-secondary);
 }
 
 .mini-card.recommended .mini-card-label {
-  color: var(--color-primary);
+  color: #166534;
 }
 
-.service-arrow {
-  color: var(--color-text-muted);
-  font-size: 1rem;
+.mini-card-name {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mini-card.recommended .mini-card-name {
+  color: #166534;
+}
+
+.selection-arrow {
+  font-size: 1.25rem;
+  color: var(--text-secondary);
   flex-shrink: 0;
 }
 
@@ -1168,6 +1238,62 @@ watch(category, (cat) => {
 
   .category-nav-button {
     font-size: 0.9rem;
+  }
+
+  /* Mobile article header fixes */
+  .article-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .header-left {
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    width: 100%;
+  }
+
+  .header-right {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .service-title {
+    width: 100%;
+    white-space: normal;
+    word-break: break-word;
+    font-size: 1rem;
+  }
+
+  .rec-badge,
+  .privacy-badge,
+  .pg-badge,
+  .using-badge {
+    font-size: 0.65rem;
+    padding: 0.15rem 0.4rem;
+    white-space: nowrap;
+  }
+
+  /* Mobile selection styling */
+  .selection-flow {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .selection-arrow {
+    transform: rotate(90deg);
+    align-self: center;
+  }
+
+  .mini-card {
+    width: 100%;
+  }
+
+  .mini-card-name {
+    white-space: normal;
+    word-break: break-word;
   }
 }
 

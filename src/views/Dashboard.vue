@@ -1091,6 +1091,7 @@ const cancelDelete = () => {
     grid-template-rows: auto auto auto;
     gap: 1.5rem;
     margin-bottom: 1.5rem;
+    overflow: hidden;
 }
 
 .left-panels {
@@ -1341,8 +1342,7 @@ const cancelDelete = () => {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    flex-wrap: nowrap;
-    white-space: nowrap;
+    flex-wrap: wrap;
 }
 
 .heading-title .panel-title {
@@ -1779,6 +1779,62 @@ const cancelDelete = () => {
         grid-template-columns: 1fr;
     }
 
+    /* Prevent horizontal overflow in all panels */
+    .threat-model-panel,
+    .save-data-panel,
+    .score-panel,
+    .priority-panel {
+        overflow: hidden;
+        max-width: 100%;
+    }
+
+    .heading-main {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .heading-title {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .heading-title .panel-title {
+        width: 100%;
+        margin-bottom: 0.25rem;
+    }
+
+    .status-tag {
+        font-size: 0.65rem;
+        padding: 0.15rem 0.5rem;
+    }
+
+    .reset-btn {
+        margin-left: 0;
+    }
+
+    .subtext,
+    .meta {
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+    }
+
+    .save-data-panel .action-buttons {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .save-data-panel .action-buttons button {
+        width: 100%;
+    }
+
+    .threat-body {
+        grid-template-columns: 1fr;
+    }
+
+    .tierlist-column {
+        padding: 0.75rem;
+    }
+
     .device-specific-header,
     .answers-list {
         flex-direction: column;
@@ -1862,10 +1918,22 @@ const cancelDelete = () => {
 
     .priority-arrow {
         transform: rotate(90deg);
+        align-self: center;
+        margin: 0;
     }
 
     .mini-card {
         width: 100%;
+        max-width: 100%;
+    }
+
+    .mini-card-name {
+        white-space: normal;
+        word-break: break-word;
+    }
+
+    .priority-item {
+        overflow: hidden;
     }
 }
 </style>
