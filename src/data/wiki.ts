@@ -1497,14 +1497,15 @@ const desktopOsServices: WikiService[] = [
       'Strong community and Red Hat backing'
     ],
     privacyGuidesRecommended: true,
+    privacyGuidesId: 'fedora-linux',
     difficulty: 2
   },
-  // Fedora Silverblue
+  // Fedora Atomic Desktops
   {
-    id: 'fedora-silverblue',
-    name: 'Fedora Silverblue',
-    description: 'An immutable variant of Fedora with atomic updates and container-based app delivery.',
-    homepage: 'https://fedoraproject.org/silverblue',
+    id: 'fedora-atomic',
+    name: 'Fedora Atomic Desktops',
+    description: 'Immutable variants of Fedora (Silverblue, Kinoite) with atomic updates and container-based app delivery.',
+    homepage: 'https://fedoraproject.org/atomic-desktops',
     privacyRating: 'good',
     privacyNote: 'Immutable system with atomic updates for reliability and security',
     privacyDetails: [
@@ -1512,10 +1513,11 @@ const desktopOsServices: WikiService[] = [
       'Atomic updates can be rolled back',
       'Apps run in Flatpak containers',
       'All Fedora security features included',
-      'OSTree-based updates',
+      'rpm-ostree based updates',
       'Great for security-conscious users'
     ],
     privacyGuidesRecommended: true,
+    privacyGuidesId: 'fedora-atomic-desktops',
     difficulty: 3
   },
   // openSUSE Tumbleweed
@@ -1535,7 +1537,48 @@ const desktopOsServices: WikiService[] = [
       'Supported by SUSE'
     ],
     privacyGuidesRecommended: true,
+    privacyGuidesId: 'opensuse-tumbleweed',
     difficulty: 2
+  },
+  // Arch Linux
+  {
+    id: 'arch-linux',
+    name: 'Arch Linux',
+    description: 'A lightweight DIY Linux distribution with rolling releases and a focus on simplicity.',
+    homepage: 'https://archlinux.org',
+    privacyRating: 'good',
+    privacyNote: 'Minimal base with user-controlled configuration',
+    privacyDetails: [
+      'Rolling release for latest security fixes',
+      'Minimal installation - you control what is installed',
+      'Excellent documentation (Arch Wiki)',
+      'Large package repository (AUR)',
+      'Reproducible builds for many packages',
+      'Requires manual setup and maintenance'
+    ],
+    privacyGuidesRecommended: true,
+    privacyGuidesId: 'arch-linux',
+    difficulty: 3
+  },
+  // NixOS
+  {
+    id: 'nixos',
+    name: 'NixOS',
+    description: 'A unique Linux distribution with declarative configuration and atomic upgrades.',
+    homepage: 'https://nixos.org',
+    privacyRating: 'good',
+    privacyNote: 'Reproducible builds and declarative system configuration',
+    privacyDetails: [
+      'Declarative system configuration',
+      'Atomic upgrades and rollbacks',
+      'Reproducible builds',
+      'Sandboxed package builds',
+      'Easy to replicate system across machines',
+      'Steep learning curve but powerful'
+    ],
+    privacyGuidesRecommended: true,
+    privacyGuidesId: 'nixos',
+    difficulty: 3
   },
   // Qubes OS
   {
@@ -1554,6 +1597,47 @@ const desktopOsServices: WikiService[] = [
       'Recommended by security experts'
     ],
     privacyGuidesRecommended: true,
+    privacyGuidesId: 'qubes-os',
+    difficulty: 3
+  },
+  // Secureblue
+  {
+    id: 'secureblue',
+    name: 'Secureblue',
+    description: 'A security-hardened Fedora Atomic variant with proactive exploit mitigations.',
+    homepage: 'https://secureblue.dev',
+    privacyRating: 'good',
+    privacyNote: 'Hardened Fedora Atomic with GrapheneOS-inspired security',
+    privacyDetails: [
+      'Based on Fedora Atomic Desktops',
+      'Hardened memory allocator from GrapheneOS',
+      'Trivalent hardened Chromium browser included',
+      'Proactive exploit mitigations',
+      'Regular security updates',
+      'Good balance of security and usability'
+    ],
+    privacyGuidesRecommended: true,
+    privacyGuidesId: 'secureblue',
+    difficulty: 2
+  },
+  // Whonix
+  {
+    id: 'whonix',
+    name: 'Whonix',
+    description: 'A security-hardened Debian-based OS designed to run inside a VM with all traffic routed through Tor.',
+    homepage: 'https://www.whonix.org',
+    privacyRating: 'good',
+    privacyNote: 'Tor-based OS for anonymous computing',
+    privacyDetails: [
+      'All traffic forced through Tor',
+      'IP/DNS leak protection',
+      'Stream isolation',
+      'Can run inside Qubes OS',
+      'Debian-based stability',
+      'Protection against even malware revealing IP'
+    ],
+    privacyGuidesRecommended: true,
+    privacyGuidesId: 'whonix',
     difficulty: 3
   },
   // Tails
@@ -1573,25 +1657,27 @@ const desktopOsServices: WikiService[] = [
       'Designed for high-risk users'
     ],
     privacyGuidesRecommended: true,
+    privacyGuidesId: 'tails',
     difficulty: 3
   },
-  // Whonix
+  // Kicksecure
   {
-    id: 'whonix',
-    name: 'Whonix',
-    description: 'A security-hardened Debian-based OS designed to run inside a VM with all traffic routed through Tor.',
-    homepage: 'https://www.whonix.org',
+    id: 'kicksecure',
+    name: 'Kicksecure',
+    description: 'A security-hardened Debian derivative that serves as the base for Whonix.',
+    homepage: 'https://www.kicksecure.com',
     privacyRating: 'good',
-    privacyNote: 'Tor-based OS for anonymous computing',
+    privacyNote: 'Hardened Debian with many security enhancements',
     privacyDetails: [
-      'All traffic forced through Tor',
-      'IP/DNS leak protection',
-      'Stream isolation',
-      'Can run inside Qubes OS',
-      'Debian-based stability',
-      'Protection against even malware revealing IP'
+      'Based on Debian with extensive hardening',
+      'Serves as base OS for Whonix',
+      'Security-focused default configuration',
+      'Regular security updates',
+      'Reduced attack surface',
+      'Good for advanced users wanting Debian stability'
     ],
     privacyGuidesRecommended: true,
+    privacyGuidesId: 'kicksecure',
     difficulty: 3
   },
   // Other desktop OS
@@ -1676,7 +1762,7 @@ const mobileOsServices: WikiService[] = [
       'App Store is only source for apps',
       'Telemetry sent even when analytics disabled'
     ],
-    privacyGuidesRecommended: true,
+    privacyGuidesRecommended: false,
     difficulty: 1
   },
   // GrapheneOS
@@ -1697,6 +1783,7 @@ const mobileOsServices: WikiService[] = [
       'No Google account required'
     ],
     privacyGuidesRecommended: true,
+    privacyGuidesId: 'grapheneos',
     difficulty: 2
   },
   // DivestOS
@@ -1705,17 +1792,17 @@ const mobileOsServices: WikiService[] = [
     name: 'DivestOS',
     description: 'A privacy-focused Android fork supporting older devices with extended security patches.',
     homepage: 'https://divestos.org',
-    privacyRating: 'good',
-    privacyNote: 'Security patches for older Android devices',
+    privacyRating: 'acceptable',
+    privacyNote: 'Security patches for older Android devices but not recommended by Privacy Guides',
     privacyDetails: [
       'Supports many older devices',
       'Extended security support',
       'Based on LineageOS',
       'Includes F-Droid by default',
       'Debloated from tracking',
-      'Good option for device reuse'
+      'Good option for device reuse but weaker security than GrapheneOS'
     ],
-    privacyGuidesRecommended: true,
+    privacyGuidesRecommended: false,
     difficulty: 3
   },
   // Other mobile
@@ -1820,6 +1907,132 @@ const tabletOsServices: WikiService[] = [
       'E-ink tablets often have minimal tracking'
     ],
     privacyGuidesRecommended: false
+  }
+]
+
+// =============================================================================
+// ROUTER OPERATING SYSTEMS
+// =============================================================================
+
+const routerOsIntro: WikiIntroSection = {
+  title: 'Router Firmware',
+  description: 'Your router is the gateway to your home network. Stock firmware from ISPs and manufacturers often lacks security updates and may include tracking.',
+  concerns: {
+    heading: 'Privacy Concerns with Stock Router Firmware',
+    points: [
+      'ISP routers may log browsing activity',
+      'Infrequent or no security updates',
+      'Built-in telemetry and data collection',
+      'Limited configuration options'
+    ]
+  },
+  benefits: {
+    heading: 'What Open Source Router Firmware Offers',
+    points: [
+      'Regular security updates from community',
+      'Full control over network configuration',
+      'No vendor tracking or telemetry',
+      'Advanced features like VPN, ad-blocking, and firewall rules'
+    ]
+  }
+}
+
+const routerOsServices: WikiService[] = [
+  // Stock Router Firmware
+  {
+    id: 'stock-router',
+    name: 'Stock Router Firmware',
+    description: 'Default firmware from your ISP or router manufacturer.',
+    homepage: '',
+    privacyRating: 'caution',
+    privacyNote: 'Often lacks updates and may include tracking',
+    privacyDetails: [
+      'May log browsing activity for ISP',
+      'Infrequent security updates',
+      'Limited configuration options',
+      'May have known vulnerabilities',
+      'Convenience over privacy',
+      'Consider upgrading to open source'
+    ],
+    privacyGuidesRecommended: false
+  },
+  // OpenWrt
+  {
+    id: 'openwrt',
+    name: 'OpenWrt',
+    description: 'A Linux-based open source router firmware with extensive customization options.',
+    homepage: 'https://openwrt.org',
+    privacyRating: 'good',
+    privacyNote: 'Open source with regular updates and full control',
+    privacyDetails: [
+      'Fully open source and auditable',
+      'Regular security updates',
+      'Supports wide range of routers',
+      'Advanced features (VPN, ad-blocking, QoS)',
+      'Large community and documentation',
+      'May require technical knowledge to set up'
+    ],
+    privacyGuidesRecommended: true,
+    privacyGuidesId: 'openwrt',
+    difficulty: 2
+  },
+  // OPNsense
+  {
+    id: 'opnsense',
+    name: 'OPNsense',
+    description: 'A FreeBSD-based firewall and routing platform with enterprise features.',
+    homepage: 'https://opnsense.org',
+    privacyRating: 'good',
+    privacyNote: 'Enterprise-grade open source firewall',
+    privacyDetails: [
+      'Based on FreeBSD with strong security',
+      'Regular security updates',
+      'Web-based management interface',
+      'VPN, traffic shaping, IDS/IPS',
+      'Plugin system for extensions',
+      'Typically runs on dedicated hardware'
+    ],
+    privacyGuidesRecommended: true,
+    privacyGuidesId: 'opnsense',
+    difficulty: 3
+  },
+  // pfSense
+  {
+    id: 'pfsense',
+    name: 'pfSense',
+    description: 'A popular FreeBSD-based firewall distribution, precursor to OPNsense.',
+    homepage: 'https://www.pfsense.org',
+    privacyRating: 'good',
+    privacyNote: 'Established firewall solution but concerns about commercial direction',
+    privacyDetails: [
+      'Well-established with large community',
+      'Extensive documentation',
+      'Enterprise features available',
+      'Some concerns about Netgate ownership',
+      'OPNsense forked due to code quality concerns',
+      'Still widely used and supported'
+    ],
+    privacyGuidesRecommended: false,
+    difficulty: 3
+  },
+  // DD-WRT
+  {
+    id: 'ddwrt',
+    name: 'DD-WRT',
+    description: 'Linux-based alternative firmware supporting many router models.',
+    homepage: 'https://dd-wrt.com',
+    privacyRating: 'acceptable',
+    privacyNote: 'Good alternative but OpenWrt is often preferred',
+    privacyDetails: [
+      'Supports many older routers',
+      'VPN support built-in',
+      'Less frequent updates than OpenWrt',
+      'Mixed open/closed source components',
+      'Large community',
+      'OpenWrt generally recommended instead'
+    ],
+    privacyGuidesRecommended: false,
+    difficulty: 2
   }
 ]
 
@@ -1937,6 +2150,16 @@ export const WIKI_CATEGORIES: WikiCategory[] = [
     privacyGuidesUrl: `${PRIVACY_GUIDES_BASE}/android/distributions/`,
     services: tabletOsServices,
     intro: tabletOsIntro
+  },
+  {
+    id: 'router-os',
+    label: 'Router Firmware',
+    questionId: 'os-router',
+    icon: '📡',
+    description: 'Compare router firmware from stock to OpenWrt',
+    privacyGuidesUrl: `${PRIVACY_GUIDES_BASE}/router/`,
+    services: routerOsServices,
+    intro: routerOsIntro
   }
 ]
 
