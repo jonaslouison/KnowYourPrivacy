@@ -10,6 +10,8 @@
                     <span></span>
                     <span></span>
                 </button>
+                <!-- Mobile Navigation Backdrop -->
+                <div v-if="mobileMenuOpen" class="nav-backdrop" @click="mobileMenuOpen = false"></div>
                 <div class="nav-links" :class="{ open: mobileMenuOpen }">
                     <router-link to="/" @click="mobileMenuOpen = false">Home</router-link>
                     <router-link to="/quiz" @click="mobileMenuOpen = false">Quiz</router-link>
@@ -361,6 +363,16 @@ main {
 
     .nav-links a:last-child {
         border-bottom: none;
+    }
+
+    .nav-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.4);
+        z-index: 98;
     }
 
     .timer-display {

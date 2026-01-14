@@ -224,7 +224,7 @@ describe('Unified Rating System', () => {
         
         const firefox = getServiceByAnswerValue('desktop-browsers', 'firefox')
         expect(firefox).toBeDefined()
-        expect(firefox?.privacyRating).toBe('recommended')
+        expect(firefox?.privacyRating).toBe('acceptable') // Default Firefox is acceptable, hardened is good
     })
 
     it('getUnifiedServiceInfo should return unified service info', () => {
