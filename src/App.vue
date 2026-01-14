@@ -5,11 +5,16 @@
                 <div class="logo">
                     <router-link to="/">🔒 KnowYourPrivacy</router-link>
                 </div>
-                <div class="nav-links">
-                    <router-link to="/">Home</router-link>
-                    <router-link to="/quiz">Quiz</router-link>
-                    <router-link to="/dashboard">Dashboard</router-link>
-                    <router-link to="/wiki/email">Wiki</router-link>
+                <button class="burger-menu" @click="mobileMenuOpen = !mobileMenuOpen" :class="{ active: mobileMenuOpen }" aria-label="Toggle menu">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+                <div class="nav-links" :class="{ open: mobileMenuOpen }">
+                    <router-link to="/" @click="mobileMenuOpen = false">Home</router-link>
+                    <router-link to="/quiz" @click="mobileMenuOpen = false">Quiz</router-link>
+                    <router-link to="/dashboard" @click="mobileMenuOpen = false">Dashboard</router-link>
+                    <router-link to="/wiki/email" @click="mobileMenuOpen = false">Wiki</router-link>
                 </div>
                 <div class="timer-display">
                     <div v-if="timerStore.quizTimerActive" class="timer-item" :class="{ running: timerStore.quizTimerRunning, completed: timerStore.quizTimerCompleted }">
@@ -78,7 +83,7 @@ import ToastContainer from './components/ToastContainer.vue'
 import BaseModal from './components/BaseModal.vue'
 import BaseButton from './components/BaseButton.vue'
 import BaseInput from './components/BaseInput.vue'
-import { onMounted, onBeforeUnmount } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import {
     registerReloadGuardListeners,
     unregisterReloadGuardListeners,
@@ -88,6 +93,7 @@ import { useTimerStore } from './stores/timer'
 import { showToast } from './utils/toast'
 
 const timerStore = useTimerStore()
+const mobileMenuOpen = ref(false)
 
 const copyQuizTime = async () => {
     await timerStore.copyQuizTime()
@@ -279,6 +285,96 @@ main {
 .footer a {
     color: var(--primary-color);
     text-decoration: none;
+}
+
+/* Mobile Navigation */
+.burger-menu {
+    display: none;
+    flex-direction: column;
+    gap: 4px;
+    background: none;
+    border: none;
+    padding: 8px;
+    cursor: pointer;
+    z-index: 101;
+}
+
+.burger-menu span {
+    display: block;
+    width: 24px;
+    height: 2px;
+    background: var(--primary-color);
+    transition: transform 0.3s, opacity 0.3s;
+}
+
+.burger-menu.active span:nth-child(1) {
+    transform: translateY(6px) rotate(45deg);
+}
+
+.burger-menu.active span:nth-child(2) {
+    opacity: 0;
+}
+
+.burger-menu.active span:nth-child(3) {
+    transform: translateY(-6px) rotate(-45deg);
+}
+
+@media (max-width: 768px) {
+    .nav {
+        padding: 1rem;
+    }
+
+    .logo {
+        position: static;
+        font-size: 1.2rem;
+    }
+
+    .burger-menu {
+        display: flex;
+        position: absolute;
+        right: 1rem;
+    }
+
+    .nav-links {
+        position: fixed;
+        top: 60px;
+        left: 0;
+        right: 0;
+        background: var(--card-bg);
+        flex-direction: column;
+        padding: 1rem;
+        gap: 0;
+        box-shadow: var(--shadow-lg);
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
+        z-index: 99;
+    }
+
+    .nav-links.open {
+        transform: translateX(0);
+    }
+
+    .nav-links a {
+        padding: 1rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .nav-links a:last-child {
+        border-bottom: none;
+    }
+
+    .timer-display {
+        display: none;
+    }
+
+    .container {
+        padding: 1rem;
+    }
+
+    .footer-links {
+        flex-direction: column;
+        gap: 1rem;
+    }
 }
 
 .footer a:hover {

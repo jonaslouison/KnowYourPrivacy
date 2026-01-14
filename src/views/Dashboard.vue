@@ -203,17 +203,62 @@
                             </div>
                         </div>
                     </div>
-                    <table class="device-table">
-                        <thead>
-                            <tr>
-                                <th>Category</th>
-                                <th>Currently using</th>
-                                <th>Rating</th>
-                                <th>Recommendations</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr v-for="service in generalServicesRows" :key="service.questionId">
+                    
+                    <!-- Mobile Cards View -->
+                    <div class="mobile-cards-view">
+                        <div v-for="service in generalServicesRows" :key="service.questionId" class="service-card">
+                            <div class="card-grid">
+                                <div class="card-cell category-cell">
+                                    <router-link 
+                                        :to="`/wiki/${getCategoryIdFromQuestionId(service.questionId)}`"
+                                        class="category-link"
+                                    >
+                                        {{ service.label }}
+                                        <span class="link-icon">→</span>
+                                    </router-link>
+                                </div>
+                                <div class="card-cell rating-cell">
+                                    <span class="badge" :class="service.scoreClass">{{ service.scoreLabel }}</span>
+                                </div>
+                                <div class="card-cell current-cell">
+                                    <label class="cell-label">Currently using</label>
+                                    <div class="dropdown-with-link">
+                                        <BaseDropdown
+                                            :model-value="getCurrentAnswerValue(service.questionId)"
+                                            :options="getDropdownOptions(service.questionId)"
+                                            placeholder="Awaiting response"
+                                            @update:modelValue="(value) => handleGeneralOptionChange(service.questionId, value)"
+                                        />
+                                        <router-link
+                                            v-if="getServiceWikiLink(service.questionId)"
+                                            :to="getServiceWikiLink(service.questionId)!"
+                                            class="service-hash-link"
+                                            title="View service details"
+                                        >#</router-link>
+                                    </div>
+                                </div>
+                                <div class="card-cell recommended-cell">
+                                    <label class="cell-label">Recommended</label>
+                                    <p v-if="service.recommendations.length" class="recommendation-text">{{ service.recommendations[0] }}</p>
+                                    <p v-else class="muted">Complete quiz</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Desktop Table View -->
+                    <div class="table-wrapper">
+                        <table class="device-table">
+                            <thead>
+                                <tr>
+                                    <th>Category</th>
+                                    <th>Currently using</th>
+                                    <th>Rating</th>
+                                    <th>Recommendations</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="service in generalServicesRows" :key="service.questionId">
                                 <td class="category-cell">
                                     <router-link 
                                         :to="`/wiki/${getCategoryIdFromQuestionId(service.questionId)}`"
@@ -249,6 +294,7 @@
                             </tr>
                         </tbody>
                     </table>
+                    </div>
                 </div>
                 
                 <div class="table-section">
@@ -273,17 +319,65 @@
                             </div>
                         </div>
                     </div>
-                    <table class="device-table">
-                        <thead>
-                            <tr>
-                                <th>Category</th>
-                                <th>Currently using</th>
-                                <th>Rating</th>
-                                <th>Recommendations</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr v-for="row in deviceSpecificRows" :key="row.questionId">
+
+                    <!-- Mobile Cards View -->
+                    <div class="mobile-cards-view">
+                        <div v-for="row in deviceSpecificRows" :key="row.questionId" class="service-card">
+                            <div class="card-grid">
+                                <div class="card-cell category-cell">
+                                    <router-link 
+                                        :to="getDeviceWikiPath(row.questionId)"
+                                        class="category-link"
+                                    >
+                                        {{ row.label }}
+                                        <span class="link-icon">→</span>
+                                    </router-link>
+                                </div>
+                                <div class="card-cell rating-cell">
+                                    <span class="badge" :class="row.scoreClass">{{ row.scoreLabel }}</span>
+                                </div>
+                                <div class="card-cell current-cell">
+                                    <label class="cell-label">Currently using</label>
+                                    <div class="dropdown-with-link">
+                                        <BaseDropdown
+                                            :model-value="getCurrentAnswerValue(row.questionId)"
+                                            :options="getDropdownOptions(row.questionId)"
+                                            placeholder="Awaiting response"
+                                            @update:modelValue="(value) => handleDeviceOptionChange(row.questionId, value)"
+                                        />
+                                        <router-link
+                                            v-if="getDeviceServiceWikiLink(row.questionId)"
+                                            :to="getDeviceServiceWikiLink(row.questionId)!"
+                                            class="service-hash-link"
+                                            title="View service details"
+                                        >#</router-link>
+                                    </div>
+                                </div>
+                                <div class="card-cell recommended-cell">
+                                    <label class="cell-label">Recommended</label>
+                                    <p v-if="row.recommendations.length" class="recommendation-text">{{ row.recommendations[0] }}</p>
+                                    <p v-else class="muted">Complete quiz</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div v-if="!deviceSpecificRows.length" class="empty-state-mobile">
+                            <p class="muted">Complete more selections to unlock device-specific suggestions.</p>
+                        </div>
+                    </div>
+
+                    <!-- Desktop Table View -->
+                    <div class="table-wrapper">
+                        <table class="device-table">
+                            <thead>
+                                <tr>
+                                    <th>Category</th>
+                                    <th>Currently using</th>
+                                    <th>Rating</th>
+                                    <th>Recommendations</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="row in deviceSpecificRows" :key="row.questionId">
                                 <td class="category-cell">
                                     <router-link 
                                         :to="getDeviceWikiPath(row.questionId)"
@@ -322,6 +416,7 @@
                             </tr>
                         </tbody>
                     </table>
+                    </div>
                 </div>
                 <p class="muted table-note">Privacy score is the average of each device rating ({{ privacyScoreDisplay }}/4).</p>
             </section>
@@ -1604,7 +1699,82 @@ const cancelDelete = () => {
     margin-top: 0.5rem;
 }
 
-@media (max-width: 720px) {
+/* Mobile Cards View */
+.mobile-cards-view {
+    display: none;
+}
+
+.service-card {
+    margin-bottom: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--card-bg);
+    overflow: hidden;
+}
+
+.card-grid {
+    display: grid;
+    grid-template-columns: 3fr 1fr;
+    grid-template-rows: auto auto;
+    gap: 0;
+}
+
+.card-cell {
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+}
+
+.card-cell.category-cell {
+    border-top: none;
+    border-left: none;
+    display: flex;
+    align-items: center;
+}
+
+.card-cell.rating-cell {
+    border-top: none;
+    border-right: none;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 0.5rem;
+}
+
+.card-cell.current-cell {
+    border-bottom: none;
+    border-left: none;
+    min-width: 0;
+}
+
+.card-cell.recommended-cell {
+    border-bottom: none;
+    border-right: none;
+    padding: 0.5rem;
+    font-size: 0.8rem;
+}
+
+.cell-label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+}
+
+.recommendation-text {
+    margin: 0;
+    font-size: 0.8rem;
+    line-height: 1.3;
+}
+
+.empty-state-mobile {
+    padding: 2rem;
+    text-align: center;
+}
+
+@media (max-width: 768px) {
     .dashboard-metrics {
         grid-template-columns: 1fr;
     }
@@ -1618,6 +1788,84 @@ const cancelDelete = () => {
     .answer-row {
         flex-direction: column;
         align-items: flex-start;
+    }
+
+    /* Hide desktop table, show mobile cards */
+    .table-wrapper {
+        display: none;
+    }
+
+    .mobile-cards-view {
+        display: block;
+    }
+
+    .service-card {
+        margin-bottom: 0.5rem;
+    }
+
+    .card-grid {
+        grid-template-columns: 4fr 1fr;
+    }
+
+    .card-cell {
+        padding: 0.5rem;
+    }
+
+    .card-cell.category-cell {
+        padding: 0.5rem 0.4rem;
+    }
+
+    .card-cell.category-cell .category-link {
+        font-size: 0.85rem;
+    }
+
+    .card-cell.rating-cell {
+        padding: 0.35rem;
+    }
+
+    .card-cell.rating-cell .badge {
+        font-size: 0.6rem;
+        padding: 0.2rem 0.4rem;
+    }
+
+    .card-cell.current-cell {
+        padding: 0.5rem 0.4rem;
+    }
+
+    .card-cell.recommended-cell {
+        padding: 0.35rem;
+        font-size: 0.75rem;
+    }
+
+    .cell-label {
+        font-size: 0.6rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .recommendation-text {
+        font-size: 0.75rem;
+        line-height: 1.2;
+    }
+
+    .dashboard-banner {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+        text-align: left;
+    }
+
+    .priority-flow {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+    }
+
+    .priority-arrow {
+        transform: rotate(90deg);
+    }
+
+    .mini-card {
+        width: 100%;
     }
 }
 </style>

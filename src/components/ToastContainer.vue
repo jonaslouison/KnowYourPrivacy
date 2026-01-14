@@ -109,6 +109,25 @@ const getIcon = (type: string) => {
     background: rgba(15, 23, 42, 0.12);
 }
 
+/* Mobile Toast Positioning */
+@media (max-width: 768px) {
+    .toast-container {
+        top: 50%;
+        left: 50%;
+        right: auto;
+        transform: translate(-50%, -50%);
+        width: calc(100vw - 2rem);
+        max-width: 360px;
+        align-items: center;
+    }
+
+    .toast {
+        width: 100%;
+        min-width: unset;
+        max-width: 100%;
+    }
+}
+
 .toast-success {
     border-left-color: var(--success-color);
 }
