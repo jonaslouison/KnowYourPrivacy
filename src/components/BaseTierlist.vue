@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import type { PropType } from 'vue'
+import BaseDropdown from './BaseDropdown.vue'
 
 type TierDefinition = {
     id: string
@@ -31,6 +32,15 @@ const props = defineProps({
         default: () => true
     }
 })
+
+// Mobile mode detection
+const isMobile = ref(window.innerWidth <= 768)
+const handleResize = () => {
+    isMobile.value = window.innerWidth <= 768
+}
+if (typeof window !== 'undefined') {
+    window.addEventListener('resize', handleResize)
+}
 
 const emit = defineEmits<{
     (event: 'update:assignments', value: Record<string, string[]>): void
@@ -182,10 +192,76 @@ const clearDraggedItem = () => {
 
 const getItemLabel = (itemId: string) => props.items.find((item) => item.id === itemId)?.label ?? itemId
 const previewLabel = computed(() => (draggedItem.value ? getItemLabel(draggedItem.value) : ''))
+
+// Mobile controls - Dropdown based tier assignment
+const getItemTier = (itemId: string): string => {
+    for (const tierId of Object.keys(localAssignments.value)) {
+        if (localAssignments.value[tierId].includes(itemId)) {
+            return tierId
+        }
+    }
+    return 'unassigned'
+}
+
+const moveItemToTierByDropdown = (itemId: string, targetTierId: string) => {
+    const next = normalizeAssignments(localAssignments.value)
+    
+    // Remove from all tiers
+    Object.keys(next).forEach((key) => {
+        next[key] = next[key].filter((value) => value !== itemId)
+    })
+    
+    // Add to target tier if not 'unassigned'
+    if (targetTierId !== 'unassigned') {
+        next[targetTierId] = [...next[targetTierId], itemId]
+    }
+    
+    localAssignments.value = next
+    emit('update:assignments', next)
+}
+
+// Get all items with their current tier assignments for mobile view
+const allItemsWithTiers = computed(() => {
+    return props.items.map(item => ({
+        id: item.id,
+        label: item.label,
+        tier: getItemTier(item.id)
+    }))
+})
+
+// Dropdown options for tier selection
+const tierDropdownOptions = computed(() => {
+    return [
+        { value: 'unassigned', label: 'Not prioritized' },
+        ...props.tiers.map(tier => ({ value: tier.id, label: tier.label }))
+    ]
+})
 </script>
 
 <template>
-    <div class="tierlist">
+    <!-- Mobile View: Simple list with dropdowns -->
+    <div v-if="isMobile" class="tierlist-mobile">
+        <div class="mobile-instructions">
+            <p class="label">Prioritize Your Threats</p>
+            <p class="hint">Select the priority level for each threat below:</p>
+        </div>
+        
+        <div class="mobile-items-list">
+            <div v-for="item in allItemsWithTiers" :key="item.id" class="mobile-item-row">
+                <label class="item-label">{{ item.label }}</label>
+                <div class="tier-dropdown-wrapper" :class="item.tier">
+                    <BaseDropdown
+                        :model-value="item.tier"
+                        :options="tierDropdownOptions"
+                        @update:model-value="(value) => moveItemToTierByDropdown(item.id, String(value))"
+                    />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Desktop View: Drag and drop -->
+    <div v-else class="tierlist">
         <div v-if="props.showAvailableZone" class="available-zone">
             <div class="section-heading">
                 <p class="label">Available Threats</p>
@@ -392,14 +468,85 @@ const previewLabel = computed(() => (draggedItem.value ? getItemLabel(draggedIte
     line-height: 1.4;
 }
 
-@media (max-width: 640px) {
-    .drop-zone {
-        flex-direction: column;
-        min-height: auto;
-    }
+/* Mobile View Styles */
+.tierlist-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
 
-    .tier-item {
-        width: 100%;
-    }
+.mobile-instructions {
+    text-align: center;
+    padding: 1rem;
+    background: var(--card-bg);
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+}
+
+.mobile-instructions .label {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0 0 0.5rem;
+}
+
+.mobile-instructions .hint {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.mobile-items-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.mobile-item-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1rem;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+}
+
+.item-label {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+}
+
+.tier-dropdown-wrapper {
+    width: 100%;
+}
+
+.tier-dropdown-wrapper :deep(.dropdown-trigger) {
+    border-radius: 8px;
+}
+
+.tier-dropdown-wrapper.high :deep(.dropdown-trigger) {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.5);
+}
+
+.tier-dropdown-wrapper.medium :deep(.dropdown-trigger) {
+    background: rgba(249, 115, 22, 0.1);
+    border-color: rgba(249, 115, 22, 0.5);
+}
+
+.tier-dropdown-wrapper.low :deep(.dropdown-trigger) {
+    background: rgba(234, 179, 8, 0.1);
+    border-color: rgba(234, 179, 8, 0.5);
+}
+
+.tier-dropdown-wrapper.none :deep(.dropdown-trigger) {
+    background: rgba(34, 197, 94, 0.1);
+    border-color: rgba(34, 197, 94, 0.5);
+}
+
+.tier-dropdown-wrapper.unassigned :deep(.dropdown-trigger) {
+    background: white;
+    border-color: var(--border-color);
 }
 </style>

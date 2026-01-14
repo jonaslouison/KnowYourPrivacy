@@ -727,4 +727,87 @@ onMounted(() => {
         transform: translateY(0);
     }
 }
+
+/* Mobile Optimizations */
+@media (max-width: 768px) {
+    .quiz-header-top {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+    .quiz-header h1 {
+        font-size: 1.5rem;
+    }
+
+    .header-buttons {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    .header-buttons button {
+        flex: 1;
+        min-width: 0;
+        font-size: 0.85rem;
+    }
+
+    .question-card {
+        padding: 1.5rem;
+    }
+
+    .question-card h2 {
+        font-size: 1.25rem;
+        line-height: 1.3;
+    }
+
+    .options {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+        max-height: calc(100vh - 450px);
+        overflow-y: auto;
+        padding-right: 0.25rem;
+    }
+
+    .quiz-actions {
+        position: sticky;
+        bottom: 0;
+        background: var(--card-bg);
+        padding: 1rem 0 0;
+        margin: 0 -1.5rem -1.5rem;
+        padding: 1rem 1.5rem;
+        border-top: 1px solid var(--border-color);
+        z-index: 10;
+    }
+
+    .quiz-actions button {
+        flex: 1;
+    }
+
+    .completion-card {
+        padding: 2rem 1rem;
+    }
+
+    .congratulations h1 {
+        font-size: 2rem;
+    }
+
+    .quiz-time-display {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .threat-descriptions {
+        gap: 0.5rem;
+    }
+
+    .threat-desc-item {
+        padding: 0.5rem;
+    }
+
+    .info-content {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+}
 </style>

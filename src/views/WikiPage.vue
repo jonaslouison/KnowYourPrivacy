@@ -79,8 +79,21 @@
     </div>
 
     <div class="wiki-content">
+      <!-- Mobile Categories Toggle -->
+      <button class="mobile-categories-toggle" @click="mobileCategoriesOpen = !mobileCategoriesOpen">
+        <span class="toggle-icon">{{ mobileCategoriesOpen ? '✕' : '☰' }}</span>
+        <span class="toggle-text">{{ mobileCategoriesOpen ? 'Close' : 'Categories' }}</span>
+      </button>
+
+      <!-- Mobile Backdrop -->
+      <div 
+        v-if="mobileCategoriesOpen" 
+        class="mobile-categories-backdrop" 
+        @click="mobileCategoriesOpen = false"
+      ></div>
+
       <!-- Categories Sidebar (Left) -->
-      <aside class="categories-sidebar card">
+      <aside class="categories-sidebar card" :class="{ open: mobileCategoriesOpen }">
         <h3>Categories</h3>
         <nav class="category-nav">
           <div class="category-section">
@@ -92,7 +105,7 @@
               size="small"
               class="category-nav-button"
               :class="{ active: categoryId === cat.id }"
-              @click="router.push(`/wiki/${cat.id}`)"
+              @click="navigateToCategory(cat.id)"
             >
               <span class="category-nav-icon">{{ cat.icon }}</span>
               {{ cat.label }}
@@ -107,7 +120,7 @@
               size="small"
               class="category-nav-button"
               :class="{ active: categoryId === cat.id }"
-              @click="router.push(`/wiki/${cat.id}`)"
+              @click="navigateToCategory(cat.id)"
             >
               <span class="category-nav-icon">{{ cat.icon }}</span>
               {{ cat.label }}
@@ -122,7 +135,7 @@
               size="small"
               class="category-nav-button"
               :class="{ active: categoryId === cat.id }"
-              @click="router.push(`/wiki/${cat.id}`)"
+              @click="navigateToCategory(cat.id)"
             >
               <span class="category-nav-icon">{{ cat.icon }}</span>
               {{ cat.label }}
@@ -259,6 +272,13 @@ const route = useRoute()
 const router = useRouter()
 const quizStore = useQuizStore()
 const activeServiceId = ref<string | null>(null)
+const mobileCategoriesOpen = ref(false)
+
+// Navigate to category and close mobile menu
+const navigateToCategory = (catId: string) => {
+  mobileCategoriesOpen.value = false
+  router.push(`/wiki/${catId}`)
+}
 
 // Get category from route param
 const categoryId = computed(() => route.params.category as string)
@@ -1057,6 +1077,34 @@ watch(category, (cat) => {
   font-weight: 500;
 }
 
+/* Mobile Categories Toggle */
+.mobile-categories-toggle {
+  display: none;
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  z-index: 100;
+  padding: 0.75rem 1rem;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 50px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.mobile-categories-toggle:active {
+  transform: scale(0.95);
+}
+
+.toggle-icon {
+  font-size: 1.2rem;
+}
+
 /* Responsive */
 @media (max-width: 1100px) {
   .wiki-content {
@@ -1068,14 +1116,45 @@ watch(category, (cat) => {
   }
 }
 
-@media (max-width: 900px) {
+@media (max-width: 768px) {
   .wiki-content {
     grid-template-columns: 1fr;
+    position: relative;
   }
 
-  .categories-sidebar,
+  .mobile-categories-toggle {
+    display: flex;
+  }
+
+  .categories-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 280px;
+    height: 100vh;
+    z-index: 99;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    overflow-y: auto;
+    box-shadow: none;
+  }
+
+  .categories-sidebar.open {
+    transform: translateX(0);
+    box-shadow: 4px 0 12px rgba(0, 0, 0, 0.1);
+  }
+
+  .mobile-categories-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 98;
+  }
+
   .services-sidebar {
-    position: static;
     display: none;
   }
 
@@ -1085,6 +1164,10 @@ watch(category, (cat) => {
 
   .header-controls {
     width: 100%;
+  }
+
+  .category-nav-button {
+    font-size: 0.9rem;
   }
 }
 
