@@ -272,7 +272,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, watch } from 'vue'
+import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import BaseButton from '../components/BaseButton.vue'
 import BaseDropdown from '../components/BaseDropdown.vue'
@@ -549,11 +549,19 @@ const getPrivacyGuidesUrl = (service: WikiService): string | null => {
 
 // Handle initial hash on mount
 onMounted(() => {
+  // Add class to enable sticky sidebars (overrides global overflow-x: hidden)
+  document.documentElement.classList.add('wiki-page-active')
+  
   const hash = window.location.hash
   const serviceHash = hash.split('#').pop()
   if (serviceHash && serviceHash !== categoryId.value && category.value?.services.some(s => s.id === serviceHash)) {
     setTimeout(() => scrollToService(serviceHash), 100)
   }
+})
+
+// Clean up on unmount
+onUnmounted(() => {
+  document.documentElement.classList.remove('wiki-page-active')
 })
 
 // Redirect if category not found
@@ -569,6 +577,7 @@ watch(category, (cat) => {
   padding: 2rem;
   max-width: 1400px;
   margin: 0 auto;
+  overflow: visible;
 }
 
 .wiki-header {
@@ -758,13 +767,18 @@ watch(category, (cat) => {
   grid-template-columns: 200px 1fr 200px;
   gap: 1.5rem;
   align-items: start;
+  position: relative;
 }
 
 /* Categories Sidebar (Left) */
 .categories-sidebar {
   position: sticky;
-  top: 1rem;
+  top: 5rem;
   padding: 1rem;
+  align-self: flex-start;
+  max-height: calc(100vh - 6rem);
+  overflow-y: auto;
+  height: fit-content;
 }
 
 .categories-sidebar h3 {
@@ -827,8 +841,12 @@ watch(category, (cat) => {
 /* Services Sidebar (Right) */
 .services-sidebar {
   position: sticky;
-  top: 1rem;
+  top: 5rem;
   padding: 1rem;
+  align-self: flex-start;
+  max-height: calc(100vh - 6rem);
+  overflow-y: auto;
+  height: fit-content;
 }
 
 .services-sidebar h3 {
@@ -1309,5 +1327,15 @@ watch(category, (cat) => {
   .control-group {
     width: 100%;
   }
+}
+</style>
+
+<!-- Unscoped styles to override global overflow that breaks sticky -->
+<style>
+html.wiki-page-active,
+html.wiki-page-active body,
+html.wiki-page-active #app {
+  overflow: visible !important;
+  overflow-x: clip !important;
 }
 </style>
