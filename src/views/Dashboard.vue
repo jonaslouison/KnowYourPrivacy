@@ -20,147 +20,388 @@
         </div>
 
         <div v-else>
-            <div v-if="dashboardBannerType === 'warning'" class="warning-banner">
-                <div class="warning-content">
-                    <span class="warning-icon">⚠️</span>
-                    <div class="warning-text">
-                        <strong>Unsaved Data</strong>
-                        <p>Your quiz results are out of sync with {{ dashboardFileLabel }}. Export to keep the file updated.</p>
-                    </div>
-                    <BaseButton variant="primary" size="small" @click="exportData">
-                        💾 Export Now
-                    </BaseButton>
-                </div>
+            <div v-if="dashboardBannerType === 'warning'" class="dashboard-banner warning-banner">
+                <span class="banner-icon">⚠️</span>
+                <span class="banner-text"><strong>Unsaved changes</strong> — Export your data to save your progress.</span>
+                <BaseButton variant="primary" size="small" @click="exportData">
+                    💾 Export Now
+                </BaseButton>
             </div>
 
-            <div v-else-if="dashboardBannerType === 'success'" class="success-banner">
-                <div class="success-content">
-                    <span class="success-icon">✅</span>
-                    <div class="success-text">
-                        <strong>Data saved to {{ dashboardFileLabel }}</strong>
-                        <p>Your progress and results are securely stored.</p>
-                    </div>
-                </div>
+            <div v-else-if="dashboardBannerType === 'success'" class="dashboard-banner success-banner">
+                <span class="banner-icon">✅</span>
+                <span class="banner-text"><strong>Saved</strong> — Your data is securely stored in {{ dashboardFileLabel }}.</span>
             </div>
 
             <div class="dashboard-metrics">
-                <section class="threat-model-panel card">
-                    <div class="panel-heading">
-                        <div class="heading-main">
-                            <div class="heading-title">
-                                <h2 class="panel-title">Threat Model · {{ displayThreatSpectrumLabel }}</h2>
-                                <span class="manual-tag">{{ manualTagLabel }}</span>
+                <div class="left-panels">
+                    <section class="threat-model-panel card">
+                        <div class="panel-heading">
+                            <div class="heading-main">
+                                <div class="heading-title">
+                                    <h2 class="panel-title">Threat Model</h2>
+                                    <BaseTooltip 
+                                        text="Your threat model defines who you're protecting your data from. Higher levels mean more privacy but may require more effort to maintain."
+                                        position="bottom"
+                                        aria-label="What is a threat model?"
+                                    />
+                                    <BaseDropdown
+                                        id="threat-level-select"
+                                        :model-value="displayThreatLevel"
+                                        :options="threatLevelDropdownOptions"
+                                        @update:modelValue="handleThreatLevelChange"
+                                    />
+                                    <span class="status-tag" :class="manualOverride ? 'manual' : 'computed'">{{ manualTagLabel }}</span>
+                                    <BaseButton 
+                                        v-if="manualOverride" 
+                                        variant="outline" 
+                                        size="small" 
+                                        class="reset-btn"
+                                        @click="resetThreatLevel"
+                                    >
+                                        ↺ Reset
+                                    </BaseButton>
+                                </div>
                             </div>
-                            <div class="heading-controls">
-                                <BaseDropdown
-                                    id="threat-level-select"
-                                    :model-value="displayThreatLevel"
-                                    :options="threatLevelDropdownOptions"
-                                    @update:modelValue="handleThreatLevelChange"
+                            <p class="subtext">{{ displayThreatSpectrumLabel }} · {{ displayThreatSpectrumDescription }}</p>
+                            <p class="meta">Computed: Level {{ quizStore.computedThreatLevel }} · {{ computedThreatSpectrumInfo.label }}</p>
+                        </div>
+                        <div class="threat-body">
+                            <div class="tierlist-column">
+                                <BaseTierlist
+                                    :tiers="tierDefinitions"
+                                    :items="threatTierItems"
+                                    :assignments="threatTierAssignments"
+                                    :show-available-zone="false"
+                                    @update:assignments="updateTierAssignments"
                                 />
-                                <BaseButton variant="ghost" size="small" @click="resetThreatLevel" :disabled="!manualOverride">
-                                    reset
-                                </BaseButton>
                             </div>
                         </div>
-                        <p class="subtext">{{ displayThreatSpectrumDescription }}</p>
-                        <p class="meta">Computed level · {{ quizStore.computedThreatLevel }} · {{ computedThreatSpectrumInfo.label }}</p>
-                    </div>
-                    <div class="threat-body">
-                        <div class="tierlist-column">
-                            <BaseTierlist
-                                :tiers="tierDefinitions"
-                                :items="threatTierItems"
-                                :assignments="threatTierAssignments"
-                                :show-available-zone="false"
-                                @update:assignments="updateTierAssignments"
-                            />
-                        </div>
-                        <div class="priority-actions">
-                            <h3>Priority actions</h3>
-                            <ul>
-                                <li v-for="recItem in actionableRecommendations" :key="recItem.name">
-                                    <div class="priority-label">
-                                        <span class="icon">{{ recItem.icon }}</span>
-                                        <div>
-                                            <strong>{{ recItem.name }}</strong>
-                                            <small>{{ recItem.currentApp }}</small>
-                                        </div>
-                                    </div>
-                                    <p class="recommendation">{{ recItem.recommendations[0] }}</p>
-                                </li>
-                                <li v-if="!actionableRecommendations.length" class="muted">You've already matched every core app to your threat model.</li>
-                            </ul>
-                        </div>
-                    </div>
-                </section>
+                    </section>
 
-                <section class="score-panel card">
-                    <div class="panel-heading">
-                        <h2>Privacy Score · {{ privacyScoreDisplay }}</h2>
-                        <p class="subtext">Average of your device ratings so the score reflects device-specific privacy.</p>
-                    </div>
-                    <div class="score-display compact">
-                        <div class="score-value">{{ privacyScoreDisplay }}</div>
-                        <div class="score-denominator">/ 4</div>
-                    </div>
-                    <p class="score-description">{{ scoreDescription }}</p>
-                </section>
+                    <section class="save-data-panel card">
+                        <div class="panel-heading">
+                            <div class="panel-heading-row">
+                                <h2>Save Your Data</h2>
+                                <BaseTooltip 
+                                    text="Your quiz data is stored locally and encrypted. Export regularly to keep a backup you can import on other devices."
+                                    position="right"
+                                    aria-label="About saving your data"
+                                />
+                            </div>
+                            <p class="subtext">Export your encrypted quiz results to keep track of your privacy journey.</p>
+                        </div>
+                        <div class="action-buttons">
+                            <BaseButton variant="primary" @click="exportData">
+                                💾 Export Encrypted Data
+                            </BaseButton>
+                            <BaseButton variant="outline" @click="importData">
+                                📥 Import Data
+                            </BaseButton>
+                            <BaseButton variant="outline" @click="resetData">
+                                🔄 Retake Quiz
+                            </BaseButton>
+                            <BaseButton variant="danger" @click="showDeleteConfirm = true">
+                                🗑️ Delete All Data
+                            </BaseButton>
+                        </div>
+                    </section>
+                </div>
+
+                <div class="right-panels">
+                    <section class="score-panel card">
+                        <div class="panel-heading">
+                            <div class="panel-heading-row">
+                                <h2>Privacy Score</h2>
+                                <BaseTooltip 
+                                    text="Your privacy score (0-4) reflects how well your current apps and services align with your threat model. Higher is better."
+                                    position="bottom"
+                                    aria-label="What is the privacy score?"
+                                />
+                            </div>
+                            <p class="subtext">Average of your device ratings</p>
+                        </div>
+                        <div class="score-display compact">
+                            <div class="score-value">{{ privacyScoreDisplay }}</div>
+                            <div class="score-denominator">/ 4</div>
+                        </div>
+                        <p class="score-description">{{ scoreDescription }}</p>
+                    </section>
+
+                    <section class="priority-panel card">
+                        <div class="panel-heading">
+                            <div class="panel-heading-row">
+                                <h2>Priority Actions</h2>
+                                <BaseTooltip 
+                                    text="These are the most impactful changes you can make right now. Focus on replacing red and orange rated services first."
+                                    position="bottom"
+                                    aria-label="What are priority actions?"
+                                />
+                            </div>
+                            <p class="subtext">Top improvements for your threat level</p>
+                        </div>
+                        <div class="priority-list">
+                            <div 
+                                v-for="recItem in actionableRecommendations" 
+                                :key="recItem.name"
+                                class="priority-item"
+                                :class="getPriorityClass(recItem)"
+                            >
+                                <div class="priority-category">
+                                    <span class="priority-icon">{{ recItem.icon }}</span>
+                                    <span class="priority-name">{{ recItem.name }}</span>
+                                </div>
+                                <div class="priority-flow">
+                                    <RouterLink 
+                                        :to="getWikiLink(recItem.questionId, recItem.currentAppId)"
+                                        class="mini-card current"
+                                    >
+                                        <span class="mini-card-label">Current</span>
+                                        <span class="mini-card-name">{{ recItem.currentApp }}</span>
+                                    </RouterLink>
+                                    <span class="priority-arrow">→</span>
+                                    <RouterLink 
+                                        v-if="recItem.recommendedApp"
+                                        :to="getWikiLink(recItem.questionId, recItem.recommendedAppId)"
+                                        class="mini-card recommended"
+                                    >
+                                        <span class="mini-card-label">Switch to</span>
+                                        <span class="mini-card-name">{{ recItem.recommendedApp }}</span>
+                                    </RouterLink>
+                                    <RouterLink 
+                                        v-else
+                                        :to="getWikiLink(recItem.questionId, '')"
+                                        class="mini-card recommended"
+                                    >
+                                        <span class="mini-card-label">Explore options</span>
+                                        <span class="mini-card-name">{{ recItem.recommendations[0] }}</span>
+                                    </RouterLink>
+                                </div>
+                            </div>
+                            <div v-if="!actionableRecommendations.length" class="priority-item success">
+                                <span class="priority-icon">✓</span>
+                                <span class="priority-success-text">You've matched every core app to your threat model.</span>
+                            </div>
+                        </div>
+                    </section>
+                </div>
             </div>
-
-            <section class="devices-panel card">
-                <div class="panel-heading">
-                    <h2>Your Devices · Focus on one device</h2>
-                </div>
-                <div class="device-switcher">
-                    <BaseButton
-                        v-for="device in deviceTypes"
-                        :key="device"
-                        variant="ghost"
-                        size="small"
-                        :class="{ active: selectedDevice === device }"
-                        @click="selectDevice(device)"
-                    >
-                        {{ device === 'pc' ? 'Desktop' : device === 'phone' ? 'Phone' : 'Tablet' }}
-                    </BaseButton>
-                </div>
-                <p class="muted">Each table below shows the current apps you use for that device. Ratings feed into the overall privacy score.</p>
-            </section>
 
             <section class="device-setup card">
                 <div class="panel-heading">
-                    <h2>Your {{ deviceLabel }} Setup</h2>
+                    <h2>Your Digital Setup</h2>
+                    <p class="muted">Each table below shows the current apps you use for that device. Ratings feed into the overall privacy score.</p>
                 </div>
-                <div class="setup-summary">
-                    <div>
-                        <p class="muted">Device rating</p>
-                        <div class="score-display compact">
-                            <div class="score-value">{{ selectedDeviceRating.toFixed(1) }}</div>
-                            <div class="score-denominator">/ 4</div>
+                <div class="table-section">
+                    <div class="table-heading-row">
+                        <p class="table-heading">General Services</p>
+                        <div class="general-service-rating">
+                            <p class="muted">Service rating</p>
+                            <div class="score-display compact">
+                                <div class="score-value">{{ generalServiceRating.toFixed(1) }}</div>
+                                <div class="score-denominator">/ 4</div>
+                            </div>
                         </div>
                     </div>
-                    <p class="muted">Focus on improving the low-rated rows to raise this device's privacy posture.</p>
-                </div>
-                <div class="device-table-wrapper">
-                    <table class="device-table">
-                        <thead>
-                            <tr>
-                                <th>Category</th>
-                                <th>Currently using</th>
-                                <th>Rating</th>
-                                <th>Recommendations</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr v-for="row in deviceRows" :key="row.questionId">
-                                <td>{{ row.label }}</td>
+                    
+                    <!-- Mobile Cards View -->
+                    <div class="mobile-cards-view">
+                        <div v-for="service in generalServicesRows" :key="service.questionId" class="service-card">
+                            <div class="card-grid">
+                                <div class="card-cell category-cell">
+                                    <router-link 
+                                        :to="`/wiki/${getCategoryIdFromQuestionId(service.questionId)}`"
+                                        class="category-link"
+                                    >
+                                        {{ service.label }}
+                                        <span class="link-icon">→</span>
+                                    </router-link>
+                                </div>
+                                <div class="card-cell rating-cell">
+                                    <span class="badge" :class="service.scoreClass">{{ service.scoreLabel }}</span>
+                                </div>
+                                <div class="card-cell current-cell">
+                                    <label class="cell-label">Currently using</label>
+                                    <div class="dropdown-with-link">
+                                        <BaseDropdown
+                                            :model-value="getCurrentAnswerValue(service.questionId)"
+                                            :options="getDropdownOptions(service.questionId)"
+                                            placeholder="Awaiting response"
+                                            @update:modelValue="(value) => handleGeneralOptionChange(service.questionId, value)"
+                                        />
+                                        <router-link
+                                            v-if="getServiceWikiLink(service.questionId)"
+                                            :to="getServiceWikiLink(service.questionId)!"
+                                            class="service-hash-link"
+                                            title="View service details"
+                                        >#</router-link>
+                                    </div>
+                                </div>
+                                <div class="card-cell recommended-cell">
+                                    <label class="cell-label">Recommended</label>
+                                    <p v-if="service.recommendations.length" class="recommendation-text">{{ service.recommendations[0] }}</p>
+                                    <p v-else class="muted">Complete quiz</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Desktop Table View -->
+                    <div class="table-wrapper">
+                        <table class="device-table">
+                            <thead>
+                                <tr>
+                                    <th>Category</th>
+                                    <th>Currently using</th>
+                                    <th>Rating</th>
+                                    <th>Recommendations</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="service in generalServicesRows" :key="service.questionId">
+                                <td class="category-cell">
+                                    <router-link 
+                                        :to="`/wiki/${getCategoryIdFromQuestionId(service.questionId)}`"
+                                        class="category-link"
+                                    >
+                                        {{ service.label }}
+                                        <span class="link-icon">→</span>
+                                    </router-link>
+                                </td>
+                                <td class="currently-using-cell">
+                                    <div class="dropdown-with-link">
+                                        <BaseDropdown
+                                            :model-value="getCurrentAnswerValue(service.questionId)"
+                                            :options="getDropdownOptions(service.questionId)"
+                                            placeholder="Awaiting response"
+                                            @update:modelValue="(value) => handleGeneralOptionChange(service.questionId, value)"
+                                        />
+                                        <router-link
+                                            v-if="getServiceWikiLink(service.questionId)"
+                                            :to="getServiceWikiLink(service.questionId)!"
+                                            class="service-hash-link"
+                                            title="View service details"
+                                        >#</router-link>
+                                    </div>
+                                </td>
                                 <td>
-                                    <BaseDropdown
-                                        :model-value="getCurrentAnswerValue(row.questionId)"
-                                        :options="getDropdownOptions(row.questionId)"
-                                        placeholder="Awaiting response"
-                                        @update:modelValue="(value) => handleDeviceOptionChange(row.questionId, value)"
-                                    />
+                                    <span class="badge" :class="service.scoreClass">{{ service.scoreLabel }}</span>
+                                </td>
+                                <td>
+                                    <p v-if="service.recommendations.length">{{ service.recommendations[0] }}</p>
+                                    <p v-else class="muted">Finish the question to unlock recommendations.</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    </div>
+                </div>
+                
+                <div class="table-section">
+                    <div class="device-specific-header">
+                        <p class="table-heading">Device Specific</p>
+                        <div class="device-controls">
+                            <BaseButton
+                                v-for="device in deviceTypes"
+                                :key="device"
+                                :variant="selectedDevice === device ? 'primary' : 'outline'"
+                                size="small"
+                                @click="selectDevice(device)"
+                            >
+                                {{ device === 'pc' ? 'Desktop' : device === 'phone' ? 'Phone' : 'Tablet' }}
+                            </BaseButton>
+                        </div>
+                        <div class="device-rating">
+                            <p class="muted">Device rating</p>
+                            <div class="score-display compact">
+                                <div class="score-value">{{ selectedDeviceRating.toFixed(1) }}</div>
+                                <div class="score-denominator">/ 4</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Mobile Cards View -->
+                    <div class="mobile-cards-view">
+                        <div v-for="row in deviceSpecificRows" :key="row.questionId" class="service-card">
+                            <div class="card-grid">
+                                <div class="card-cell category-cell">
+                                    <router-link 
+                                        :to="getDeviceWikiPath(row.questionId)"
+                                        class="category-link"
+                                    >
+                                        {{ row.label }}
+                                        <span class="link-icon">→</span>
+                                    </router-link>
+                                </div>
+                                <div class="card-cell rating-cell">
+                                    <span class="badge" :class="row.scoreClass">{{ row.scoreLabel }}</span>
+                                </div>
+                                <div class="card-cell current-cell">
+                                    <label class="cell-label">Currently using</label>
+                                    <div class="dropdown-with-link">
+                                        <BaseDropdown
+                                            :model-value="getCurrentAnswerValue(row.questionId)"
+                                            :options="getDropdownOptions(row.questionId)"
+                                            placeholder="Awaiting response"
+                                            @update:modelValue="(value) => handleDeviceOptionChange(row.questionId, value)"
+                                        />
+                                        <router-link
+                                            v-if="getDeviceServiceWikiLink(row.questionId)"
+                                            :to="getDeviceServiceWikiLink(row.questionId)!"
+                                            class="service-hash-link"
+                                            title="View service details"
+                                        >#</router-link>
+                                    </div>
+                                </div>
+                                <div class="card-cell recommended-cell">
+                                    <label class="cell-label">Recommended</label>
+                                    <p v-if="row.recommendations.length" class="recommendation-text">{{ row.recommendations[0] }}</p>
+                                    <p v-else class="muted">Complete quiz</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div v-if="!deviceSpecificRows.length" class="empty-state-mobile">
+                            <p class="muted">Complete more selections to unlock device-specific suggestions.</p>
+                        </div>
+                    </div>
+
+                    <!-- Desktop Table View -->
+                    <div class="table-wrapper">
+                        <table class="device-table">
+                            <thead>
+                                <tr>
+                                    <th>Category</th>
+                                    <th>Currently using</th>
+                                    <th>Rating</th>
+                                    <th>Recommendations</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="row in deviceSpecificRows" :key="row.questionId">
+                                <td class="category-cell">
+                                    <router-link 
+                                        :to="getDeviceWikiPath(row.questionId)"
+                                        class="category-link"
+                                    >
+                                        {{ row.label }}
+                                        <span class="link-icon">→</span>
+                                    </router-link>
+                                </td>
+                                <td class="currently-using-cell">
+                                    <div class="dropdown-with-link">
+                                        <BaseDropdown
+                                            :model-value="getCurrentAnswerValue(row.questionId)"
+                                            :options="getDropdownOptions(row.questionId)"
+                                            placeholder="Awaiting response"
+                                            @update:modelValue="(value) => handleDeviceOptionChange(row.questionId, value)"
+                                        />
+                                        <router-link
+                                            v-if="getDeviceServiceWikiLink(row.questionId)"
+                                            :to="getDeviceServiceWikiLink(row.questionId)!"
+                                            class="service-hash-link"
+                                            title="View service details"
+                                        >#</router-link>
+                                    </div>
                                 </td>
                                 <td>
                                     <span class="badge" :class="row.scoreClass">{{ row.scoreLabel }}</span>
@@ -170,31 +411,14 @@
                                     <p v-else class="muted">Finish the question to unlock recommendations.</p>
                                 </td>
                             </tr>
+                            <tr v-if="!deviceSpecificRows.length">
+                                <td colspan="4" class="muted">Complete more selections to unlock device-specific suggestions.</td>
+                            </tr>
                         </tbody>
                     </table>
-                    <p class="muted table-note">Privacy score is the average of each device rating ({{ privacyScoreDisplay }}/4).</p>
-                </div>
-            </section>
-
-            <section class="actions-section">
-                <div class="card">
-                    <h2>Save Your Data</h2>
-                    <p>Export your encrypted quiz results to keep track of your privacy journey.</p>
-                    <div class="action-buttons">
-                        <BaseButton variant="primary" @click="exportData">
-                            💾 Export Encrypted Data
-                        </BaseButton>
-                        <BaseButton variant="outline" @click="importData">
-                            📥 Import Data
-                        </BaseButton>
-                        <BaseButton variant="outline" @click="resetData">
-                            🔄 Retake Quiz
-                        </BaseButton>
-                        <BaseButton variant="danger" @click="showDeleteConfirm = true">
-                            🗑️ Delete All Data
-                        </BaseButton>
                     </div>
                 </div>
+                <p class="muted table-note">Privacy score is the average of each device rating ({{ privacyScoreDisplay }}/4).</p>
             </section>
         </div>
 
@@ -288,14 +512,16 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, nextTick } from 'vue'
+import { computed, ref, watch, nextTick, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import BaseButton from '../components/BaseButton.vue'
 import BaseInput from '../components/BaseInput.vue'
 import BaseModal from '../components/BaseModal.vue'
 import BaseTierlist from '../components/BaseTierlist.vue'
 import BaseDropdown from '../components/BaseDropdown.vue'
+import BaseTooltip from '../components/BaseTooltip.vue'
 import type { DeviceType } from '../data/devices'
+import { getCategoryIdFromQuestionId, getServiceAnchorFromAnswer, getServiceAnchorFromCategoryId } from '../data/wiki'
 import {
     formatThreatTierEntry,
     parseThreatTierAnswerValue,
@@ -305,11 +531,13 @@ import {
     useQuizStore
 } from '../stores/quiz'
 import type { AppCategory, ThreatTierId } from '../stores/quiz'
+import { useTimerStore } from '../stores/timer'
 import { showToast } from '../utils/toast'
 import { validateExportFile } from '../utils/crypto'
 
 const router = useRouter()
 const quizStore = useQuizStore()
+const timerStore = useTimerStore()
 const showDeleteConfirm = ref(false)
 const showPasswordModal = ref(false)
 const showExportModal = ref(false)
@@ -322,8 +550,32 @@ const passwordInputRef = ref<{ focus: () => void } | null>(null)
 const exportPasswordInputRef = ref<{ focus: () => void } | null>(null)
 const confirmPassword = ref('')
 const lastExportTime = ref<number | null>(null)
+const isApplyingExternalData = ref(false)
 let pendingFile: File | null = null
 let isLoadAction = false
+
+// Reset load timer when password modal is closed (e.g., by clicking outside)
+watch(showPasswordModal, (isVisible, wasVisible) => {
+    if (wasVisible && !isVisible && pendingFile) {
+        // Modal was closed without successful import - reset timer only if it was a load action
+        if (isLoadAction || pendingFile) {
+            timerStore.resetLoadTimer()
+        }
+        pendingFile = null
+        fileName.value = ''
+        passwordInput.value = ''
+        passwordError.value = ''
+    }
+})
+
+const GENERAL_SERVICE_DEFINITIONS = [
+    { questionId: 'email-provider', label: 'Email Provider' },
+    { questionId: 'cloud-storage', label: 'Cloud Storage' },
+    { questionId: 'password-manager', label: 'Password Manager' },
+    { questionId: 'vpn-usage', label: 'VPN Service' },
+    { questionId: 'messaging-app', label: 'Messaging App' }
+] as const
+const GENERAL_SERVICE_QUESTION_IDS = GENERAL_SERVICE_DEFINITIONS.map((entry) => entry.questionId)
 
 const deviceTypes: DeviceType[] = ['pc', 'phone', 'tablet']
 const selectedDevice = ref<DeviceType>('pc')
@@ -331,14 +583,65 @@ const selectedDevice = ref<DeviceType>('pc')
 const hasAnswers = computed(() => quizStore.answers.length > 0)
 const isCompleted = computed(() => quizStore.isCompleted)
 const shouldContinueQuiz = computed(() => hasAnswers.value && !isCompleted.value)
-const hasUnsavedChanges = computed(() => hasAnswers.value && lastExportTime.value === null)
+const hasUnsavedChanges = ref(false)
+
+// Check on mount if there's unsaved quiz data (e.g., just completed quiz)
+onMounted(() => {
+    // If quiz is completed and no export time recorded, it means user just finished the quiz
+    if (isCompleted.value && lastExportTime.value === null && !quizStore.isLoadedFromFile) {
+        hasUnsavedChanges.value = true
+    }
+})
+
 const appCategories = computed<AppCategory[]>(() => quizStore.getAppCategories())
+const generalServicesRows = computed(() =>
+    GENERAL_SERVICE_DEFINITIONS.map((definition) => {
+        const category = appCategories.value.find((entry) => entry.name === definition.label)
+        return {
+            questionId: definition.questionId,
+            label: definition.label,
+            scoreLabel: category?.score ?? 'Pending',
+            scoreClass: category?.scoreClass ?? 'poor',
+            scoreValue: category?.scoreValue ?? 0,
+            recommendations: category?.recommendations ?? [],
+            currentApp: category?.currentApp ?? 'Awaiting response'
+        }
+    })
+)
+const generalServiceRating = computed(() => {
+    const scoredValues = generalServicesRows.value.map((service) => service.scoreValue).filter((value) => value > 0)
+    if (!scoredValues.length) return 0
+    const average = scoredValues.reduce((sum, value) => sum + value, 0) / scoredValues.length
+    return Math.round((average / 25) * 10) / 10
+})
 const actionableRecommendations = computed(() => {
     return appCategories.value
-        .filter((category) => category.recommendations.length > 0)
+        // Show items that have recommendations AND either:
+        // - have a recommended app (for poor/medium scores), OR
+        // - have a poor or medium score (red/orange - needs improvement)
+        .filter((category) => 
+            category.recommendations.length > 0 && 
+            (category.recommendedApp || category.scoreClass !== 'good')
+        )
         .sort((a, b) => a.scoreValue - b.scoreValue)
-        .slice(0, 3)
+        .slice(0, 2)
 })
+
+// Get priority class based on score (matches wiki rating colors)
+const getPriorityClass = (item: { scoreValue: number; scoreClass: string }) => {
+    // scoreClass is 'good', 'medium', 'poor' - map to avoid/caution/good
+    if (item.scoreClass === 'poor') return 'avoid'      // red - needs urgent action
+    if (item.scoreClass === 'medium') return 'caution'  // orange - needs improvement
+    return 'good'                                         // green - already good
+}
+
+// Get wiki link for a service
+const getWikiLink = (questionId: string, serviceId: string): string => {
+    const categoryId = getCategoryIdFromQuestionId(questionId)
+    if (!categoryId) return '#'
+    return serviceId ? `/wiki/${categoryId}#${serviceId}` : `/wiki/${categoryId}`
+}
+
 const tierDefinitions = THREAT_TIER_ORDER.map((tier) => ({
     id: tier,
     label: THREAT_TIER_LABELS[tier]
@@ -355,7 +658,25 @@ const updateTierAssignments = (value: Record<ThreatTierId, string[]>) => {
         (value[tier] ?? []).map((label) => formatThreatTierEntry(tier, label))
     )
     quizStore.setThreatOrder(ordered)
+    // Reset manual override so the dropdown shows the newly computed level
+    quizStore.resetManualThreatLevel()
+    markUnsaved()
 }
+
+const markUnsaved = () => {
+    lastExportTime.value = null
+    hasUnsavedChanges.value = true
+}
+
+watch(
+    () => quizStore.answers,
+    () => {
+        if (isApplyingExternalData.value) return
+        if (!quizStore.isLoadedFromFile) return
+        markUnsaved()
+    },
+    { deep: true }
+)
 const manualOverride = computed(() => quizStore.manualOverride)
 const manualTagLabel = computed(() => (manualOverride.value ? 'Manual' : 'Computed'))
 const displayThreatLevel = computed(() => quizStore.displayThreatLevel)
@@ -373,12 +694,8 @@ const threatLevelDropdownOptions = computed(() =>
 const privacyScoreNormalized = computed(() => quizStore.privacyScoreNormalized)
 const privacyScoreDisplay = computed(() => privacyScoreNormalized.value.toFixed(1))
 const deviceRows = computed(() => quizStore.getDeviceSetup(selectedDevice.value))
+const deviceSpecificRows = computed(() => deviceRows.value.filter((row) => !(GENERAL_SERVICE_QUESTION_IDS as readonly string[]).includes(row.questionId)))
 const selectedDeviceRating = computed(() => quizStore.getDeviceRatingNormalized(selectedDevice.value))
-const deviceLabel = computed(() => {
-    if (selectedDevice.value === 'pc') return 'Desktop'
-    if (selectedDevice.value === 'phone') return 'Phone'
-    return 'Tablet'
-})
 const scoreDescription = computed(() => {
     if (!hasAnswers.value) {
         return 'Complete the quiz to unlock the personalized score and device breakdown.'
@@ -390,20 +707,59 @@ const scoreDescription = computed(() => {
     return `Needs attention. The ${displayThreatSpectrumLabel.value} profile deserves more focused controls.`
 })
 const dashboardBannerType = computed<'warning' | 'success' | null>(() => {
-    if (!quizStore.isLoadedFromFile) return null
-    return hasUnsavedChanges.value ? 'warning' : 'success'
+    // Show warning if there are unsaved changes (after quiz, tierlist changes, etc.)
+    if (hasUnsavedChanges.value) return 'warning'
+    // Show success only if data was loaded from file and no changes since
+    if (quizStore.isLoadedFromFile && lastExportTime.value !== null) return 'success'
+    return null
 })
-const dashboardFileLabel = computed(() => fileName.value || 'loaded file')
+const dashboardFileLabel = computed(() => fileName.value || 'your data')
 const handleThreatLevelChange = (value: string | number) => {
     quizStore.setManualThreatLevel(Number(value))
+    markUnsaved()
 }
 
 const resetThreatLevel = () => {
     quizStore.resetManualThreatLevel()
+    markUnsaved()
 }
 
 const selectDevice = (device: DeviceType) => {
     selectedDevice.value = device
+}
+
+const getDeviceWikiPath = (questionId: string): string => {
+    // Map device-specific question IDs to appropriate wiki categories
+    if (questionId.includes('os-desktop')) return '/wiki/desktop-os'
+    if (questionId.includes('os-mobile')) return '/wiki/mobile-os'
+    if (questionId.includes('os-tablet')) return '/wiki/tablet-os'
+    if (questionId.includes('browser-desktop')) return '/wiki/desktop-browsers'
+    if (questionId.includes('browser-mobile')) return '/wiki/mobile-browsers'
+    if (questionId.includes('search-engine')) return '/wiki/search-engines'
+    // Fallback to generic category lookup
+    const categoryId = getCategoryIdFromQuestionId(questionId)
+    return categoryId ? `/wiki/${categoryId}` : '/dashboard'
+}
+
+const getServiceWikiLink = (questionId: string): string | null => {
+    const answerValue = getCurrentAnswerValue(questionId)
+    if (!answerValue) return null
+    const categoryId = getCategoryIdFromQuestionId(questionId)
+    if (!categoryId) return null
+    const serviceAnchor = getServiceAnchorFromAnswer(questionId, answerValue)
+    if (!serviceAnchor) return `/wiki/${categoryId}`
+    return `/wiki/${categoryId}#${serviceAnchor}`
+}
+
+const getDeviceServiceWikiLink = (questionId: string): string | null => {
+    const answerValue = getCurrentAnswerValue(questionId)
+    if (!answerValue) return null
+    const wikiPath = getDeviceWikiPath(questionId)
+    // Extract categoryId from path for service lookup
+    const categoryId = wikiPath.replace('/wiki/', '')
+    const serviceAnchor = getServiceAnchorFromCategoryId(categoryId, answerValue)
+    if (!serviceAnchor) return wikiPath
+    return `${wikiPath}#${serviceAnchor}`
 }
 
 const getQuestionOptions = (questionId: string) => {
@@ -423,12 +779,28 @@ const getCurrentAnswerValue = (questionId: string) => {
 const handleDeviceOptionChange = (questionId: string, value: string | number) => {
     if (!value) return
     quizStore.saveAnswer({ questionId, answer: String(value) })
+    markUnsaved()
+}
+
+const handleGeneralOptionChange = (questionId: string, value: string | number) => {
+    if (!value) return
+    quizStore.saveAnswer({ questionId, answer: String(value) })
+    markUnsaved()
 }
 
 const loadDashboard = () => {
+    // Reset and start load timer
+    timerStore.resetLoadTimer()
+    timerStore.startLoadTimer()
+
     const fileInput = document.createElement('input')
     fileInput.type = 'file'
     fileInput.accept = '.json'
+
+    // Reset timer when user cancels file selection dialog
+    fileInput.oncancel = () => {
+        timerStore.resetLoadTimer()
+    }
 
     fileInput.onchange = async (e: Event) => {
         const target = e.target as HTMLInputElement
@@ -485,9 +857,11 @@ const submitExport = async () => {
         const success = await quizStore.exportEncryptedData(passwordInput.value)
         if (!success) {
             exportPasswordError.value = 'Failed to export file. Please try again.'
+            showToast('Could not download your export file. Please try again.', 'warning')
             return
         }
         lastExportTime.value = Date.now()
+        hasUnsavedChanges.value = false
         showExportModal.value = false
         showToast('Data exported successfully!', 'success')
         passwordInput.value = ''
@@ -516,9 +890,11 @@ const submitExportConfirm = async () => {
         const success = await quizStore.exportEncryptedData(passwordInput.value)
         if (!success) {
             exportPasswordError.value = 'Failed to export file. Please try again.'
+            showToast('Could not download your export file. Please try again.', 'warning')
             return
         }
         lastExportTime.value = Date.now()
+        hasUnsavedChanges.value = false
         showExportConfirmModal.value = false
         showToast('Data exported successfully!', 'success')
         passwordInput.value = ''
@@ -538,15 +914,25 @@ const cancelExportConfirm = () => {
 }
 
 const importData = () => {
+    // Reset and start load timer for import
+    timerStore.resetLoadTimer()
+    timerStore.startLoadTimer()
+
     const fileInput = document.createElement('input')
     fileInput.type = 'file'
     fileInput.accept = '.json'
+
+    // Reset timer when user cancels file selection dialog
+    fileInput.oncancel = () => {
+        timerStore.resetLoadTimer()
+    }
 
     fileInput.onchange = async (e: Event) => {
         const target = e.target as HTMLInputElement
         const file = target.files?.[0]
         if (!file) {
             showToast('File selection cancelled', 'warning')
+            timerStore.resetLoadTimer()
             return
         }
 
@@ -574,9 +960,15 @@ const importData = () => {
 const submitPassword = async () => {
     if (!passwordInput.value || !pendingFile) return
 
+    isApplyingExternalData.value = true
     try {
         await quizStore.importEncryptedData(pendingFile, passwordInput.value)
+        lastExportTime.value = Date.now()
+        hasUnsavedChanges.value = false
         showPasswordModal.value = false
+        
+        // Stop load timer on successful import
+        timerStore.stopLoadTimer()
         const message = isLoadAction ? 'Data loaded successfully!' : 'Data imported successfully!'
         showToast(message, 'success')
         if (!quizStore.isCompleted) {
@@ -588,6 +980,8 @@ const submitPassword = async () => {
     } catch (error) {
         const err = error as Error
         passwordError.value = err.message
+    } finally {
+        isApplyingExternalData.value = false
     }
 }
 
@@ -597,6 +991,8 @@ const cancelPasswordInput = () => {
     fileName.value = ''
     passwordInput.value = ''
     passwordError.value = ''
+    // Reset load timer on cancel
+    timerStore.resetLoadTimer()
 }
 
 const loadDifferentFile = () => {
@@ -615,9 +1011,12 @@ const resetData = () => {
 
 const confirmDelete = () => {
     quizStore.resetQuiz()
+    // Reset both timers on delete
+    timerStore.resetQuizTimer()
+    timerStore.resetLoadTimer()
     showDeleteConfirm.value = false
     showToast('All data deleted successfully', 'success')
-    router.push('/quiz')
+    router.push('/')
 }
 
 const cancelDelete = () => {
@@ -649,36 +1048,277 @@ const cancelDelete = () => {
     margin-bottom: 2rem;
 }
 
-.warning-banner,
-.success-banner {
-    border-radius: 14px;
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
+.dashboard-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.65rem 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    position: sticky;
+    top: 60px; /* Below the app header */
+    z-index: 50;
+}
+
+.dashboard-banner .banner-icon {
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.dashboard-banner .banner-text {
+    flex: 1;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+}
+
+.dashboard-banner .banner-text strong {
+    font-weight: 600;
 }
 
 .warning-banner {
     background: linear-gradient(135deg, #fff3cd 0%, #fff8e1 100%);
-    border: 2px solid #ffc107;
+    border: 1px solid #ffc107;
 }
 
 .success-banner {
     background: linear-gradient(135deg, #d4edda 0%, #e8f5e9 100%);
-    border: 2px solid #28a745;
+    border: 1px solid #28a745;
 }
 
 .dashboard-metrics {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    grid-template-columns: 2fr 1fr;
+    grid-template-rows: auto auto auto;
     gap: 1.5rem;
     margin-bottom: 1.5rem;
+    overflow: hidden;
+}
+
+.left-panels {
+    display: contents;
+}
+
+.right-panels {
+    display: contents;
+}
+
+.threat-model-panel {
+    grid-column: 1;
+    grid-row: 1 / 3;
+}
+
+.save-data-panel {
+    grid-column: 1;
+    grid-row: 3;
+}
+
+.score-panel {
+    grid-column: 2;
+    grid-row: 1;
+}
+
+.priority-panel {
+    grid-column: 2;
+    grid-row: 2 / 4;
+    min-height: 200px;
 }
 
 .threat-model-panel,
-.score-panel {
+.score-panel,
+.priority-panel,
+.save-data-panel {
     padding: 1.5rem;
     display: flex;
     flex-direction: column;
     gap: 1rem;
+}
+
+/* Priority Panel Styles */
+.priority-panel .panel-heading h2 {
+    margin: 0.25rem 0;
+    color: var(--primary-color);
+}
+
+.priority-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    flex: 1;
+}
+
+.priority-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-left: 4px solid var(--warning, #f59e0b);
+    border-radius: 8px;
+    padding: 0.75rem;
+    background: var(--card-bg);
+    transition: all 0.2s ease;
+}
+
+.priority-item.avoid {
+    border-left-color: #ef4444;
+}
+
+.priority-item.caution {
+    border-left-color: #f97316;
+}
+
+.priority-item.good {
+    border-left-color: #22c55e;
+}
+
+.priority-item.success {
+    border-left-color: #22c55e;
+    color: var(--text-muted);
+    font-style: italic;
+    text-align: center;
+    padding: 1.5rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.priority-item.success .priority-icon {
+    font-size: 1.5rem;
+}
+
+.priority-category {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.priority-icon {
+    font-size: 1rem;
+    line-height: 1;
+}
+
+.priority-name {
+    font-weight: 500;
+}
+
+.priority-flow {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.mini-card {
+    flex: 1;
+    padding: 0.5rem 0.75rem;
+    border-radius: 6px;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    min-width: 0;
+    max-width: 50%;
+}
+
+.mini-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.mini-card.current {
+    background: var(--bg-secondary, #f8f9fa);
+    border: 1px solid var(--border-color);
+}
+
+.mini-card.recommended {
+    background: linear-gradient(135deg, #dcfce7 0%, #d1fae5 100%);
+    border: 1px solid #22c55e;
+}
+
+.mini-card-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+}
+
+.mini-card.recommended .mini-card-label {
+    color: #166534;
+}
+
+.mini-card-name {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mini-card.recommended .mini-card-name {
+    color: #166534;
+}
+
+.priority-arrow {
+    font-size: 1.25rem;
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+
+/* Save Data Panel */
+.save-data-panel .panel-heading h2 {
+    margin: 0.25rem 0;
+    color: var(--primary-color);
+}
+
+.save-data-panel .action-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+@media (max-width: 900px) {
+    .dashboard-metrics {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto;
+    }
+    
+    .score-panel {
+        grid-column: 1;
+        grid-row: 1;
+    }
+    
+    .priority-panel {
+        grid-column: 1;
+        grid-row: 2;
+    }
+    
+    .threat-model-panel {
+        grid-column: 1;
+        grid-row: 3;
+    }
+    
+    .save-data-panel {
+        grid-column: 1;
+        grid-row: 4;
+    }
+    
+    .priority-flow {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .priority-arrow {
+        transform: rotate(90deg);
+    }
+    
+    .mini-card {
+        width: 100%;
+    }
 }
 
 .panel-heading h2 {
@@ -686,26 +1326,52 @@ const cancelDelete = () => {
     color: var(--primary-color);
 }
 
+.panel-heading-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
 .heading-main {
     display: flex;
     justify-content: space-between;
     gap: 1.5rem;
-    flex-wrap: wrap;
 }
 
 .heading-title {
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    flex-wrap: wrap;
 }
 
-.manual-tag {
-    padding: 0.1rem 0.75rem;
-    background: var(--border-color);
+.heading-title .panel-title {
+    flex-shrink: 0;
+}
+
+.status-tag {
+    padding: 0.2rem 0.75rem;
     border-radius: 999px;
     font-size: 0.7rem;
+    font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.05em;
+}
+
+.status-tag.computed {
+    background: rgba(34, 197, 94, 0.15);
+    color: #16a34a;
+    border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.status-tag.manual {
+    background: rgba(249, 115, 22, 0.15);
+    color: #ea580c;
+    border: 1px solid rgba(249, 115, 22, 0.3);
+}
+
+.reset-btn {
+    margin-left: 0.5rem;
 }
 
 .heading-actions {
@@ -784,40 +1450,6 @@ const cancelDelete = () => {
     background: var(--card-bg);
 }
 
-.priority-actions ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-}
-
-.priority-actions li {
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    padding: 1rem;
-    background: var(--card-bg);
-}
-
-.device-switcher {
-    display: flex;
-    gap: 0.65rem;
-    flex-wrap: wrap;
-    margin: 1rem 0;
-}
-
-.device-switcher .base-button {
-    border-radius: 999px;
-    border: 1px solid var(--border-color);
-}
-
-.device-switcher .base-button.active {
-    background: var(--primary-color);
-    color: #fff;
-    border-color: var(--primary-color);
-}
-
 .device-setup {
     padding: 1.5rem;
     display: flex;
@@ -825,18 +1457,11 @@ const cancelDelete = () => {
     gap: 1rem;
 }
 
-.setup-summary {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 1rem;
-}
-
 .device-table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 1rem;
+    margin-top: 0.25rem;
+    table-layout: fixed;
 }
 
 .device-table th,
@@ -844,6 +1469,135 @@ const cancelDelete = () => {
     text-align: left;
     padding: 0.75rem;
     border-bottom: 1px solid var(--border-color);
+}
+
+.device-table th:nth-child(1),
+.device-table td:nth-child(1) {
+    width: 20%;
+}
+
+.device-table th:nth-child(2),
+.device-table td:nth-child(2) {
+    width: 30%;
+}
+
+.device-table th:nth-child(3),
+.device-table td:nth-child(3) {
+    width: 12%;
+}
+
+.device-table th:nth-child(4),
+.device-table td:nth-child(4) {
+    width: 38%;
+}
+
+.category-cell {
+    min-width: 140px;
+}
+
+.category-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    color: var(--primary, #6366f1);
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.15s ease;
+}
+
+.category-link:hover {
+    color: var(--primary-hover, #4f46e5);
+    text-decoration: underline;
+}
+
+.category-link .link-icon {
+    opacity: 0.6;
+    transform: translateX(0);
+    transition: opacity 0.15s ease, transform 0.15s ease;
+    font-size: 0.875rem;
+}
+
+.category-link:hover .link-icon {
+    opacity: 1;
+    transform: translateX(2px);
+}
+
+.dropdown-with-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.service-hash-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 6px;
+    background: transparent;
+    border: 2px solid var(--primary, #6366f1);
+    color: var(--primary, #6366f1);
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 0.875rem;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.service-hash-link:hover {
+    background: var(--primary, #6366f1);
+    color: white;
+}
+
+.table-section {
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 1rem;
+    background: var(--card-bg);
+}
+
+.table-heading {
+    margin: 0;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.table-heading-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.general-service-rating {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.currently-using-cell {
+    background: #fff;
+}
+
+.device-specific-header {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: space-between;
+}
+
+.device-controls {
+    display: flex;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+}
+
+.device-rating {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
 }
 
 .badge {
@@ -904,6 +1658,8 @@ const cancelDelete = () => {
     display: flex;
     flex-wrap: wrap;
     gap: 0.75rem;
+    justify-content: center;
+    margin-top: 1.5rem;
 }
 
 .muted {
@@ -943,20 +1699,241 @@ const cancelDelete = () => {
     margin-top: 0.5rem;
 }
 
-@media (max-width: 720px) {
+/* Mobile Cards View */
+.mobile-cards-view {
+    display: none;
+}
+
+.service-card {
+    margin-bottom: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--card-bg);
+    overflow: hidden;
+}
+
+.card-grid {
+    display: grid;
+    grid-template-columns: 3fr 1fr;
+    grid-template-rows: auto auto;
+    gap: 0;
+}
+
+.card-cell {
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+}
+
+.card-cell.category-cell {
+    border-top: none;
+    border-left: none;
+    display: flex;
+    align-items: center;
+}
+
+.card-cell.rating-cell {
+    border-top: none;
+    border-right: none;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 0.5rem;
+}
+
+.card-cell.current-cell {
+    border-bottom: none;
+    border-left: none;
+    min-width: 0;
+}
+
+.card-cell.recommended-cell {
+    border-bottom: none;
+    border-right: none;
+    padding: 0.5rem;
+    font-size: 0.8rem;
+}
+
+.cell-label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+}
+
+.recommendation-text {
+    margin: 0;
+    font-size: 0.8rem;
+    line-height: 1.3;
+}
+
+.empty-state-mobile {
+    padding: 2rem;
+    text-align: center;
+}
+
+@media (max-width: 768px) {
     .dashboard-metrics {
         grid-template-columns: 1fr;
     }
 
-    .device-switcher,
-    .setup-summary,
+    /* Prevent horizontal overflow in all panels */
+    .threat-model-panel,
+    .save-data-panel,
+    .score-panel,
+    .priority-panel {
+        overflow: hidden;
+        max-width: 100%;
+    }
+
+    .heading-main {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .heading-title {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .heading-title .panel-title {
+        width: 100%;
+        margin-bottom: 0.25rem;
+    }
+
+    .status-tag {
+        font-size: 0.65rem;
+        padding: 0.15rem 0.5rem;
+    }
+
+    .reset-btn {
+        margin-left: 0;
+    }
+
+    .subtext,
+    .meta {
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+    }
+
+    .save-data-panel .action-buttons {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .save-data-panel .action-buttons button {
+        width: 100%;
+    }
+
+    .threat-body {
+        grid-template-columns: 1fr;
+    }
+
+    .tierlist-column {
+        padding: 0.75rem;
+    }
+
+    .device-specific-header,
     .answers-list {
         flex-direction: column;
+        align-items: flex-start;
     }
 
     .answer-row {
         flex-direction: column;
         align-items: flex-start;
+    }
+
+    /* Hide desktop table, show mobile cards */
+    .table-wrapper {
+        display: none;
+    }
+
+    .mobile-cards-view {
+        display: block;
+    }
+
+    .service-card {
+        margin-bottom: 0.5rem;
+    }
+
+    .card-grid {
+        grid-template-columns: 4fr 1fr;
+    }
+
+    .card-cell {
+        padding: 0.5rem;
+    }
+
+    .card-cell.category-cell {
+        padding: 0.5rem 0.4rem;
+    }
+
+    .card-cell.category-cell .category-link {
+        font-size: 0.85rem;
+    }
+
+    .card-cell.rating-cell {
+        padding: 0.35rem;
+    }
+
+    .card-cell.rating-cell .badge {
+        font-size: 0.6rem;
+        padding: 0.2rem 0.4rem;
+    }
+
+    .card-cell.current-cell {
+        padding: 0.5rem 0.4rem;
+    }
+
+    .card-cell.recommended-cell {
+        padding: 0.35rem;
+        font-size: 0.75rem;
+    }
+
+    .cell-label {
+        font-size: 0.6rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .recommendation-text {
+        font-size: 0.75rem;
+        line-height: 1.2;
+    }
+
+    .dashboard-banner {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+        text-align: left;
+    }
+
+    .priority-flow {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+    }
+
+    .priority-arrow {
+        transform: rotate(90deg);
+        align-self: center;
+        margin: 0;
+    }
+
+    .mini-card {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .mini-card-name {
+        white-space: normal;
+        word-break: break-word;
+    }
+
+    .priority-item {
+        overflow: hidden;
     }
 }
 </style>

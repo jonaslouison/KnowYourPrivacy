@@ -9,6 +9,10 @@ import {
   DEVICE_SELECTION_OPTIONS
 } from '../data/devices'
 import {
+  getServiceByAnswerValue,
+  getCategoryIdFromQuestionId
+} from '../data/wiki'
+import {
   encryptData,
   downloadEncryptedFile,
   readEncryptedFile
@@ -31,16 +35,18 @@ const THREAT_SPECTRUM = [
 
 const TIER_SCORE_MAP: Record<ThreatTierId, number> = {
   high: 100,
-  medium: 60,
-  low: 30
+  medium: 65,
+  low: 35,
+  none: 0
 }
 
-export const THREAT_TIER_ORDER = ['high', 'medium', 'low'] as const
+export const THREAT_TIER_ORDER = ['high', 'medium', 'low', 'none'] as const
 export type ThreatTierId = (typeof THREAT_TIER_ORDER)[number]
 export const THREAT_TIER_LABELS: Record<ThreatTierId, string> = {
   high: 'High Concern',
   medium: 'Moderate Concern',
-  low: 'Lower Concern'
+  low: 'Lower Concern',
+  none: 'No Concern'
 }
 
 export const THREAT_CATALOG: Array<{ id: string; label: string }> = THREAT_QUESTION_IDS.map((questionId) => {
@@ -58,31 +64,24 @@ const DEVICE_SETUP_CONFIG: Record<DeviceType, Array<{ questionId: string; label:
   pc: [
     { questionId: 'os-desktop', label: 'Operating System' },
     { questionId: 'browser-desktop', label: 'Web Browser' },
-    { questionId: 'search-engine', label: 'Search Engine' },
-    { questionId: 'email-provider', label: 'Email Provider' },
-    { questionId: 'cloud-storage', label: 'Cloud Storage' },
-    { questionId: 'password-manager', label: 'Password Manager' },
-    { questionId: 'vpn-usage', label: 'VPN Service' }
+    { questionId: 'search-engine', label: 'Search Engine' }
   ],
   phone: [
     { questionId: 'os-mobile', label: 'Operating System' },
     { questionId: 'browser-mobile', label: 'Web Browser' },
-    { questionId: 'messaging-app', label: 'Messaging App' },
-    { questionId: 'email-provider', label: 'Email Provider' },
-    { questionId: 'vpn-usage', label: 'VPN Service' }
+    { questionId: 'search-engine', label: 'Search Engine' }
   ],
   tablet: [
     { questionId: 'os-tablet', label: 'Operating System' },
     { questionId: 'browser-mobile', label: 'Web Browser' },
-    { questionId: 'cloud-storage', label: 'Cloud Storage' },
-    { questionId: 'messaging-app', label: 'Messaging App' }
+    { questionId: 'search-engine', label: 'Search Engine' }
   ]
 }
 
 const mapScoreLabel = (score: number): string => {
   if (score >= 80) return 'Excellent'
   if (score >= 60) return 'Good'
-  if (score > 0) return 'Needs Improvement'
+  if (score > 0) return 'Danger'
   return 'Pending'
 }
 
@@ -106,7 +105,11 @@ export interface Answer {
 export interface AppCategory {
   name: string
   icon: string
+  questionId: string
   currentApp: string
+  currentAppId: string
+  recommendedApp: string
+  recommendedAppId: string
   score: string
   scoreClass: 'good' | 'medium' | 'poor'
   scoreValue: number
@@ -334,7 +337,7 @@ const buildQuizFlow = (state: QuizState): QuizFlowItem[] => {
 const getThreatEntriesFromState = (state: QuizState): ThreatEntry[] => {
   const assignments = getThreatTierAssignments(state)
   const entries = THREAT_CATALOG.map((catalog) => {
-    const tier = THREAT_TIER_ORDER.find((tierId) => assignments[tierId].includes(catalog.label)) ?? 'low'
+    const tier = THREAT_TIER_ORDER.find((tierId) => assignments[tierId].includes(catalog.label)) ?? 'none'
     const score = TIER_SCORE_MAP[tier]
     return {
       questionId: catalog.id,
@@ -431,154 +434,56 @@ export const useQuizStore = defineStore({
     getAppCategories: (state) => (): AppCategory[] => {
       const categories: AppCategory[] = []
 
-      // Browser Desktop
-      const browserDesktop = state.answers.find((a) => a.questionId === 'browser-desktop')
-      if (browserDesktop) {
-        const question = state.questions.find((q) => q.id === 'browser-desktop')
-        const answerValue = getPrimaryValue(browserDesktop.answer)
-        const option = answerValue ? question?.options.find((o) => o.value === answerValue) : undefined
-        const score = option?.score || 0
-        const recommendationList = answerValue
-          ? recommendations['browser-desktop']?.[answerValue] ?? []
-          : []
-
-        categories.push({
-          name: 'Web Browser (Desktop)',
-          icon: '🌐',
-          currentApp: option?.label || 'Unknown',
-          score: score >= 80 ? 'Excellent' : score >= 60 ? 'Good' : 'Needs Improvement',
-          scoreClass: score >= 80 ? 'good' : score >= 60 ? 'medium' : 'poor',
-          scoreValue: score,
-          recommendations: recommendationList
-        })
+      // Helper to find the best recommended service from wiki
+      const findRecommendedService = (questionId: string, recList: string[]): { name: string; id: string } => {
+        if (!recList.length) return { name: '', id: '' }
+        const firstRec = recList[0]
+        // Skip non-actionable recommendations
+        if (firstRec.includes('!') || firstRec.toLowerCase().includes('consider') || firstRec.toLowerCase().includes('already') || firstRec.toLowerCase().includes('perfect') || firstRec.toLowerCase().includes('great')) {
+          return { name: '', id: '' }
+        }
+        const categoryId = getCategoryIdFromQuestionId(questionId)
+        if (!categoryId) return { name: firstRec, id: '' }
+        const service = getServiceByAnswerValue(categoryId, firstRec)
+        return service ? { name: service.name, id: service.id } : { name: firstRec, id: '' }
       }
 
-      // Email
-      const email = state.answers.find((a) => a.questionId === 'email-provider')
-      if (email) {
-        const question = state.questions.find((q) => q.id === 'email-provider')
-        const answerValue = getPrimaryValue(email.answer)
+      // Category definitions for cleaner code
+      const categoryDefs = [
+        { questionId: 'browser-desktop', name: 'Web Browser (Desktop)', icon: '🌐' },
+        { questionId: 'email-provider', name: 'Email Provider', icon: '✉️' },
+        { questionId: 'search-engine', name: 'Search Engine', icon: '🔍' },
+        { questionId: 'messaging-app', name: 'Messaging App', icon: '💬' },
+        { questionId: 'cloud-storage', name: 'Cloud Storage', icon: '☁️' },
+        { questionId: 'password-manager', name: 'Password Manager', icon: '🔑' },
+        { questionId: 'vpn-usage', name: 'VPN Service', icon: '🛡️' }
+      ]
+
+      for (const def of categoryDefs) {
+        const answer = state.answers.find((a) => a.questionId === def.questionId)
+        if (!answer) continue
+
+        const question = state.questions.find((q) => q.id === def.questionId)
+        const answerValue = getPrimaryValue(answer.answer)
         const option = answerValue ? question?.options.find((o) => o.value === answerValue) : undefined
         const score = option?.score || 0
         const recommendationList = answerValue
-          ? recommendations['email-provider']?.[answerValue] ?? []
+          ? recommendations[def.questionId]?.[answerValue] ?? []
           : []
+        
+        const recommended = findRecommendedService(def.questionId, recommendationList)
+        const categoryId = getCategoryIdFromQuestionId(def.questionId)
+        const currentService = categoryId ? getServiceByAnswerValue(categoryId, answerValue || '') : undefined
 
         categories.push({
-          name: 'Email Provider',
-          icon: '✉️',
+          name: def.name,
+          icon: def.icon,
+          questionId: def.questionId,
           currentApp: option?.label || 'Unknown',
-          score: score >= 80 ? 'Excellent' : score >= 60 ? 'Good' : 'Needs Improvement',
-          scoreClass: score >= 80 ? 'good' : score >= 60 ? 'medium' : 'poor',
-          scoreValue: score,
-          recommendations: recommendationList
-        })
-      }
-
-      // Search Engine
-      const search = state.answers.find((a) => a.questionId === 'search-engine')
-      if (search) {
-        const question = state.questions.find((q) => q.id === 'search-engine')
-        const answerValue = getPrimaryValue(search.answer)
-        const option = answerValue ? question?.options.find((o) => o.value === answerValue) : undefined
-        const score = option?.score || 0
-        const recommendationList = answerValue
-          ? recommendations['search-engine']?.[answerValue] ?? []
-          : []
-
-        categories.push({
-          name: 'Search Engine',
-          icon: '🔍',
-          currentApp: option?.label || 'Unknown',
-          score: score >= 80 ? 'Excellent' : score >= 60 ? 'Good' : 'Needs Improvement',
-          scoreClass: score >= 80 ? 'good' : score >= 60 ? 'medium' : 'poor',
-          scoreValue: score,
-          recommendations: recommendationList
-        })
-      }
-
-      // Messaging
-      const messaging = state.answers.find((a) => a.questionId === 'messaging-app')
-      if (messaging) {
-        const question = state.questions.find((q) => q.id === 'messaging-app')
-        const answerValue = getPrimaryValue(messaging.answer)
-        const option = answerValue ? question?.options.find((o) => o.value === answerValue) : undefined
-        const score = option?.score || 0
-        const recommendationList = answerValue
-          ? recommendations['messaging-app']?.[answerValue] ?? []
-          : []
-
-        categories.push({
-          name: 'Messaging App',
-          icon: '💬',
-          currentApp: option?.label || 'Unknown',
-          score: score >= 80 ? 'Excellent' : score >= 60 ? 'Good' : 'Needs Improvement',
-          scoreClass: score >= 80 ? 'good' : score >= 60 ? 'medium' : 'poor',
-          scoreValue: score,
-          recommendations: recommendationList
-        })
-      }
-
-      // Cloud Storage
-      const cloud = state.answers.find((a) => a.questionId === 'cloud-storage')
-      if (cloud) {
-        const question = state.questions.find((q) => q.id === 'cloud-storage')
-        const answerValue = getPrimaryValue(cloud.answer)
-        const option = answerValue ? question?.options.find((o) => o.value === answerValue) : undefined
-        const score = option?.score || 0
-        const recommendationList = answerValue
-          ? recommendations['cloud-storage']?.[answerValue] ?? []
-          : []
-
-        categories.push({
-          name: 'Cloud Storage',
-          icon: '☁️',
-          currentApp: option?.label || 'Unknown',
-          score: score >= 80 ? 'Excellent' : score >= 60 ? 'Good' : 'Needs Improvement',
-          scoreClass: score >= 80 ? 'good' : score >= 60 ? 'medium' : 'poor',
-          scoreValue: score,
-          recommendations: recommendationList
-        })
-      }
-
-      // Password Manager
-      const password = state.answers.find((a) => a.questionId === 'password-manager')
-      if (password) {
-        const question = state.questions.find((q) => q.id === 'password-manager')
-        const answerValue = getPrimaryValue(password.answer)
-        const option = answerValue ? question?.options.find((o) => o.value === answerValue) : undefined
-        const score = option?.score || 0
-        const recommendationList = answerValue
-          ? recommendations['password-manager']?.[answerValue] ?? []
-          : []
-
-        categories.push({
-          name: 'Password Manager',
-          icon: '🔑',
-          currentApp: option?.label || 'Unknown',
-          score: score >= 80 ? 'Excellent' : score >= 60 ? 'Good' : 'Needs Improvement',
-          scoreClass: score >= 80 ? 'good' : score >= 60 ? 'medium' : 'poor',
-          scoreValue: score,
-          recommendations: recommendationList
-        })
-      }
-
-      // VPN
-      const vpn = state.answers.find((a) => a.questionId === 'vpn-usage')
-      if (vpn) {
-        const question = state.questions.find((q) => q.id === 'vpn-usage')
-        const answerValue = getPrimaryValue(vpn.answer)
-        const option = answerValue ? question?.options.find((o) => o.value === answerValue) : undefined
-        const score = option?.score || 0
-        const recommendationList = answerValue
-          ? recommendations['vpn-usage']?.[answerValue] ?? []
-          : []
-
-        categories.push({
-          name: 'VPN Service',
-          icon: '🛡️',
-          currentApp: option?.label || 'Unknown',
-          score: score >= 80 ? 'Excellent' : score >= 60 ? 'Good' : 'Needs Improvement',
+          currentAppId: currentService?.id || answerValue || '',
+          recommendedApp: recommended.name,
+          recommendedAppId: recommended.id,
+          score: score >= 80 ? 'Excellent' : score >= 60 ? 'Good' : 'Danger',
           scoreClass: score >= 80 ? 'good' : score >= 60 ? 'medium' : 'poor',
           scoreValue: score,
           recommendations: recommendationList
@@ -631,6 +536,10 @@ export const useQuizStore = defineStore({
      */
     completeQuiz(): void {
       this.isCompleted = true
+      // Sync manualThreatLevel with computedThreatLevel when quiz is completed
+      if (!this.manualOverride) {
+        this.manualThreatLevel = this.computedThreatLevel
+      }
     },
 
     /**
@@ -655,6 +564,11 @@ export const useQuizStore = defineStore({
         this.answers[existingIndex] = payload
       } else {
         this.answers.push(payload)
+      }
+
+      // Sync manualThreatLevel with computedThreatLevel when threat order changes
+      if (!this.manualOverride) {
+        this.manualThreatLevel = this.computedThreatLevel
       }
     },
 

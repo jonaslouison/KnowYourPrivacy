@@ -4,8 +4,7 @@ import { useRouter, useRoute } from 'vue-router'
 import BaseButton from '../components/BaseButton.vue'
 import BaseModal from '../components/BaseModal.vue'
 import BaseTierlist from '../components/BaseTierlist.vue'
-import {
-    useQuizStore,
+import { useQuizStore,
     QUIZ_SECTION_LABELS,
     THREAT_CATALOG,
     THREAT_TIER_LABELS,
@@ -15,12 +14,15 @@ import {
     type QuizSectionKey,
     type ThreatTierId
 } from '../stores/quiz'
+import { useTimerStore } from '../stores/timer'
 import { showToast } from '../utils/toast'
 import { useReloadGuard } from '../composables/useReloadGuard'
+import { THREAT_DESCRIPTIONS } from '../data/wiki'
 
 const router = useRouter()
 const route = useRoute()
 const quizStore = useQuizStore()
+const timerStore = useTimerStore()
 const { openPasswordModal } = useReloadGuard()
 
 const selectedAnswer = ref<string | string[] | null>(null)
@@ -53,6 +55,8 @@ const tierlistItems = computed(() =>
     THREAT_CATALOG.map((entry) => ({ id: entry.label, label: entry.label }))
 )
 const tierDefinitions = THREAT_TIER_ORDER.map((tier) => ({ id: tier, label: THREAT_TIER_LABELS[tier] }))
+const threatDescriptions = THREAT_DESCRIPTIONS
+const threatModelGuideUrl = 'https://www.privacyguides.org/en/basics/threat-modeling/'
 const buildTierAssignmentSnapshot = (source?: Record<ThreatTierId, string[]>) => {
     return THREAT_TIER_ORDER.reduce((acc, tier) => {
         const values = source?.[tier] ?? []
@@ -159,6 +163,8 @@ const nextQuestion = () => {
 
     if (isLastQuestion.value) {
         quizStore.completeQuiz()
+        // Stop quiz timer when quiz is completed
+        timerStore.stopQuizTimer()
         quizCompleted.value = true
         showQuiz.value = false
     } else {
@@ -182,8 +188,18 @@ const viewDashboard = () => {
     router.push('/dashboard')
 }
 
+const copyQuizTime = async () => {
+    const copied = await timerStore.copyQuizTime()
+    if (copied) {
+        showToast('Quiz time copied to clipboard!', 'success')
+    }
+}
+
 const confirmRestart = () => {
     quizStore.resetQuiz()
+    // Reset and restart quiz timer
+    timerStore.resetQuizTimer()
+    timerStore.startQuizTimer()
     quizCompleted.value = false
     showQuiz.value = true
     showRestartConfirm.value = false
@@ -197,6 +213,9 @@ const cancelRestart = () => {
 
 const confirmDelete = () => {
     quizStore.resetQuiz()
+    // Reset both timers on delete
+    timerStore.resetQuizTimer()
+    timerStore.resetLoadTimer()
     showDeleteConfirm.value = false
     quizCompleted.value = false
     showQuiz.value = true
@@ -266,7 +285,10 @@ onMounted(() => {
             <div class="progress-bar">
                 <div class="progress-fill" :style="{ width: progressPercentage + '%' }"></div>
             </div>
-            <p class="progress-text">Question {{ currentFlowIndex + 1 }} of {{ flowLength }}</p>
+            <p class="progress-text">
+                <template v-if="isDeviceSelectionQuestion">Getting Started</template>
+                <template v-else>Question {{ currentFlowIndex + 1 }} of {{ flowLength }}</template>
+            </p>
         </div>
         <div v-if="quizCardVisible" class="context-card">
             <p class="context-title">{{ currentContextLabel }}</p>
@@ -305,6 +327,22 @@ onMounted(() => {
                 </div>
 
                 <div v-if="isThreatPriorityQuestion" class="tierlist-section">
+                    <div class="threat-info-panel">
+                        <h3>Understanding the Threats</h3>
+                        <p class="threat-info-intro">Drag each threat to the tier that matches your concern level. Here's what each threat means:</p>
+                        <div class="threat-descriptions">
+                            <div v-for="threat in threatDescriptions" :key="threat.id" class="threat-desc-item">
+                                <span class="threat-icon">{{ threat.icon }}</span>
+                                <div class="threat-desc-content">
+                                    <strong>{{ threat.label }}</strong>
+                                    <p>{{ threat.shortDescription }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <a :href="threatModelGuideUrl" target="_blank" rel="noopener noreferrer" class="learn-more-link">
+                            📚 Learn more about threat modeling →
+                        </a>
+                    </div>
                     <BaseTierlist
                         :tiers="tierDefinitions"
                         :items="tierlistItems"
@@ -333,6 +371,16 @@ onMounted(() => {
                 <div class="congratulations">
                     <h1>🎉 Congratulations!</h1>
                     <p>You've completed the Privacy Quiz</p>
+                    
+                    <!-- Quiz Timer Display -->
+                    <div v-if="timerStore.quizTimerCompleted" class="quiz-time-display">
+                        <span class="time-label">⏱️ Quiz completed in:</span>
+                        <span class="time-value">{{ timerStore.quizElapsedFormatted }}</span>
+                        <BaseButton variant="ghost" size="small" class="copy-time-btn" @click="copyQuizTime">
+                            📋 Copy
+                        </BaseButton>
+                    </div>
+                    
                     <p class="completion-message">
                         You now have a personalized privacy score and recommendations for your digital security.
                     </p>
@@ -538,6 +586,75 @@ onMounted(() => {
     margin-top: 1.5rem;
 }
 
+.threat-info-panel {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+
+.threat-info-panel h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.1rem;
+    color: var(--primary-color);
+}
+
+.threat-info-intro {
+    color: var(--text-secondary);
+    margin: 0 0 1rem 0;
+    font-size: 0.9rem;
+}
+
+.threat-descriptions {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.threat-desc-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background: var(--bg-color);
+    border-radius: 8px;
+}
+
+.threat-icon {
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+.threat-desc-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.threat-desc-content strong {
+    display: block;
+    margin-bottom: 0.25rem;
+    color: var(--text-primary);
+}
+
+.threat-desc-content p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+.learn-more-link {
+    display: inline-block;
+    margin-top: 1rem;
+    color: var(--primary-color);
+    font-size: 0.9rem;
+    text-decoration: none;
+}
+
+.learn-more-link:hover {
+    text-decoration: underline;
+}
+
 .completion-screen {
     padding-top: 4rem;
     text-align: center;
@@ -572,6 +689,34 @@ onMounted(() => {
     margin-right: auto;
 }
 
+.quiz-time-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    margin: 1.5rem 0;
+    padding: 1rem 1.5rem;
+    background: var(--surface-color);
+    border-radius: 12px;
+    border: 2px solid var(--success-color);
+}
+
+.quiz-time-display .time-label {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+}
+
+.quiz-time-display .time-value {
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--success-color);
+}
+
+.quiz-time-display .copy-time-btn {
+    margin-left: 0.5rem;
+}
+
 @keyframes slideUp {
     from {
         opacity: 0;
@@ -580,6 +725,89 @@ onMounted(() => {
     to {
         opacity: 1;
         transform: translateY(0);
+    }
+}
+
+/* Mobile Optimizations */
+@media (max-width: 768px) {
+    .quiz-header-top {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+
+    .quiz-header h1 {
+        font-size: 1.5rem;
+    }
+
+    .header-buttons {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    .header-buttons button {
+        flex: 1;
+        min-width: 0;
+        font-size: 0.85rem;
+    }
+
+    .question-card {
+        padding: 1.5rem;
+    }
+
+    .question-card h2 {
+        font-size: 1.25rem;
+        line-height: 1.3;
+    }
+
+    .options {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+        max-height: calc(100vh - 450px);
+        overflow-y: auto;
+        padding-right: 0.25rem;
+    }
+
+    .quiz-actions {
+        position: sticky;
+        bottom: 0;
+        background: var(--card-bg);
+        padding: 1rem 0 0;
+        margin: 0 -1.5rem -1.5rem;
+        padding: 1rem 1.5rem;
+        border-top: 1px solid var(--border-color);
+        z-index: 10;
+    }
+
+    .quiz-actions button {
+        flex: 1;
+    }
+
+    .completion-card {
+        padding: 2rem 1rem;
+    }
+
+    .congratulations h1 {
+        font-size: 2rem;
+    }
+
+    .quiz-time-display {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .threat-descriptions {
+        gap: 0.5rem;
+    }
+
+    .threat-desc-item {
+        padding: 0.5rem;
+    }
+
+    .info-content {
+        flex-direction: column;
+        gap: 0.5rem;
     }
 }
 </style>
