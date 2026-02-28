@@ -32,11 +32,25 @@
                 </div>
             </nav>
         </header>
-
+        
         <main>
             <router-view />
         </main>
-
+        
+        <footer class="footer">
+            <div class="container footer-content">
+                <div class="footer-links">
+                    <router-link to="/#how-it-works">How It Works</router-link>
+                    <router-link to="/#philosophy">Philosophy</router-link>
+                    <router-link to="/#faq">FAQ</router-link>
+                    <router-link to="/wiki/email">Wiki</router-link>
+                    <a href="https://github.com/jonaslouison/KnowYourPrivacy" target="_blank" rel="noopener noreferrer">GitHub</a>
+                </div>
+                <p class="footer-tagline">🔐 All data is encrypted and stored locally. No tracking. Open source.</p>
+                <p class="footer-credits">Made with ❤️ for privacy</p>
+            </div>
+        </footer>
+        
         <ToastContainer />
         <BaseModal v-model:visible="showReloadConfirm" title="Are you sure?">
             <p class="modal-description">
@@ -48,7 +62,7 @@
                 <BaseButton variant="danger" @click="confirmReload">Discard & reload</BaseButton>
             </template>
         </BaseModal>
-
+        
         <BaseModal v-model:visible="showPasswordModal" title="🔐 Save Your Progress">
             <p class="modal-description">Enter a password to encrypt your quiz progress.</p>
             <BaseInput
@@ -63,20 +77,6 @@
                 <BaseButton variant="secondary" @click="submitPassword">Save</BaseButton>
             </template>
         </BaseModal>
-
-        <footer class="footer">
-            <div class="container footer-content">
-                <div class="footer-links">
-                    <router-link to="/#how-it-works">How It Works</router-link>
-                    <router-link to="/#philosophy">Philosophy</router-link>
-                    <router-link to="/#faq">FAQ</router-link>
-                    <router-link to="/wiki/email">Wiki</router-link>
-                    <a href="https://github.com/Nepholis/KnowYourPrivacy" target="_blank" rel="noopener noreferrer">GitHub</a>
-                </div>
-                <p class="footer-tagline">🔐 All data is encrypted and stored locally. No tracking. Open source.</p>
-                <p class="footer-credits">Made with ❤️ for privacy</p>
-            </div>
-        </footer>
     </div>
 </template>
 
