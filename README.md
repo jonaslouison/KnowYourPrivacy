@@ -1,5 +1,8 @@
 # KnowYourPrivacy
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![GitHub issues](https://img.shields.io/github/issues/jonaslouison/KnowYourPrivacy)](https://github.com/jonaslouison/KnowYourPrivacy/issues)
+
 A privacy-focused quiz web app that helps users understand and improve their digital privacy. All data is processed client-side with encryption - no servers, no tracking, no accounts required.
 
 ## Features
@@ -45,4 +48,12 @@ npm run deploy
 
 ## License
 
-MIT
+This project is licensed under the [MIT License](LICENSE).
+
+## Third-Party Data
+
+The `privacyguides.org-main/` directory contains content from [Privacy Guides](https://www.privacyguides.org/), which is used as a data source for recommendations. It is a separate project with its own licensing — see its [LICENSE](privacyguides.org-main/LICENSE) for details.
+
+## Contributing
+
+Contributions are welcome! Please open an [issue](https://github.com/jonaslouison/KnowYourPrivacy/issues) to report bugs or suggest features, or submit a pull request.

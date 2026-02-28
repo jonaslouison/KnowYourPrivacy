@@ -24,9 +24,22 @@
     "vitest": "^4.0.15",
     "vue-tsc": "^2.0.0"
   },
+  "author": "Jonas Louison",
+  "keywords": [
+    "privacy",
+    "quiz",
+    "security",
+    "encryption",
+    "vue",
+    "open-source"
+  ],
+  "homepage": "https://jonaslouison.github.io/KnowYourPrivacy",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Nepholis/KnowYourPrivacy.git"
+    "url": "https://github.com/jonaslouison/KnowYourPrivacy.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jonaslouison/KnowYourPrivacy/issues"
   },
   "license": "MIT"
 }
