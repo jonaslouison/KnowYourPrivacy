@@ -18,16 +18,21 @@
                     <router-link to="/dashboard" @click="mobileMenuOpen = false">Dashboard</router-link>
                     <router-link to="/wiki/email" @click="mobileMenuOpen = false">Wiki</router-link>
                 </div>
-                <div class="timer-display">
-                    <div v-if="timerStore.quizTimerActive" class="timer-item" :class="{ running: timerStore.quizTimerRunning, completed: timerStore.quizTimerCompleted }">
-                        <span class="timer-label">Quiz:</span>
-                        <span class="timer-value">{{ timerStore.quizElapsedFormatted }}</span>
-                        <button v-if="timerStore.quizTimerCompleted" class="copy-btn" @click="copyQuizTime" title="Copy to clipboard">📋</button>
-                    </div>
-                    <div v-if="timerStore.loadTimerActive" class="timer-item" :class="{ running: timerStore.loadTimerRunning, completed: timerStore.loadTimerCompleted }">
-                        <span class="timer-label">Load:</span>
-                        <span class="timer-value">{{ timerStore.loadElapsedFormatted }}</span>
-                        <button v-if="timerStore.loadTimerCompleted" class="copy-btn" @click="copyLoadTime" title="Copy to clipboard">📋</button>
+                <div class="nav-actions">
+                    <button class="theme-toggle" @click="toggleTheme" :title="theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'" aria-label="Toggle theme">
+                        <span class="theme-icon">{{ theme === 'dark' ? '☀️' : '🌙' }}</span>
+                    </button>
+                    <div class="timer-display">
+                        <div v-if="timerStore.quizTimerActive" class="timer-item" :class="{ running: timerStore.quizTimerRunning, completed: timerStore.quizTimerCompleted }">
+                            <span class="timer-label">Quiz:</span>
+                            <span class="timer-value">{{ timerStore.quizElapsedFormatted }}</span>
+                            <button v-if="timerStore.quizTimerCompleted" class="copy-btn" @click="copyQuizTime" title="Copy to clipboard">📋</button>
+                        </div>
+                        <div v-if="timerStore.loadTimerActive" class="timer-item" :class="{ running: timerStore.loadTimerRunning, completed: timerStore.loadTimerCompleted }">
+                            <span class="timer-label">Load:</span>
+                            <span class="timer-value">{{ timerStore.loadElapsedFormatted }}</span>
+                            <button v-if="timerStore.loadTimerCompleted" class="copy-btn" @click="copyLoadTime" title="Copy to clipboard">📋</button>
+                        </div>
                     </div>
                 </div>
             </nav>
@@ -93,11 +98,13 @@ import {
     useReloadGuard
 } from './composables/useReloadGuard'
 import { useTimerStore } from './stores/timer'
+import { useTheme } from './composables/useTheme'
 import { showToast } from './utils/toast'
 
 declare const __APP_VERSION__: string
 const appVersion = __APP_VERSION__
 
+const { theme, toggleTheme } = useTheme()
 const timerStore = useTimerStore()
 const mobileMenuOpen = ref(false)
 
@@ -176,9 +183,39 @@ onBeforeUnmount(unregisterReloadGuardListeners)
     color: var(--primary-color);
 }
 
-.timer-display {
+.nav-actions {
     position: absolute;
     right: 2rem;
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.theme-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 50%;
+    border: 1px solid var(--border-color);
+    background: var(--card-bg);
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s, transform 0.2s;
+}
+
+.theme-toggle:hover {
+    background: color-mix(in srgb, var(--primary-color) 10%, transparent);
+    border-color: var(--primary-color);
+    transform: scale(1.1);
+}
+
+.theme-icon {
+    font-size: 1.1rem;
+    line-height: 1;
+}
+
+.timer-display {
     display: flex;
     gap: 1rem;
     align-items: center;
@@ -192,7 +229,7 @@ onBeforeUnmount(unregisterReloadGuardListeners)
     border-radius: 6px;
     font-size: 0.8rem;
     font-family: 'Monaco', 'Menlo', monospace;
-    background: var(--color-surface, #f3f4f6);
+    background: var(--bg-color);
     border: 1px solid var(--border-color);
 }
 
@@ -340,6 +377,8 @@ main {
     .logo {
         position: static;
         font-size: 1.2rem;
+        text-align: center;
+        flex: 1;
     }
 
     .burger-menu {
@@ -384,6 +423,11 @@ main {
         bottom: 0;
         background: rgba(0, 0, 0, 0.4);
         z-index: 98;
+    }
+
+    .nav-actions {
+        right: auto;
+        left: 1rem;
     }
 
     .timer-display {

@@ -395,7 +395,7 @@ const tierDropdownOptions = computed(() => {
     padding: 0.35rem 0.45rem;
     border: 1px dashed var(--border-color);
     border-radius: 10px;
-    background: rgba(255, 255, 255, 0.4);
+    background: var(--bg-color);
     display: flex;
     align-items: center;
     flex-wrap: wrap;
@@ -427,7 +427,7 @@ const tierDropdownOptions = computed(() => {
 
 .drop-zone.preview {
     border-color: var(--primary-color);
-    background: rgba(59, 130, 246, 0.08);
+    background: color-mix(in srgb, var(--primary-color) 8%, transparent);
 }
 
 .tier-item {
@@ -546,7 +546,7 @@ const tierDropdownOptions = computed(() => {
 }
 
 .tier-dropdown-wrapper.unassigned :deep(.dropdown-trigger) {
-    background: white;
+    background: var(--card-bg);
     border-color: var(--border-color);
 }
 </style>

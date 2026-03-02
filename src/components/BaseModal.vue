@@ -51,7 +51,7 @@ const hasHeader = computed(() => !!props.title || !!slots.header)
 .modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(15, 23, 42, 0.65);
+    background: rgba(0, 0, 0, 0.6);
     display: flex;
     justify-content: center;
     align-items: center;

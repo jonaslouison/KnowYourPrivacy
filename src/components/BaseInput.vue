@@ -68,6 +68,7 @@ defineExpose({
     font-size: var(--font-size-base);
     transition: border-color 0.2s ease;
     background: var(--card-bg);
+    color: var(--text-primary);
 }
 
 .base-input:focus {

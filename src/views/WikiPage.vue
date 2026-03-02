@@ -45,35 +45,13 @@
           <div class="control-group service-selection-group">
             <label class="control-label">Your Selection</label>
             <div class="selection-item">
-              <div class="selection-flow">
-                <a 
-                  v-if="currentServiceInfo"
-                  :href="`#${currentServiceInfo.id}`"
-                  class="mini-card current"
-                  @click.prevent="scrollToService(currentServiceInfo.id)"
-                >
-                  <span class="mini-card-label">Current</span>
-                  <span class="mini-card-name">{{ currentServiceInfo.name }}</span>
-                </a>
-                <div v-else class="mini-card current empty">
-                  <span class="mini-card-label">Current</span>
-                  <span class="mini-card-name">Not selected</span>
-                </div>
-                <span class="selection-arrow">→</span>
-                <a 
-                  v-if="recommendedService"
-                  :href="`#${recommendedService.id}`"
-                  class="mini-card recommended"
-                  @click.prevent="scrollToService(recommendedService.id)"
-                >
-                  <span class="mini-card-label">Recommended</span>
-                  <span class="mini-card-name">{{ recommendedService.name }}</span>
-                </a>
-                <div v-else class="mini-card recommended empty">
-                  <span class="mini-card-label">Recommended</span>
-                  <span class="mini-card-name">Complete quiz</span>
-                </div>
-              </div>
+              <SelectionFlow
+                :current-name="currentServiceInfo?.name"
+                :current-rating="currentServiceRating"
+                :recommended-name="recommendedService?.name"
+                @current-click="currentServiceInfo && scrollToService(currentServiceInfo.id)"
+                @recommended-click="recommendedService && scrollToService(recommendedService.id)"
+              />
             </div>
           </div>
         </div>
@@ -276,6 +254,8 @@ import { computed, ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import BaseButton from '../components/BaseButton.vue'
 import BaseDropdown from '../components/BaseDropdown.vue'
+import SelectionFlow from '../components/SelectionFlow.vue'
+import type { RatingClass } from '../components/SelectionFlow.vue'
 import { useQuizStore } from '../stores/quiz'
 import { showToast } from '../utils/toast'
 import { getWikiCategory, getPrivacyRatingColor, getPrivacyRatingLabel, WIKI_CATEGORIES, type WikiCategory, type WikiService } from '../data/wiki'
@@ -356,6 +336,15 @@ const currentServiceInfo = computed(() => {
     answer.includes(service.id.toLowerCase().split('-')[0]) ||
     service.name.toLowerCase().includes(answer.replace(/-/g, ' '))
   ) || null
+})
+
+// Map wiki privacyRating to SelectionFlow rating class
+const currentServiceRating = computed<RatingClass | undefined>(() => {
+  const rating = currentServiceInfo.value?.privacyRating
+  if (!rating) return undefined
+  if (rating === 'good' || rating === 'recommended') return 'good'
+  if (rating === 'acceptable' || rating === 'caution') return 'medium'
+  return 'poor' // 'avoid'
 })
 
 // Recommended service based on threat level
@@ -652,15 +641,15 @@ watch(category, (cat) => {
 }
 
 .status-tag.computed {
-  background: rgba(34, 197, 94, 0.15);
-  color: #16a34a;
-  border: 1px solid rgba(34, 197, 94, 0.3);
+  background: color-mix(in srgb, var(--success-color) 15%, transparent);
+  color: var(--success-color);
+  border: 1px solid color-mix(in srgb, var(--success-color) 30%, transparent);
 }
 
 .status-tag.manual {
-  background: rgba(249, 115, 22, 0.15);
-  color: #ea580c;
-  border: 1px solid rgba(249, 115, 22, 0.3);
+  background: color-mix(in srgb, var(--warning-color) 15%, transparent);
+  color: var(--warning-color);
+  border: 1px solid color-mix(in srgb, var(--warning-color) 30%, transparent);
 }
 
 .reset-btn {
@@ -692,75 +681,7 @@ watch(category, (cat) => {
   background: var(--card-bg);
 }
 
-.selection-flow {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.mini-card {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.125rem;
-  padding: 0.5rem 0.75rem;
-  border-radius: 6px;
-  text-decoration: none;
-  transition: all 0.2s ease;
-  min-width: 0;
-  cursor: pointer;
-}
-
-.mini-card:hover:not(.empty) {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-}
-
-.mini-card.empty {
-  opacity: 0.6;
-  cursor: default;
-}
-
-.mini-card.current {
-  background: var(--bg-secondary, #f8f9fa);
-  border: 1px solid var(--border-color);
-}
-
-.mini-card.recommended {
-  background: linear-gradient(135deg, #dcfce7 0%, #d1fae5 100%);
-  border: 1px solid #22c55e;
-}
-
-.mini-card-label {
-  font-size: 0.65rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-secondary);
-}
-
-.mini-card.recommended .mini-card-label {
-  color: #166534;
-}
-
-.mini-card-name {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.mini-card.recommended .mini-card-name {
-  color: #166534;
-}
-
-.selection-arrow {
-  font-size: 1.25rem;
-  color: var(--text-secondary);
-  flex-shrink: 0;
-}
+/* mini-card styles are in SelectionFlow.vue component */
 
 .wiki-content {
   display: grid;
@@ -959,13 +880,13 @@ watch(category, (cat) => {
 }
 
 .intro-block.concerns {
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.08), rgba(239, 68, 68, 0.03));
-  border: 1px solid rgba(239, 68, 68, 0.15);
+  background: color-mix(in srgb, var(--danger-color) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--danger-color) 15%, transparent);
 }
 
 .intro-block.benefits {
-  background: linear-gradient(135deg, rgba(34, 197, 94, 0.08), rgba(34, 197, 94, 0.03));
-  border: 1px solid rgba(34, 197, 94, 0.15);
+  background: color-mix(in srgb, var(--success-color) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--success-color) 15%, transparent);
 }
 
 .intro-block h4 {
@@ -977,11 +898,11 @@ watch(category, (cat) => {
 }
 
 .intro-block.concerns h4 {
-  color: #dc2626;
+  color: var(--danger-color);
 }
 
 .intro-block.benefits h4 {
-  color: #16a34a;
+  color: var(--success-color);
 }
 
 .intro-block ul {
@@ -1029,10 +950,10 @@ watch(category, (cat) => {
 }
 
 .service-article.is-recommended {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(99, 102, 241, 0.02));
+  background: color-mix(in srgb, var(--primary-color) 8%, transparent);
   border-radius: 12px;
-  border: 1px solid rgba(99, 102, 241, 0.2);
-  border-left: 4px solid var(--color-primary, #6366f1);
+  border: 1px solid color-mix(in srgb, var(--primary-color) 20%, transparent);
+  border-left: 4px solid var(--primary-color);
 }
 
 .rec-badge {
@@ -1158,8 +1079,8 @@ watch(category, (cat) => {
   display: inline-flex;
   align-items: center;
   padding: 0.25rem 0.5rem;
-  background: var(--color-success-bg, #dcfce7);
-  color: var(--color-success, #166534);
+  background: color-mix(in srgb, var(--success-color) 15%, transparent);
+  color: var(--success-color);
   border-radius: 4px;
   font-size: 0.75rem;
   font-weight: 500;
