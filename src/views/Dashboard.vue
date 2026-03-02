@@ -515,13 +515,11 @@ import {
     useQuizStore
 } from '../stores/quiz'
 import type { AppCategory, ThreatTierId } from '../stores/quiz'
-import { useTimerStore } from '../stores/timer'
 import { showToast } from '../utils/toast'
 import { validateExportFile } from '../utils/crypto'
 
 const router = useRouter()
 const quizStore = useQuizStore()
-const timerStore = useTimerStore()
 const showDeleteConfirm = ref(false)
 const showPasswordModal = ref(false)
 const showExportModal = ref(false)
@@ -538,13 +536,10 @@ const isApplyingExternalData = ref(false)
 let pendingFile: File | null = null
 let isLoadAction = false
 
-// Reset load timer when password modal is closed (e.g., by clicking outside)
+// Reset state when password modal is closed (e.g., by clicking outside)
 watch(showPasswordModal, (isVisible, wasVisible) => {
     if (wasVisible && !isVisible && pendingFile) {
-        // Modal was closed without successful import - reset timer only if it was a load action
-        if (isLoadAction || pendingFile) {
-            timerStore.resetLoadTimer()
-        }
+        // Modal was closed without successful import
         pendingFile = null
         fileName.value = ''
         passwordInput.value = ''
@@ -773,17 +768,11 @@ const handleGeneralOptionChange = (questionId: string, value: string | number) =
 }
 
 const loadDashboard = () => {
-    // Reset and start load timer
-    timerStore.resetLoadTimer()
-    timerStore.startLoadTimer()
-
     const fileInput = document.createElement('input')
     fileInput.type = 'file'
     fileInput.accept = '.json'
 
-    // Reset timer when user cancels file selection dialog
     fileInput.oncancel = () => {
-        timerStore.resetLoadTimer()
     }
 
     fileInput.onchange = async (e: Event) => {
@@ -898,17 +887,11 @@ const cancelExportConfirm = () => {
 }
 
 const importData = () => {
-    // Reset and start load timer for import
-    timerStore.resetLoadTimer()
-    timerStore.startLoadTimer()
-
     const fileInput = document.createElement('input')
     fileInput.type = 'file'
     fileInput.accept = '.json'
 
-    // Reset timer when user cancels file selection dialog
     fileInput.oncancel = () => {
-        timerStore.resetLoadTimer()
     }
 
     fileInput.onchange = async (e: Event) => {
@@ -916,7 +899,6 @@ const importData = () => {
         const file = target.files?.[0]
         if (!file) {
             showToast('File selection cancelled', 'warning')
-            timerStore.resetLoadTimer()
             return
         }
 
@@ -951,8 +933,6 @@ const submitPassword = async () => {
         hasUnsavedChanges.value = false
         showPasswordModal.value = false
         
-        // Stop load timer on successful import
-        timerStore.stopLoadTimer()
         const message = isLoadAction ? 'Data loaded successfully!' : 'Data imported successfully!'
         showToast(message, 'success')
         if (!quizStore.isCompleted) {
@@ -975,8 +955,6 @@ const cancelPasswordInput = () => {
     fileName.value = ''
     passwordInput.value = ''
     passwordError.value = ''
-    // Reset load timer on cancel
-    timerStore.resetLoadTimer()
 }
 
 const loadDifferentFile = () => {
@@ -995,9 +973,6 @@ const resetData = () => {
 
 const confirmDelete = () => {
     quizStore.resetQuiz()
-    // Reset both timers on delete
-    timerStore.resetQuizTimer()
-    timerStore.resetLoadTimer()
     showDeleteConfirm.value = false
     showToast('All data deleted successfully', 'success')
     router.push('/')
