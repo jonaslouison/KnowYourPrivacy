@@ -48,6 +48,7 @@
                 </div>
                 <p class="footer-tagline">🔐 All data is encrypted and stored locally. No tracking. Open source.</p>
                 <p class="footer-credits">Made with ❤️ for privacy</p>
+                <p class="footer-version">v{{ appVersion }}</p>
             </div>
         </footer>
         
@@ -93,6 +94,9 @@ import {
 } from './composables/useReloadGuard'
 import { useTimerStore } from './stores/timer'
 import { showToast } from './utils/toast'
+
+declare const __APP_VERSION__: string
+const appVersion = __APP_VERSION__
 
 const timerStore = useTimerStore()
 const mobileMenuOpen = ref(false)
@@ -282,6 +286,13 @@ main {
     margin: 0;
     color: var(--text-tertiary, #9ca3af);
     font-size: 0.85rem;
+}
+
+.footer-version {
+    margin: 0.25rem 0 0;
+    color: var(--text-tertiary, #9ca3af);
+    font-size: 0.75rem;
+    opacity: 0.7;
 }
 
 .footer a {
