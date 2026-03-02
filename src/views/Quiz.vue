@@ -14,7 +14,6 @@ import { useQuizStore,
     type QuizSectionKey,
     type ThreatTierId
 } from '../stores/quiz'
-import { useTimerStore } from '../stores/timer'
 import { showToast } from '../utils/toast'
 import { useReloadGuard } from '../composables/useReloadGuard'
 import { THREAT_DESCRIPTIONS } from '../data/wiki'
@@ -22,7 +21,6 @@ import { THREAT_DESCRIPTIONS } from '../data/wiki'
 const router = useRouter()
 const route = useRoute()
 const quizStore = useQuizStore()
-const timerStore = useTimerStore()
 const { openPasswordModal } = useReloadGuard()
 
 const selectedAnswer = ref<string | string[] | null>(null)
@@ -163,8 +161,6 @@ const nextQuestion = () => {
 
     if (isLastQuestion.value) {
         quizStore.completeQuiz()
-        // Stop quiz timer when quiz is completed
-        timerStore.stopQuizTimer()
         quizCompleted.value = true
         showQuiz.value = false
     } else {
@@ -188,18 +184,8 @@ const viewDashboard = () => {
     router.push('/dashboard')
 }
 
-const copyQuizTime = async () => {
-    const copied = await timerStore.copyQuizTime()
-    if (copied) {
-        showToast('Quiz time copied to clipboard!', 'success')
-    }
-}
-
 const confirmRestart = () => {
     quizStore.resetQuiz()
-    // Reset and restart quiz timer
-    timerStore.resetQuizTimer()
-    timerStore.startQuizTimer()
     quizCompleted.value = false
     showQuiz.value = true
     showRestartConfirm.value = false
@@ -213,9 +199,6 @@ const cancelRestart = () => {
 
 const confirmDelete = () => {
     quizStore.resetQuiz()
-    // Reset both timers on delete
-    timerStore.resetQuizTimer()
-    timerStore.resetLoadTimer()
     showDeleteConfirm.value = false
     quizCompleted.value = false
     showQuiz.value = true
@@ -371,15 +354,6 @@ onMounted(() => {
                 <div class="congratulations">
                     <h1>🎉 Congratulations!</h1>
                     <p>You've completed the Privacy Quiz</p>
-                    
-                    <!-- Quiz Timer Display -->
-                    <div v-if="timerStore.quizTimerCompleted" class="quiz-time-display">
-                        <span class="time-label">⏱️ Quiz completed in:</span>
-                        <span class="time-value">{{ timerStore.quizElapsedFormatted }}</span>
-                        <BaseButton variant="ghost" size="small" class="copy-time-btn" @click="copyQuizTime">
-                            📋 Copy
-                        </BaseButton>
-                    </div>
                     
                     <p class="completion-message">
                         You now have a personalized privacy score and recommendations for your digital security.
@@ -689,34 +663,6 @@ onMounted(() => {
     margin-right: auto;
 }
 
-.quiz-time-display {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.75rem;
-    margin: 1.5rem 0;
-    padding: 1rem 1.5rem;
-    background: color-mix(in srgb, var(--success-color) 10%, transparent);
-    border-radius: 12px;
-    border: 2px solid var(--success-color);
-}
-
-.quiz-time-display .time-label {
-    color: var(--text-secondary);
-    font-size: 0.95rem;
-}
-
-.quiz-time-display .time-value {
-    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--success-color);
-}
-
-.quiz-time-display .copy-time-btn {
-    margin-left: 0.5rem;
-}
-
 @keyframes slideUp {
     from {
         opacity: 0;
@@ -790,11 +736,6 @@ onMounted(() => {
 
     .congratulations h1 {
         font-size: 2rem;
-    }
-
-    .quiz-time-display {
-        flex-direction: column;
-        gap: 0.5rem;
     }
 
     .threat-descriptions {
