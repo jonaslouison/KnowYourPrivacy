@@ -84,7 +84,7 @@ const getIcon = (type: string) => {
 }
 
 .toast-counter {
-    background: rgba(15, 23, 42, 0.08);
+    background: color-mix(in srgb, var(--text-secondary) 10%, transparent);
     padding: 0 var(--spacing-xs);
     border-radius: var(--border-radius-pill);
     font-size: var(--font-size-small);
@@ -92,7 +92,7 @@ const getIcon = (type: string) => {
 
 .toast-close {
     border: none;
-    background: rgba(15, 23, 42, 0.05);
+    background: color-mix(in srgb, var(--text-secondary) 8%, transparent);
     color: var(--text-secondary);
     font-size: 1.1rem;
     line-height: 1;
@@ -106,7 +106,7 @@ const getIcon = (type: string) => {
 }
 
 .toast-close:hover {
-    background: rgba(15, 23, 42, 0.12);
+    background: color-mix(in srgb, var(--text-secondary) 15%, transparent);
 }
 
 /* Mobile Toast Positioning */

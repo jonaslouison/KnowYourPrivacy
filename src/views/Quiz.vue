@@ -483,7 +483,7 @@ onMounted(() => {
 .info-banner {
     margin-bottom: 1.5rem;
     padding: 1rem;
-    background: #e3f2fd;
+    background: color-mix(in srgb, var(--primary-color) 10%, transparent);
     border-left: 4px solid var(--primary-color);
     border-radius: 6px;
 }
@@ -560,7 +560,7 @@ onMounted(() => {
 
 .option-btn:hover {
     border-color: var(--primary-color);
-    background: #f0f1ff;
+    background: color-mix(in srgb, var(--primary-color) 8%, transparent);
 }
 
 .option-btn.selected {
@@ -696,7 +696,7 @@ onMounted(() => {
     gap: 0.75rem;
     margin: 1.5rem 0;
     padding: 1rem 1.5rem;
-    background: var(--surface-color);
+    background: color-mix(in srgb, var(--success-color) 10%, transparent);
     border-radius: 12px;
     border: 2px solid var(--success-color);
 }

@@ -151,32 +151,15 @@
                                     <span class="priority-icon">{{ recItem.icon }}</span>
                                     <span class="priority-name">{{ recItem.name }}</span>
                                 </div>
-                                <div class="priority-flow">
-                                    <RouterLink 
-                                        :to="getWikiLink(recItem.questionId, recItem.currentAppId)"
-                                        class="mini-card current"
-                                    >
-                                        <span class="mini-card-label">Current</span>
-                                        <span class="mini-card-name">{{ recItem.currentApp }}</span>
-                                    </RouterLink>
-                                    <span class="priority-arrow">→</span>
-                                    <RouterLink 
-                                        v-if="recItem.recommendedApp"
-                                        :to="getWikiLink(recItem.questionId, recItem.recommendedAppId)"
-                                        class="mini-card recommended"
-                                    >
-                                        <span class="mini-card-label">Switch to</span>
-                                        <span class="mini-card-name">{{ recItem.recommendedApp }}</span>
-                                    </RouterLink>
-                                    <RouterLink 
-                                        v-else
-                                        :to="getWikiLink(recItem.questionId, '')"
-                                        class="mini-card recommended"
-                                    >
-                                        <span class="mini-card-label">Explore options</span>
-                                        <span class="mini-card-name">{{ recItem.recommendations[0] }}</span>
-                                    </RouterLink>
-                                </div>
+                                <SelectionFlow
+                                    :current-name="recItem.currentApp"
+                                    current-label="Current"
+                                    :current-to="getWikiLink(recItem.questionId, recItem.currentAppId)"
+                                    :current-rating="recItem.scoreClass"
+                                    :recommended-name="recItem.recommendedApp || recItem.recommendations[0]"
+                                    :recommended-label="recItem.recommendedApp ? 'Switch to' : 'Explore options'"
+                                    :recommended-to="getWikiLink(recItem.questionId, recItem.recommendedAppId || '')"
+                                />
                             </div>
                             <div v-if="!actionableRecommendations.length" class="priority-item success">
                                 <span class="priority-icon">✓</span>
@@ -520,6 +503,7 @@ import BaseModal from '../components/BaseModal.vue'
 import BaseTierlist from '../components/BaseTierlist.vue'
 import BaseDropdown from '../components/BaseDropdown.vue'
 import BaseTooltip from '../components/BaseTooltip.vue'
+import SelectionFlow from '../components/SelectionFlow.vue'
 import type { DeviceType } from '../data/devices'
 import { getCategoryIdFromQuestionId, getServiceAnchorFromAnswer, getServiceAnchorFromCategoryId } from '../data/wiki'
 import {
@@ -1076,13 +1060,13 @@ const cancelDelete = () => {
 }
 
 .warning-banner {
-    background: linear-gradient(135deg, #fff3cd 0%, #fff8e1 100%);
-    border: 1px solid #ffc107;
+    background: color-mix(in srgb, var(--warning-color) 15%, transparent);
+    border: 1px solid var(--warning-color);
 }
 
 .success-banner {
-    background: linear-gradient(135deg, #d4edda 0%, #e8f5e9 100%);
-    border: 1px solid #28a745;
+    background: color-mix(in srgb, var(--success-color) 15%, transparent);
+    border: 1px solid var(--success-color);
 }
 
 .dashboard-metrics {
@@ -1205,69 +1189,7 @@ const cancelDelete = () => {
     font-weight: 500;
 }
 
-.priority-flow {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.mini-card {
-    flex: 1;
-    padding: 0.5rem 0.75rem;
-    border-radius: 6px;
-    text-decoration: none;
-    transition: all 0.2s ease;
-    display: flex;
-    flex-direction: column;
-    gap: 0.125rem;
-    min-width: 0;
-    max-width: 50%;
-}
-
-.mini-card:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-}
-
-.mini-card.current {
-    background: var(--bg-secondary, #f8f9fa);
-    border: 1px solid var(--border-color);
-}
-
-.mini-card.recommended {
-    background: linear-gradient(135deg, #dcfce7 0%, #d1fae5 100%);
-    border: 1px solid #22c55e;
-}
-
-.mini-card-label {
-    font-size: 0.65rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--text-muted);
-}
-
-.mini-card.recommended .mini-card-label {
-    color: #166534;
-}
-
-.mini-card-name {
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.mini-card.recommended .mini-card-name {
-    color: #166534;
-}
-
-.priority-arrow {
-    font-size: 1.25rem;
-    color: var(--text-muted);
-    flex-shrink: 0;
-}
+/* mini-card styles are in SelectionFlow.vue component */
 
 /* Save Data Panel */
 .save-data-panel .panel-heading h2 {
@@ -1359,15 +1281,15 @@ const cancelDelete = () => {
 }
 
 .status-tag.computed {
-    background: rgba(34, 197, 94, 0.15);
-    color: #16a34a;
-    border: 1px solid rgba(34, 197, 94, 0.3);
+    background: color-mix(in srgb, var(--success-color) 15%, transparent);
+    color: var(--success-color);
+    border: 1px solid color-mix(in srgb, var(--success-color) 30%, transparent);
 }
 
 .status-tag.manual {
-    background: rgba(249, 115, 22, 0.15);
-    color: #ea580c;
-    border: 1px solid rgba(249, 115, 22, 0.3);
+    background: color-mix(in srgb, var(--warning-color) 15%, transparent);
+    color: var(--warning-color);
+    border: 1px solid color-mix(in srgb, var(--warning-color) 30%, transparent);
 }
 
 .reset-btn {
@@ -1499,14 +1421,14 @@ const cancelDelete = () => {
     display: inline-flex;
     align-items: center;
     gap: 0.375rem;
-    color: var(--primary, #6366f1);
+    color: var(--secondary-color);
     text-decoration: none;
     font-weight: 600;
     transition: color 0.15s ease;
 }
 
 .category-link:hover {
-    color: var(--primary-hover, #4f46e5);
+    color: var(--primary-color);
     text-decoration: underline;
 }
 
@@ -1577,7 +1499,7 @@ const cancelDelete = () => {
 }
 
 .currently-using-cell {
-    background: #fff;
+    background: var(--card-bg);
 }
 
 .device-specific-header {
@@ -1611,18 +1533,18 @@ const cancelDelete = () => {
 }
 
 .badge.good {
-    background: #e2f4ea;
-    color: #0f7c4d;
+    background: color-mix(in srgb, var(--success-color) 15%, transparent);
+    color: var(--success-color);
 }
 
 .badge.medium {
-    background: #fff4dd;
-    color: #c97100;
+    background: color-mix(in srgb, var(--warning-color) 15%, transparent);
+    color: var(--warning-color);
 }
 
 .badge.poor {
-    background: #ffe2e2;
-    color: #9c1c1c;
+    background: color-mix(in srgb, var(--danger-color) 15%, transparent);
+    color: var(--danger-color);
 }
 
 .table-note {
@@ -1687,7 +1609,7 @@ const cancelDelete = () => {
 }
 
 .error-message {
-    color: #c00;
+    color: var(--danger-color);
     font-size: 0.9rem;
     margin-bottom: 0.5rem;
 }

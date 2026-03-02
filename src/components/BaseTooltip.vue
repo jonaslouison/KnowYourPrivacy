@@ -66,8 +66,8 @@ const show = ref(false)
     max-width: 280px;
     padding: 0.75rem 1rem;
     border-radius: var(--border-radius, 8px);
-    background: var(--text-primary, #111827);
-    color: white;
+    background: #1e293b;
+    color: #f1f5f9;
     font-size: 0.8rem;
     line-height: 1.5;
     box-shadow: var(--shadow-lg, 0 10px 15px -3px rgba(0, 0, 0, 0.1));

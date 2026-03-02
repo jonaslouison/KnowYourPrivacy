@@ -410,13 +410,13 @@ const loadDifferentFile = () => {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    background: rgba(34, 197, 94, 0.15);
-    color: #22c55e;
+    background: color-mix(in srgb, var(--success-color) 15%, transparent);
+    color: var(--success-color);
     padding: 0.5rem 1rem;
     border-radius: 2rem;
     font-size: 0.9rem;
     font-weight: 500;
-    border: 1px solid rgba(34, 197, 94, 0.3);
+    border: 1px solid color-mix(in srgb, var(--success-color) 30%, transparent);
 }
 
 /* Section Titles */
@@ -632,7 +632,7 @@ const loadDifferentFile = () => {
 }
 
 .file-info {
-    background-color: #f5f5f5;
+    background-color: var(--bg-color);
     border: 1px solid var(--border-color);
     border-radius: 8px;
     padding: 1rem;
