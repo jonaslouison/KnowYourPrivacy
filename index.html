@@ -4,10 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Take a privacy quiz and get personalized recommendations to improve your digital privacy">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;">
   <title>KnowYourPrivacy - Privacy Quiz</title>
-  <script type="module" crossorigin src="/KnowYourPrivacy/assets/index-BvHasvcW.js"></script>
-  <link rel="stylesheet" crossorigin href="/KnowYourPrivacy/assets/index-BykYFaKr.css">
+  <script>
+    (function() {
+      var t = localStorage.getItem('kyp-theme');
+      if (!t) t = matchMedia('(prefers-color-scheme:dark)').matches ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', t);
+    })();
+  </script>
+  <script type="module" crossorigin src="/KnowYourPrivacy/assets/index-BujYG16P.js"></script>
+  <link rel="stylesheet" crossorigin href="/KnowYourPrivacy/assets/index-D83beFmC.css">
 </head>
 <body>
   <div id="app"></div>
